@@ -1,0 +1,760 @@
+[
+  {
+    "name": "The Oregon Trail",
+    "url": "https://oregontrail.ws/games/the-oregon-trail/play/",
+    "cabinetArt": "/assets/arcade/oregon-trail-cabinet.v20260428.png",
+    "accent": "#4ade80",
+    "tag": "Pioneer Run"
+  },
+  {
+    "name": "ColecoFusion",
+    "url": "/colecofusion.html",
+    "image": "/assets/images/colecofusion.png",
+    "accent": "#f97316",
+    "tag": "Cartridge Stack"
+  },
+  {
+    "name": "Ace Ventura: Pet Detective",
+    "url": "https://archive.org/details/msdos_Ace_Ventura_Pet_Detective",
+    "cabinetArt": "/assets/arcade/Ace-Ventura-Pet-Detective-1777447891437.png",
+    "accent": "#facc15",
+    "tag": "Detective Comedy",
+    "addedAt": 1777447891437
+  },
+  {
+    "name": "Age of Empires",
+    "url": "https://archive.org/details/msdos_Age_of_Empires",
+    "cabinetArt": "/assets/arcade/Age-of-Empires-1997-1777443195785.png",
+    "accent": "#f97316",
+    "tag": "RTS Classic",
+    "addedAt": 1777443195785
+  },
+  {
+    "name": "Age of Empires II",
+    "url": "https://archive.org/details/msdos_Age_of_Empires_II_The_Age_of_Kings",
+    "cabinetArt": "/assets/arcade/Age-of-Empires-II-1777442766175.png",
+    "accent": "#f97316",
+    "tag": "RTS Legend",
+    "addedAt": 1777442766175
+  },
+  {
+    "name": "Alien Carnage",
+    "url": "https://archive.org/details/msdos_Alien_Carnage",
+    "cabinetArt": "/assets/arcade/Alien-Carnage-1777415089183.png",
+    "accent": "#4ade80",
+    "tag": "Side-Scroller",
+    "addedAt": 1777415089183
+  },
+  {
+    "name": "Astrotit",
+    "url": "https://archive.org/details/msdos_Astrotit",
+    "cabinetArt": "/assets/arcade/Astrotit-1777448010740.png",
+    "accent": "#38bdf8",
+    "tag": "Space Shooter",
+    "addedAt": 1777448010740
+  },
+  {
+    "name": "Blood",
+    "url": "https://archive.org/details/msdos_Blood",
+    "cabinetArt": "/assets/arcade/BLOOD-1777428500204.png",
+    "accent": "#fb7185",
+    "tag": "FPS Horror",
+    "addedAt": 1777428500204
+  },
+  {
+    "name": "Battle Chess",
+    "url": "https://archive.org/details/msdos_Battle_Chess",
+    "cabinetArt": "/assets/arcade/Battle-Chess-1777443976878.png",
+    "accent": "#c084fc",
+    "tag": "Chess Classic",
+    "addedAt": 1777443976878
+  },
+  {
+    "name": "Betrayal at Krondor",
+    "url": "https://archive.org/details/msdos_Betrayal_at_Krondor",
+    "cabinetArt": "/assets/arcade/Betrayal-at-Krondor-1777448902797.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Classic",
+    "addedAt": 1777448902797
+  },
+  {
+    "name": "Bioforge",
+    "url": "https://archive.org/details/msdos_Bioforge",
+    "cabinetArt": "/assets/arcade/Bioforge-1777453409977.png",
+    "accent": "#fb7185",
+    "tag": "Sci-Fi Action",
+    "addedAt": 1777453409977
+  },
+  {
+    "name": "Carmageddon",
+    "url": "https://archive.org/details/msdos_Carmageddon",
+    "cabinetArt": "/assets/arcade/Carmageddon-1777433090038.png",
+    "accent": "#fb7185",
+    "tag": "Death Race",
+    "addedAt": 1777433090038
+  },
+  {
+    "name": "Comanche 2",
+    "url": "https://archive.org/details/msdos_Comanche_2",
+    "cabinetArt": "/assets/arcade/Comanche-2-1777442683475.png",
+    "accent": "#4ade80",
+    "tag": "Heli Sim",
+    "addedAt": 1777442683475
+  },
+  {
+    "name": "Command & Conquer: Red Alert",
+    "url": "https://archive.org/details/msdos_Command_Conquer_Red_Alert",
+    "cabinetArt": "/assets/arcade/Command-Conquer-Red-Alert-1777441994393.png",
+    "accent": "#fb7185",
+    "tag": "RTS War",
+    "addedAt": 1777441994393
+  },
+  {
+    "name": "Commander Keen",
+    "url": "https://archive.org/details/msdos_Commander_Keen_Invasion_of_the_Vorticons",
+    "cabinetArt": "/assets/arcade/Commander-Keen-1777432805631.png",
+    "accent": "#60a5fa",
+    "tag": "Platformer",
+    "addedAt": 1777432805631
+  },
+  {
+    "name": "DOOM",
+    "url": "https://archive.org/details/msdos_DOOM_1993",
+    "cabinetArt": "/assets/arcade/DOOM-1777410455343.png",
+    "accent": "#fb7185",
+    "tag": "FPS Classic",
+    "addedAt": 1777410455343
+  },
+  {
+    "name": "DOOM II: Hell on Earth",
+    "url": "https://archive.org/details/msdos_DOOM_II_Hell_on_Earth_1994",
+    "cabinetArt": "/assets/arcade/DOOM-II-1777440720346.png",
+    "accent": "#fb7185",
+    "tag": "FPS Classic",
+    "addedAt": 1777440720346
+  },
+  {
+    "name": "Dangerous Dave in the Haunted Mansion",
+    "url": "https://archive.org/details/msdos_Dangerous_Dave_in_the_Haunted_Mansion",
+    "cabinetArt": "/assets/arcade/Dangerous-Dave-in-the-Haunted-Mansion-1777442920031.png",
+    "accent": "#4ade80",
+    "tag": "Platformer",
+    "addedAt": 1777442920031
+  },
+  {
+    "name": "Descent",
+    "url": "https://archive.org/details/msdos_Descent",
+    "cabinetArt": "/assets/arcade/Descent-1777445783156.png",
+    "accent": "#38bdf8",
+    "tag": "6DOF Shooter",
+    "addedAt": 1777445783156
+  },
+  {
+    "name": "Diablo",
+    "url": "https://archive.org/details/msdos_Diablo",
+    "cabinetArt": "/assets/arcade/Diablo-1777444490248.png",
+    "accent": "#fb7185",
+    "tag": "Dark RPG",
+    "addedAt": 1777444490248
+  },
+  {
+    "name": "Duke Nukem 3D",
+    "url": "https://archive.org/details/msdos_Duke_Nukem_3D_1996",
+    "cabinetArt": "/assets/arcade/Duke-Nukem-3D-1777412674619.png",
+    "accent": "#facc15",
+    "tag": "FPS Legend",
+    "addedAt": 1777412674619
+  },
+  {
+    "name": "Dune II: The Building of a Dynasty",
+    "url": "https://archive.org/details/msdos_Dune_II_The_Building_of_a_Dynasty",
+    "cabinetArt": "/assets/arcade/Dune-II-The-Building-of-a-Dynasty-1777431426628.png",
+    "accent": "#f97316",
+    "tag": "RTS Origin",
+    "addedAt": 1777431426628
+  },
+  {
+    "name": "Dungeon Keeper",
+    "url": "https://dos.zone/dungeon-keeper/",
+    "cabinetArt": "/assets/arcade/Dungeon-Keeper-1777442438117.png",
+    "accent": "#a78bfa",
+    "tag": "Evil Overlord",
+    "addedAt": 1777442438117
+  },
+  {
+    "name": "FSM Chapel",
+    "url": "https://archive.org/details/msdos_FSM_Chapel",
+    "cabinetArt": "/assets/arcade/FSM-Chapel-1777428956831.png",
+    "accent": "#4ade80",
+    "tag": "Noodly Tribute",
+    "addedAt": 1777428956831
+  },
+  {
+    "name": "Final DOOM",
+    "url": "https://archive.org/details/msdos_Final_DOOM_1996",
+    "cabinetArt": "/assets/arcade/Final-Doom-1996-1777443720327.png",
+    "accent": "#fb7185",
+    "tag": "FPS Classic",
+    "addedAt": 1777443720327
+  },
+  {
+    "name": "Grand Theft Auto",
+    "url": "https://archive.org/details/msdos_Grand_Theft_Auto_1997",
+    "cabinetArt": "/assets/arcade/Grand-Theft-Auto-1997-1777417014316.png",
+    "accent": "#facc15",
+    "tag": "Open World",
+    "addedAt": 1777417014316
+  },
+  {
+    "name": "Grand Theft Auto 2",
+    "url": "https://archive.org/details/msdos_Grand_Theft_Auto_2",
+    "cabinetArt": "/assets/arcade/Grand-Theft-Auto-2-1777440557095.png",
+    "accent": "#facc15",
+    "tag": "Open World",
+    "addedAt": 1777440557095
+  },
+  {
+    "name": "Grand Theft Auto: London",
+    "url": "https://archive.org/details/msdos_Grand_Theft_Auto_London_1969",
+    "cabinetArt": "/assets/arcade/Grand-Theft-Auto-London-1777443578622.png",
+    "accent": "#facc15",
+    "tag": "Open World",
+    "addedAt": 1777443578622
+  },
+  {
+    "name": "Grand Theft Auto: Vice City",
+    "url": "https://archive.org/details/msdos_Grand_Theft_Auto_Vice_City",
+    "cabinetArt": "/assets/arcade/Grand-Theft-Auto-Vice-City-1777445535604.png",
+    "accent": "#f97316",
+    "tag": "Open World",
+    "addedAt": 1777445535604
+  },
+  {
+    "name": "Half-Life Deathmatch",
+    "url": "https://archive.org/details/msdos_Half-Life_Deathmatch",
+    "cabinetArt": "/assets/arcade/Half-Life-Deathmatch-1777434606768.png",
+    "accent": "#f97316",
+    "tag": "FPS Multiplayer",
+    "addedAt": 1777434606768
+  },
+  {
+    "name": "Heretic: Shadow of the Serpent Riders",
+    "url": "https://archive.org/details/msdos_Heretic_Shadow_of_the_Serpent_Riders",
+    "cabinetArt": "/assets/arcade/Heretic-Shadow-of-the-Serpent-Riders-1777445719173.png",
+    "accent": "#c084fc",
+    "tag": "FPS Dark Fantasy",
+    "addedAt": 1777445719173
+  },
+  {
+    "name": "Heroes of Might and Magic II",
+    "url": "https://archive.org/details/msdos_Heroes_of_Might_and_Magic_II",
+    "cabinetArt": "/assets/arcade/Heroes-of-Might-Magic-II-1777440784721.png",
+    "accent": "#f97316",
+    "tag": "Turn-Based Strategy",
+    "addedAt": 1777440784721
+  },
+  {
+    "name": "Heroes of Might and Magic III",
+    "url": "https://archive.org/details/msdos_Heroes_of_Might_and_Magic_III",
+    "cabinetArt": "/assets/arcade/Heroes-of-Might-Magic-III-1777439722677.png",
+    "accent": "#f97316",
+    "tag": "TBS Legend",
+    "addedAt": 1777439722677
+  },
+  {
+    "name": "Heroes Chronicles",
+    "url": "https://archive.org/details/msdos_Heroes_Chronicles",
+    "cabinetArt": "/assets/arcade/Heroes-of-Might-Magic-III-Heroes-Chronicles-1777444785985.png",
+    "accent": "#f97316",
+    "tag": "TBS Campaign",
+    "addedAt": 1777444785985
+  },
+  {
+    "name": "Hexen II",
+    "url": "https://archive.org/details/msdos_Hexen_II",
+    "cabinetArt": "/assets/arcade/Hexen-II-1777443761452.png",
+    "accent": "#c084fc",
+    "tag": "FPS Dark Fantasy",
+    "addedAt": 1777443761452
+  },
+  {
+    "name": "Hocus Pocus",
+    "url": "https://archive.org/details/msdos_Hocus_Pocus",
+    "cabinetArt": "/assets/arcade/Hocus-Pocus-1777441568856.png",
+    "accent": "#c084fc",
+    "tag": "Platformer",
+    "addedAt": 1777441568856
+  },
+  {
+    "name": "Indiana Jones and the Fate of Atlantis",
+    "url": "https://archive.org/details/msdos_Indiana_Jones_and_the_Fate_of_Atlantis",
+    "cabinetArt": "/assets/arcade/Indiana-Jones-and-the-Fate-of-Atlantis-1777431811012.png",
+    "accent": "#f97316",
+    "tag": "Point & Click",
+    "addedAt": 1777431811012
+  },
+  {
+    "name": "King's Quest I: Quest for the Crown",
+    "url": "https://archive.org/details/msdos_Kings_Quest_Quest_for_the_Crown",
+    "cabinetArt": "/assets/arcade/Kings-Quest-1-Quest-For-The-Crown-1777432681401.png",
+    "accent": "#a78bfa",
+    "tag": "Adventure Classic",
+    "addedAt": 1777432681401
+  },
+  {
+    "name": "King's Quest II: Romancing the Throne",
+    "url": "https://archive.org/details/msdos_Kings_Quest_II_Romancing_the_Throne",
+    "cabinetArt": "/assets/arcade/Kings-Quest-2-Romancing-The-Throne-1777432730116.png",
+    "accent": "#a78bfa",
+    "tag": "Adventure Classic",
+    "addedAt": 1777432730116
+  },
+  {
+    "name": "King's Quest III: To Heir Is Human",
+    "url": "https://archive.org/details/msdos_Kings_Quest_III_To_Heir_is_Human",
+    "cabinetArt": "/assets/arcade/Kings-Quest-III-To-Heir-Is-Human-1777451049004.png",
+    "accent": "#a78bfa",
+    "tag": "Adventure Classic",
+    "addedAt": 1777451049004
+  },
+  {
+    "name": "King's Quest IV: The Perils of Rosella",
+    "url": "https://archive.org/details/msdos_Kings_Quest_IV_The_Perils_of_Rosella",
+    "cabinetArt": "/assets/arcade/Kings-Quest-IV-The-Perils-of-Rosella-1777451084287.png",
+    "accent": "#a78bfa",
+    "tag": "Adventure Classic",
+    "addedAt": 1777451084287
+  },
+  {
+    "name": "King's Quest V: Absence Makes the Heart Go Yonder",
+    "url": "https://archive.org/details/msdos_Kings_Quest_V_Absence_Makes_the_Heart_Go_Yonder",
+    "cabinetArt": "/assets/arcade/Kings-Quest-V-Absence-Makes-the-Heart-1777451150004.png",
+    "accent": "#a78bfa",
+    "tag": "Adventure Classic",
+    "addedAt": 1777451150004
+  },
+  {
+    "name": "Lemmings",
+    "url": "https://archive.org/details/msdos_Lemmings_1991",
+    "cabinetArt": "/assets/arcade/Lemmings-1777439120186.png",
+    "accent": "#4ade80",
+    "tag": "Puzzle Classic",
+    "addedAt": 1777439120186
+  },
+  {
+    "name": "Maniac Mansion",
+    "url": "https://archive.org/details/msdos_Maniac_Mansion",
+    "cabinetArt": "/assets/arcade/Maniac-Mansion-1777438915961.png",
+    "accent": "#facc15",
+    "tag": "Point & Click",
+    "addedAt": 1777438915961
+  },
+  {
+    "name": "Master of Orion 2: Battle at Antares",
+    "url": "https://archive.org/details/msdos_Master_of_Orion_2_Battle_at_Antares",
+    "cabinetArt": "/assets/arcade/Master-of-Orion-2-1777418978440.png",
+    "accent": "#38bdf8",
+    "tag": "Space Strategy",
+    "addedAt": 1777418978440
+  },
+  {
+    "name": "MechWarrior 2: 31st Century Combat",
+    "url": "https://archive.org/details/msdos_MechWarrior_2_31st_Century_Combat",
+    "cabinetArt": "/assets/arcade/Mech-Warrior-2-31st-Century-Combat-1777445598221.png",
+    "accent": "#60a5fa",
+    "tag": "Mech Sim",
+    "addedAt": 1777445598221
+  },
+  {
+    "name": "Microsoft 3D Pinball: Space Cadet",
+    "url": "https://archive.org/details/msdos_Microsoft_3D_Pinball_Space_Cadet",
+    "cabinetArt": "/assets/arcade/Microsoft-3D-Pinball-Space-Cadet-1777437452682.png",
+    "accent": "#38bdf8",
+    "tag": "Pinball",
+    "addedAt": 1777437452682
+  },
+  {
+    "name": "Might and Magic II: Gates to Another World",
+    "url": "https://archive.org/details/msdos_Might_and_Magic_II_Gates_to_Another_World",
+    "cabinetArt": "/assets/arcade/Might-Magic-II-Gates-to-Another-World-1777451746061.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Classic",
+    "addedAt": 1777451746061
+  },
+  {
+    "name": "Might and Magic III: Isles of Terra",
+    "url": "https://archive.org/details/msdos_Might_and_Magic_III_Isles_of_Terra",
+    "cabinetArt": "/assets/arcade/Might-Magic-III-Isles-of-Terra-1777451522515.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Classic",
+    "addedAt": 1777451522515
+  },
+  {
+    "name": "Might and Magic V: Darkside of Xeen",
+    "url": "https://archive.org/details/msdos_Might_and_Magic_V_Darkside_of_Xeen",
+    "cabinetArt": "/assets/arcade/Might-Magic-V-Darkside-of-Xeen-1777451725703.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Classic",
+    "addedAt": 1777451725703
+  },
+  {
+    "name": "One Must Fall: 2097",
+    "url": "https://archive.org/details/msdos_One_Must_Fall_2097",
+    "cabinetArt": "/assets/arcade/One-Must-Fall-2097-1777438065561.png",
+    "accent": "#fb7185",
+    "tag": "Fighting Game",
+    "addedAt": 1777438065561
+  },
+  {
+    "name": "Prince of Persia",
+    "url": "https://archive.org/details/msdos_Prince_of_Persia_1990",
+    "cabinetArt": "/assets/arcade/Prince-of-Persia-1777415441548.png",
+    "accent": "#f97316",
+    "tag": "Platformer Classic",
+    "addedAt": 1777415441548
+  },
+  {
+    "name": "Prince of Persia II: The Shadow and the Flame",
+    "url": "https://archive.org/details/msdos_Prince_of_Persia_II_The_Shadow_and_the_Flame",
+    "cabinetArt": "/assets/arcade/Prince-of-Persia-II-The-Shadow-The-Flame-1777445485999.png",
+    "accent": "#f97316",
+    "tag": "Platformer Classic",
+    "addedAt": 1777445485999
+  },
+  {
+    "name": "Quake",
+    "url": "https://archive.org/details/msdos_Quake_1996",
+    "cabinetArt": "/assets/arcade/Quake-1777413408182.png",
+    "accent": "#fb7185",
+    "tag": "FPS Classic",
+    "addedAt": 1777413408182
+  },
+  {
+    "name": "Quake II Deathmatch",
+    "url": "https://archive.org/details/msdos_Quake_II_1997",
+    "cabinetArt": "/assets/arcade/Quake-II-Deathmatch-1777443629107.png",
+    "accent": "#fb7185",
+    "tag": "FPS Multiplayer",
+    "addedAt": 1777443629107
+  },
+  {
+    "name": "Quake III Arena",
+    "url": "https://archive.org/details/msdos_Quake_III_Arena",
+    "cabinetArt": "/assets/arcade/Quake-III-Arena-1777435758606.png",
+    "accent": "#fb7185",
+    "tag": "FPS Arena",
+    "addedAt": 1777435758606
+  },
+  {
+    "name": "Raptor: Call of the Shadows",
+    "url": "https://archive.org/details/msdos_Raptor_Call_of_the_Shadows",
+    "cabinetArt": "/assets/arcade/Raptor-Call-of-the-Shadows-1777441169504.png",
+    "accent": "#4ade80",
+    "tag": "Shoot-em-up",
+    "addedAt": 1777441169504
+  },
+  {
+    "name": "Redneck Rampage",
+    "url": "https://archive.org/details/msdos_Redneck_Rampage",
+    "cabinetArt": "/assets/arcade/Redneck-Rampage-1777443336041.png",
+    "accent": "#facc15",
+    "tag": "FPS Wild",
+    "addedAt": 1777443336041
+  },
+  {
+    "name": "Rise of the Triad",
+    "url": "https://archive.org/details/msdos_Rise_of_the_Triad_1994",
+    "cabinetArt": "/assets/arcade/Rise-of-the-Triad-1777441284629.png",
+    "accent": "#fb7185",
+    "tag": "FPS Action",
+    "addedAt": 1777441284629
+  },
+  {
+    "name": "Road Rash",
+    "url": "https://archive.org/details/msdos_Road_Rash",
+    "cabinetArt": "/assets/arcade/Road-Rash-1777440381093.png",
+    "accent": "#f97316",
+    "tag": "Biker Brawler",
+    "addedAt": 1777440381093
+  },
+  {
+    "name": "Scorched Earth",
+    "url": "https://archive.org/details/msdos_Scorched_Earth",
+    "cabinetArt": "/assets/arcade/Scorched-Earth-1777445819034.png",
+    "accent": "#facc15",
+    "tag": "Artillery Classic",
+    "addedAt": 1777445819034
+  },
+  {
+    "name": "The Settlers II",
+    "url": "https://archive.org/details/msdos_Settlers_II",
+    "cabinetArt": "/assets/arcade/Settlers-2-1777440197858.png",
+    "accent": "#4ade80",
+    "tag": "Colony Builder",
+    "addedAt": 1777440197858
+  },
+  {
+    "name": "Sid & Al's Incredible Toons",
+    "url": "https://archive.org/details/msdos_Sid_and_Als_Incredible_Toons",
+    "cabinetArt": "/assets/arcade/Sid-Als-Incredible-Toons-1777453485173.png",
+    "accent": "#facc15",
+    "tag": "Puzzle Toons",
+    "addedAt": 1777453485173
+  },
+  {
+    "name": "Sid Meier's Civilization",
+    "url": "https://archive.org/details/msdos_Sid_Meiers_Civilization",
+    "cabinetArt": "/assets/arcade/Sid-Meiers-Civilization-1777431517317.png",
+    "accent": "#60a5fa",
+    "tag": "4X Legend",
+    "addedAt": 1777431517317
+  },
+  {
+    "name": "SimAnt",
+    "url": "https://archive.org/details/msdos_SimAnt_The_Electronic_Ant_Colony",
+    "cabinetArt": "/assets/arcade/Sim-Ant-1777445637685.png",
+    "accent": "#4ade80",
+    "tag": "Ant Colony Sim",
+    "addedAt": 1777445637685
+  },
+  {
+    "name": "SimFarm",
+    "url": "https://archive.org/details/msdos_SimFarm",
+    "cabinetArt": "/assets/arcade/Sim-Farm-1777449489287.png",
+    "accent": "#4ade80",
+    "tag": "Farm Sim",
+    "addedAt": 1777449489287
+  },
+  {
+    "name": "SimCity 2000",
+    "url": "https://archive.org/details/msdos_SimCity_2000",
+    "cabinetArt": "/assets/arcade/SimCity-2000-1777428899493.png",
+    "accent": "#38bdf8",
+    "tag": "City Builder",
+    "addedAt": 1777428899493
+  },
+  {
+    "name": "SimCity 3000",
+    "url": "https://archive.org/details/msdos_SimCity_3000",
+    "cabinetArt": "/assets/arcade/SimCity-3000-1777445677194.png",
+    "accent": "#38bdf8",
+    "tag": "City Builder",
+    "addedAt": 1777445677194
+  },
+  {
+    "name": "SimCity Classic",
+    "url": "https://archive.org/details/msdos_SimCity",
+    "cabinetArt": "/assets/arcade/SimCity-Classic-1777416477550.png",
+    "accent": "#38bdf8",
+    "tag": "City Builder",
+    "addedAt": 1777416477550
+  },
+  {
+    "name": "Star Wars: TIE Fighter",
+    "url": "https://archive.org/details/msdos_Star_Wars_TIE_Fighter_1994",
+    "cabinetArt": "/assets/arcade/Star-Wars-TIE-Fighter-1777448822268.png",
+    "accent": "#60a5fa",
+    "tag": "Space Combat",
+    "addedAt": 1777448822268
+  },
+  {
+    "name": "Star Wars: X-Wing",
+    "url": "https://archive.org/details/msdos_Star_Wars_X-Wing_1993",
+    "cabinetArt": "/assets/arcade/Star-Wars-X-Wing-1777448859382.png",
+    "accent": "#60a5fa",
+    "tag": "Space Combat",
+    "addedAt": 1777448859382
+  },
+  {
+    "name": "Stunts",
+    "url": "https://archive.org/details/msdos_Stunts_1990",
+    "cabinetArt": "/assets/arcade/Stunts-1777441862195.png",
+    "accent": "#facc15",
+    "tag": "Stunt Racing",
+    "addedAt": 1777441862195
+  },
+  {
+    "name": "Syndicate",
+    "url": "https://archive.org/details/msdos_Syndicate_1993",
+    "cabinetArt": "/assets/arcade/Syndicate-1777448371892.png",
+    "accent": "#38bdf8",
+    "tag": "Cyberpunk RTS",
+    "addedAt": 1777448371892
+  },
+  {
+    "name": "The Elder Scrolls: Arena",
+    "url": "https://archive.org/details/msdos_The_Elder_Scrolls_Arena_1994",
+    "cabinetArt": "/assets/arcade/The-Elder-Scrolls-I-Arena-1777442969308.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Open World",
+    "addedAt": 1777442969308
+  },
+  {
+    "name": "The Elder Scrolls II: Daggerfall",
+    "url": "https://archive.org/details/msdos_The_Elder_Scrolls_II_Daggerfall_1996",
+    "cabinetArt": "/assets/arcade/The-Elder-Scrolls-II-Daggerfall-1777432108881.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Open World",
+    "addedAt": 1777432108881
+  },
+  {
+    "name": "The Hitchhiker's Guide to the Galaxy",
+    "url": "https://archive.org/details/msdos_The_Hitchhikers_Guide_to_the_Galaxy",
+    "cabinetArt": "/assets/arcade/The-Hitchhikers-Guide-to-the-Galaxy-1777437740711.png",
+    "accent": "#4ade80",
+    "tag": "Text Adventure",
+    "addedAt": 1777437740711
+  },
+  {
+    "name": "The Lost Vikings",
+    "url": "https://archive.org/details/msdos_The_Lost_Vikings_1993",
+    "cabinetArt": "/assets/arcade/The-Lost-Vikings-1777434882173.png",
+    "accent": "#f97316",
+    "tag": "Puzzle Platformer",
+    "addedAt": 1777434882173
+  },
+  {
+    "name": "The Lost Vikings 2",
+    "url": "https://archive.org/details/msdos_The_Lost_Vikings_2",
+    "cabinetArt": "/assets/arcade/The-Lost-Vikings-2-1777435248086.png",
+    "accent": "#f97316",
+    "tag": "Puzzle Platformer",
+    "addedAt": 1777435248086
+  },
+  {
+    "name": "The Need for Speed",
+    "url": "https://archive.org/details/msdos_The_Need_for_Speed_1994",
+    "cabinetArt": "/assets/arcade/The-Need-For-Speed-1777433167455.png",
+    "accent": "#facc15",
+    "tag": "Racing Classic",
+    "addedAt": 1777433167455
+  },
+  {
+    "name": "The Secret of Monkey Island",
+    "url": "https://archive.org/details/msdos_The_Secret_of_Monkey_Island_1990",
+    "cabinetArt": "/assets/arcade/The-Secret-of-Monkey-Island-1777415804651.png",
+    "accent": "#facc15",
+    "tag": "Point & Click",
+    "addedAt": 1777415804651
+  },
+  {
+    "name": "Theme Hospital",
+    "url": "https://archive.org/details/msdos_Theme_Hospital",
+    "cabinetArt": "/assets/arcade/Theme-Hospital-1777442248387.png",
+    "accent": "#38bdf8",
+    "tag": "Hospital Sim",
+    "addedAt": 1777442248387
+  },
+  {
+    "name": "Theme Park",
+    "url": "https://archive.org/details/msdos_Theme_Park",
+    "cabinetArt": "/assets/arcade/Theme-Park-1777442392429.png",
+    "accent": "#facc15",
+    "tag": "Park Tycoon",
+    "addedAt": 1777442392429
+  },
+  {
+    "name": "Tyrian",
+    "url": "https://archive.org/details/msdos_Tyrian_1995",
+    "cabinetArt": "/assets/arcade/Tyrian-1777451242019.png",
+    "accent": "#38bdf8",
+    "tag": "Shoot-em-up",
+    "addedAt": 1777451242019
+  },
+  {
+    "name": "Ultima Underworld: The Stygian Abyss",
+    "url": "https://archive.org/details/msdos_Ultima_Underworld_The_Stygian_Abyss",
+    "cabinetArt": "/assets/arcade/Ultima-Underworld-I-The-Stygian-Abyss-1777447791447.png",
+    "accent": "#a78bfa",
+    "tag": "Dungeon RPG",
+    "addedAt": 1777447791447
+  },
+  {
+    "name": "Ultima Underworld II: Labyrinth of Worlds",
+    "url": "https://archive.org/details/msdos_Ultima_Underworld_2_-_Labyrinth_of_Worlds_1993",
+    "cabinetArt": "/assets/arcade/Ultima-Underworld-II-Labyrinth-of-Worlds-1777441062540.png",
+    "accent": "#a78bfa",
+    "tag": "Dungeon RPG",
+    "addedAt": 1777441062540
+  },
+  {
+    "name": "Ultima Underworld II: Labyrinth of Worlds",
+    "url": "https://archive.org/details/msdos_Ultima_Underworld_2_-_Labyrinth_of_Worlds_1993",
+    "cabinetArt": "/assets/arcade/Ultima-Underworld-II-Labyrinth-of-Worlds-1777447843693.png",
+    "accent": "#a78bfa",
+    "tag": "Dungeon RPG",
+    "addedAt": 1777447843693
+  },
+  {
+    "name": "Ultima VIII: Pagan",
+    "url": "https://archive.org/details/msdos_Ultima_VIII_Pagan",
+    "cabinetArt": "/assets/arcade/Ultima-VIII-Pagan-1777448073646.png",
+    "accent": "#a78bfa",
+    "tag": "RPG Classic",
+    "addedAt": 1777448073646
+  },
+  {
+    "name": "Unreal Tournament",
+    "url": "https://archive.org/details/msdos_Unreal_Tournament_1999",
+    "cabinetArt": "/assets/arcade/Unreal-Tournament-1777418754162.png",
+    "accent": "#f97316",
+    "tag": "FPS Arena",
+    "addedAt": 1777418754162
+  },
+  {
+    "name": "Warcraft: Orcs & Humans",
+    "url": "https://archive.org/details/msdos_Warcraft_Orcs__Humans_1994",
+    "cabinetArt": "/assets/arcade/Warcraft-I-Orcs-Humans-1777429378602.png",
+    "accent": "#f97316",
+    "tag": "RTS Classic",
+    "addedAt": 1777429378602
+  },
+  {
+    "name": "Warcraft II: Tides of Darkness",
+    "url": "https://archive.org/details/msdos_Warcraft_II_Tides_of_Darkness_1995",
+    "cabinetArt": "/assets/arcade/Warcraft-II-Tides-of-Darkness-1777439922357.png",
+    "accent": "#f97316",
+    "tag": "RTS Classic",
+    "addedAt": 1777439922357
+  },
+  {
+    "name": "Wing Commander",
+    "url": "https://archive.org/details/msdos_Wing_Commander_1990",
+    "cabinetArt": "/assets/arcade/Wing-Commander-1777446346064.png",
+    "accent": "#60a5fa",
+    "tag": "Space Combat Sim",
+    "addedAt": 1777446346064
+  },
+  {
+    "name": "Wing Commander Academy",
+    "url": "https://archive.org/details/msdos_Wing_Commander_Academy_1993",
+    "cabinetArt": "/assets/arcade/Wing-Commander-Academy-1777447732013.png",
+    "accent": "#60a5fa",
+    "tag": "Space Combat Sim",
+    "addedAt": 1777447732013
+  },
+  {
+    "name": "Wing Commander: Privateer",
+    "url": "https://archive.org/details/msdos_Wing_Commander_Privateer_1993",
+    "cabinetArt": "/assets/arcade/Wing-Commander-Privateer-1777447692456.png",
+    "accent": "#60a5fa",
+    "tag": "Space Combat Sim",
+    "addedAt": 1777447692456
+  },
+  {
+    "name": "Wolfenstein 3D",
+    "url": "https://archive.org/details/msdos_Wolfenstein_3D_1992",
+    "cabinetArt": "/assets/arcade/Wolfenstein-3D-1777427981258.png",
+    "accent": "#facc15",
+    "tag": "FPS Origin",
+    "addedAt": 1777427981258
+  },
+  {
+    "name": "X-COM: UFO Defense",
+    "url": "https://archive.org/details/msdos_X-COM_UFO_Defense_1994",
+    "cabinetArt": "/assets/arcade/X-COM-UFO-Defense-1777431668579.png",
+    "accent": "#60a5fa",
+    "tag": "Tactical Strategy",
+    "addedAt": 1777431668579
+  }
+]

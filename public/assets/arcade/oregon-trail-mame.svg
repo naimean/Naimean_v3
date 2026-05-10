@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 760" role="img" aria-labelledby="title desc">
+  <title id="title">The Oregon Trail MAME cabinet</title>
+  <desc id="desc">Transparent upright arcade cabinet inspired by The Oregon Trail with green CRT-style marquee, screen, keyboard, and control panel.</desc>
+  <defs>
+    <linearGradient id="cabinetSide" x1="0" x2="1">
+      <stop offset="0" stop-color="#09090b"/>
+      <stop offset="0.12" stop-color="#2c260f"/>
+      <stop offset="0.22" stop-color="#0d0e0f"/>
+      <stop offset="0.78" stop-color="#0b0d10"/>
+      <stop offset="0.9" stop-color="#2a2147"/>
+      <stop offset="1" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="bezel" x1="0" x2="1">
+      <stop offset="0" stop-color="#171616"/>
+      <stop offset="0.5" stop-color="#2d2817"/>
+      <stop offset="1" stop-color="#121314"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#3e402e"/>
+      <stop offset="0.5" stop-color="#161a12"/>
+      <stop offset="1" stop-color="#5c613b"/>
+    </linearGradient>
+    <linearGradient id="screenGlow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#08140a"/>
+      <stop offset="1" stop-color="#020804"/>
+    </linearGradient>
+    <linearGradient id="artGlow" x1="0" x2="1">
+      <stop offset="0" stop-color="#1e2c12"/>
+      <stop offset="0.5" stop-color="#0e1409"/>
+      <stop offset="1" stop-color="#1c2811"/>
+    </linearGradient>
+    <filter id="greenGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g>
+    <path d="M32 22h296l18 32v672H14V54z" fill="url(#cabinetSide)" stroke="#4e5533" stroke-width="2"/>
+    <path d="M28 22h18v704H18V54z" fill="#632214" opacity="0.85"/>
+    <path d="M314 22h18v704h28V54z" fill="#2e2355" opacity="0.9"/>
+
+    <rect x="36" y="28" width="288" height="112" rx="10" fill="url(#bezel)" stroke="#5f653e" stroke-width="2"/>
+    <rect x="48" y="40" width="264" height="84" rx="7" fill="#081009" stroke="#343920" stroke-width="2"/>
+    <g fill="#a8f27a" font-family="'Courier New', monospace" text-anchor="middle" filter="url(#greenGlow)">
+      <text x="180" y="74" font-size="28">The Oregon Trail</text>
+      <path d="M76 95h40l18-10 22 10 18-14 18 14 16-8 28 8" fill="none" stroke="#8fe567" stroke-width="2"/>
+      <path d="M232 92c8-6 14-8 18-8 8 0 10 8 15 8 5 0 7-6 11-6 8 0 8 15 18 15" fill="none" stroke="#a8f27a" stroke-width="2"/>
+      <text x="180" y="114" font-size="14">APPLE II ARCADE EDITION</text>
+    </g>
+
+    <rect x="66" y="160" width="228" height="298" rx="16" fill="#0f0f0f" stroke="#2b2b2b" stroke-width="4"/>
+    <rect x="84" y="180" width="192" height="256" rx="9" fill="url(#screenGlow)" stroke="#27311d" stroke-width="2"/>
+    <g fill="#9ff16d" font-family="'Courier New', monospace" filter="url(#greenGlow)">
+      <text x="180" y="220" font-size="24" text-anchor="middle">The Oregon Trail</text>
+      <path d="M110 240h32l20-8 16 8 18-10 22 10 18-6" fill="none" stroke="#88df5f" stroke-width="2"/>
+      <path d="M110 324h26l24-11 18 11 18-9 26 9 18-12 20 12" fill="none" stroke="#7ccf56" stroke-width="2"/>
+      <path d="M112 340h136" stroke="#7ccf56" stroke-width="2"/>
+      <path d="M219 328c7-6 12-8 16-8 6 0 9 7 13 7s7-5 11-5c7 0 8 13 15 13" fill="none" stroke="#9ff16d" stroke-width="2"/>
+      <text x="106" y="362" font-size="16">You may:</text>
+      <text x="108" y="388" font-size="16">1. Travel the trail</text>
+      <text x="108" y="412" font-size="16">2. Learn about the trail</text>
+      <text x="108" y="436" font-size="16">3. See the Oregon Top Ten</text>
+      <text x="108" y="460" font-size="16">4. Turn sound off</text>
+      <text x="106" y="496" font-size="18">What is your choice? _</text>
+    </g>
+
+    <path d="M58 476h244l14 82H44z" fill="url(#metal)" stroke="#6e7246" stroke-width="2"/>
+    <rect x="98" y="492" width="164" height="58" rx="6" fill="#0d0d0d" stroke="#474934" stroke-width="2"/>
+    <g fill="#ded4a5">
+      <rect x="110" y="502" width="14" height="10" rx="1"/>
+      <rect x="127" y="502" width="14" height="10" rx="1"/>
+      <rect x="144" y="502" width="14" height="10" rx="1"/>
+      <rect x="161" y="502" width="14" height="10" rx="1"/>
+      <rect x="178" y="502" width="14" height="10" rx="1"/>
+      <rect x="195" y="502" width="14" height="10" rx="1"/>
+      <rect x="212" y="502" width="14" height="10" rx="1"/>
+      <rect x="229" y="502" width="14" height="10" rx="1"/>
+      <rect x="106" y="516" width="18" height="10" rx="1"/>
+      <rect x="127" y="516" width="18" height="10" rx="1"/>
+      <rect x="148" y="516" width="18" height="10" rx="1"/>
+      <rect x="169" y="516" width="18" height="10" rx="1"/>
+      <rect x="190" y="516" width="18" height="10" rx="1"/>
+      <rect x="211" y="516" width="18" height="10" rx="1"/>
+      <rect x="232" y="516" width="18" height="10" rx="1"/>
+      <rect x="114" y="530" width="132" height="10" rx="1"/>
+    </g>
+    <g fill="#99ef6d" font-family="'Courier New', monospace" font-size="11" filter="url(#greenGlow)">
+      <text x="62" y="506">APPLE ][</text>
+      <text x="286" y="506" text-anchor="end">USE</text>
+      <text x="286" y="520" text-anchor="end">KEYBOARD</text>
+      <text x="286" y="540" text-anchor="end">PRESS</text>
+      <text x="286" y="554" text-anchor="end">TO SELECT</text>
+    </g>
+    <circle cx="58" cy="548" r="6" fill="#ba2b1c"/>
+
+    <rect x="38" y="566" width="284" height="150" rx="10" fill="url(#artGlow)" stroke="#59613b" stroke-width="2"/>
+    <g fill="none" stroke="#7ccf56" stroke-width="2" opacity="0.8" filter="url(#greenGlow)">
+      <path d="M54 632c22-14 32-28 42-28 14 0 16 18 30 18 16 0 20-30 34-30 18 0 18 28 32 28 16 0 24-24 38-24 14 0 18 16 28 16 14 0 16-18 28-18 8 0 14 8 18 18"/>
+      <path d="M56 670c18-12 28-22 40-22 16 0 18 20 30 20s16-14 24-14c14 0 18 18 30 18 14 0 22-22 38-22 12 0 18 10 28 10 14 0 16-14 28-14 10 0 18 10 24 18"/>
+    </g>
+
+    <rect x="108" y="620" width="144" height="82" rx="14" fill="#0f0f11" stroke="#34373a" stroke-width="2.5"/>
+    <rect x="130" y="636" width="24" height="38" rx="4" fill="#1b1510" stroke="#5a4e3a" stroke-width="2"/>
+    <rect x="206" y="636" width="24" height="38" rx="4" fill="#1b1510" stroke="#5a4e3a" stroke-width="2"/>
+    <rect x="136" y="645" width="12" height="20" rx="2" fill="#a22c1c"/>
+    <rect x="212" y="645" width="12" height="20" rx="2" fill="#a22c1c"/>
+    <text x="142" y="660" fill="#ffd37a" font-family="'Courier New', monospace" font-size="12" text-anchor="middle">25¢</text>
+    <text x="218" y="660" fill="#ffd37a" font-family="'Courier New', monospace" font-size="12" text-anchor="middle">25¢</text>
+    <rect x="132" y="678" width="18" height="28" rx="2" fill="#030303" stroke="#292929"/>
+    <rect x="210" y="678" width="18" height="28" rx="2" fill="#030303" stroke="#292929"/>
+    <circle cx="245" cy="675" r="8" fill="#111" stroke="#767676"/>
+  </g>
+</svg>
