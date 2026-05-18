@@ -25,7 +25,7 @@
         radial-gradient(circle at 80% 25%, #0f3e48 0%, transparent 40%),
         #07080d;
       color: #fff;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       touch-action: none;
       user-select: none;
     }
@@ -200,6 +200,11 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: rgba(255, 255, 255, 0.9);
       pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    #debug-hint.hidden {
+      opacity: 0;
     }
 
     #debug-toggle-btn {
@@ -371,7 +376,7 @@
           });
 
           el.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ' || event.code === 'Space') {
+            if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               el.click();
             }
@@ -434,9 +439,9 @@
         } else if (event.deltaMode === DOM_DELTA_PAGE) {
           unitScale = window.innerHeight;
         }
-        const primaryAxisDelta =
-          // Map both vertical wheel and horizontal trackpad movement into horizontal camera travel.
-          Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        // Map both vertical wheel and horizontal trackpad movement into horizontal camera travel.
+        const useHorizontalAxis = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+        const primaryAxisDelta = useHorizontalAxis ? event.deltaX : event.deltaY;
         setCameraX(cameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
       }
 
@@ -496,6 +501,7 @@
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('resize', resize);
       debugToggleButton.addEventListener('click', toggleDebugMode);
+      setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       resize();
     })();
