@@ -329,7 +329,8 @@
       const isIOSDevice =
         /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
         (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
-      const useLiteRendering = isIOSDevice || window.matchMedia('(pointer: coarse)').matches;
+      const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+      const useLiteRendering = isIOSDevice || (!isIOSDevice && hasCoarsePointer);
 
       const parallaxLayers = [
         { el: document.getElementById('parallax-far'), speed: 0.25 },
