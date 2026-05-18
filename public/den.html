@@ -239,6 +239,7 @@
       const TILE_WIDTH = 3840;
       const DESK_CENTER_X = 1920;
       const WHEEL_SCROLL_SPEED = 0.8;
+      const LINE_SCROLL_PIXELS = 40;
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -387,7 +388,7 @@
       function onWheel(event) {
         event.preventDefault();
         const unitScale =
-          event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.innerHeight : 1;
+          event.deltaMode === 1 ? LINE_SCROLL_PIXELS : event.deltaMode === 2 ? window.innerHeight : 1;
         const primaryAxisDelta =
           Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
         setCameraX(cameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_SPEED);
@@ -435,7 +436,6 @@
       viewport.addEventListener('pointermove', onPointerMove);
       viewport.addEventListener('pointerup', onPointerUp);
       viewport.addEventListener('pointercancel', onPointerUp);
-      viewport.addEventListener('pointerleave', onPointerUp);
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('resize', resize);
