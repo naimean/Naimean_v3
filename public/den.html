@@ -260,7 +260,7 @@
       const DESIGN_HEIGHT = 2160;
       const TILE_WIDTH = 3840;
       const DESK_CENTER_X = 1920;
-      const WHEEL_SCROLL_SPEED = 0.8;
+      const WHEEL_SCROLL_MULTIPLIER = 0.8;
       const LINE_SCROLL_PIXELS = 40;
       const DOM_DELTA_LINE = 1;
       const DOM_DELTA_PAGE = 2;
@@ -435,8 +435,9 @@
           unitScale = window.innerHeight;
         }
         const primaryAxisDelta =
+          // Map both vertical wheel and horizontal trackpad movement into horizontal camera travel.
           Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-        setCameraX(cameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_SPEED);
+        setCameraX(cameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
       }
 
       function onPointerDown(event) {
