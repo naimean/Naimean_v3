@@ -202,6 +202,27 @@
       pointer-events: none;
     }
 
+    #debug-toggle-btn {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 1000;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    #debug-toggle-btn:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 2px;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -230,7 +251,8 @@
       </div>
     </div>
   </div>
-  <div id="debug-hint" aria-hidden="true">Press ~ (or Ctrl+Shift+D) to toggle debug hotspots</div>
+  <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
+  <div id="debug-hint">Press ~ (or Ctrl+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
@@ -281,6 +303,7 @@
       const hotspotLayer = document.getElementById('hotspot-layer');
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
       const debugStatus = document.getElementById('debug-status');
+      const debugToggleButton = document.getElementById('debug-toggle-btn');
 
       const parallaxLayers = [
         { el: document.getElementById('parallax-far'), speed: 0.25 },
@@ -432,11 +455,15 @@
 
       function onKeyDown(event) {
         if (event.code === 'Backquote' || (event.code === 'KeyD' && event.ctrlKey && event.shiftKey)) {
-          document.body.classList.toggle('debug');
-          debugStatus.textContent = document.body.classList.contains('debug')
-            ? 'Debug mode enabled'
-            : 'Debug mode disabled';
+          toggleDebugMode();
         }
+      }
+
+      function toggleDebugMode() {
+        document.body.classList.toggle('debug');
+        debugStatus.textContent = document.body.classList.contains('debug')
+          ? 'Debug mode enabled'
+          : 'Debug mode disabled';
       }
 
       createTiles();
@@ -451,6 +478,7 @@
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('resize', resize);
+      debugToggleButton.addEventListener('click', toggleDebugMode);
 
       resize();
     })();
