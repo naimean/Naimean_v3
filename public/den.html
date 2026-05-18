@@ -494,7 +494,6 @@
 
       function onPointerMove(event) {
         if (!isPointerDown || event.pointerId !== activePointerId) return;
-        event.preventDefault();
 
         if (!isDragging) {
           const dragDistance = Math.abs(event.clientX - pointerStartX);
@@ -509,6 +508,7 @@
           }
         }
 
+        event.preventDefault();
         const dx = event.clientX - lastPointerX;
         lastPointerX = event.clientX;
 
@@ -546,6 +546,13 @@
           : 'Debug mode disabled';
       }
 
+      function cleanup() {
+        if (cameraAnimationFrameId !== null) {
+          window.cancelAnimationFrame(cameraAnimationFrameId);
+          cameraAnimationFrameId = null;
+        }
+      }
+
       createTiles();
       createHotspots();
       createOverlays();
@@ -564,6 +571,7 @@
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('resize', resize);
+      window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
       setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
