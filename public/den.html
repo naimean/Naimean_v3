@@ -228,6 +228,16 @@
       outline-offset: 2px;
     }
 
+    body.lite-rendering #stage,
+    body.lite-rendering #world {
+      will-change: auto;
+    }
+
+    body.lite-rendering .parallax-layer,
+    body.lite-rendering #effects-layer {
+      display: none;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -316,6 +326,10 @@
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
+      const isIOSDevice =
+        /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
+        (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+      const useLiteRendering = isIOSDevice || window.matchMedia('(pointer: coarse)').matches;
 
       const parallaxLayers = [
         { el: document.getElementById('parallax-far'), speed: 0.25 },
@@ -414,9 +428,11 @@
       function applyTransforms() {
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
 
-        parallaxLayers.forEach(({ el, speed }) => {
-          el.style.transform = `translate3d(${cameraX * (1 - speed)}px, 0, 0)`;
-        });
+        if (!useLiteRendering) {
+          parallaxLayers.forEach(({ el, speed }) => {
+            el.style.transform = `translate3d(${cameraX * (1 - speed)}px, 0, 0)`;
+          });
+        }
       }
 
       function setCameraX(nextCameraX) {
@@ -556,6 +572,9 @@
       createTiles();
       createHotspots();
       createOverlays();
+      if (useLiteRendering) {
+        document.body.classList.add('lite-rendering');
+      }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
       viewport.addEventListener('pointerdown', onPointerDown);
