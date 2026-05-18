@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Den Scene</title>
+  <style>
+    :root {
+      --design-height: 2160;
+      --tile-width: 3840;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, #1d2338 0%, transparent 45%),
+        radial-gradient(circle at 80% 25%, #0f3e48 0%, transparent 40%),
+        #07080d;
+      color: #fff;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* Viewport is the camera frame shown on screen. */
+    #viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      cursor: grab;
+    }
+
+    #viewport.dragging {
+      cursor: grabbing;
+    }
+
+    /* Stage keeps all scene layers in the fixed 3840x2160 coordinate world space. */
+    #stage {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      height: calc(var(--design-height) * 1px);
+      transform-origin: top left;
+      will-change: transform;
+    }
+
+    /* World slides horizontally under the camera. */
+    #world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      will-change: transform;
+    }
+
+    .layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Parallax layers sit behind room tiles. */
+    .parallax-layer {
+      opacity: 0.85;
+      will-change: transform;
+    }
+
+    #parallax-far {
+      background:
+        radial-gradient(circle at 18% 40%, rgba(59, 103, 153, 0.35) 0%, transparent 38%),
+        radial-gradient(circle at 72% 30%, rgba(44, 87, 132, 0.35) 0%, transparent 42%),
+        linear-gradient(180deg, #0a0f1c 0%, #07080d 100%);
+    }
+
+    #parallax-mid {
+      background:
+        repeating-linear-gradient(
+          115deg,
+          rgba(109, 164, 255, 0.09) 0 70px,
+          rgba(109, 164, 255, 0.02) 70px 130px,
+          rgba(0, 0, 0, 0) 130px 190px
+        );
+      mix-blend-mode: screen;
+      opacity: 0.5;
+    }
+
+    #parallax-near {
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(2, 5, 12, 0.6) 100%),
+        repeating-linear-gradient(
+          90deg,
+          rgba(86, 189, 255, 0.03) 0 6px,
+          rgba(0, 0, 0, 0) 6px 22px
+        );
+      opacity: 0.45;
+    }
+
+    /* Tile image layer (exact 3840x2160 PNGs placed side-by-side). */
+    #tile-layer {
+      z-index: 20;
+    }
+
+    .tile {
+      position: absolute;
+      top: 0;
+      width: calc(var(--tile-width) * 1px);
+      height: calc(var(--design-height) * 1px);
+      object-fit: contain;
+      image-rendering: auto;
+      pointer-events: none;
+    }
+
+    /* Hotspots use fixed absolute coordinates in design-space pixels. */
+    #hotspot-layer {
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      pointer-events: auto;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #9fe7ff;
+    }
+
+    .hotspot-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: translateY(-100%);
+      padding: 4px 8px;
+      font-size: 18px;
+      line-height: 1;
+      white-space: nowrap;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      opacity: 0;
+    }
+
+    /* Placeholder screens for TV and desk monitors. */
+    #screen-overlay-layer {
+      z-index: 40;
+    }
+
+    .screen-overlay {
+      position: absolute;
+      background: transparent;
+      border: 0;
+      pointer-events: none;
+    }
+
+    /* Effects always on top. */
+    #effects-layer {
+      z-index: 50;
+      background:
+        radial-gradient(circle at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.38) 100%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.07) 100%);
+      mix-blend-mode: normal;
+    }
+
+    /* Debug mode (toggle with `~`). */
+    body.debug .hotspot {
+      border-color: rgba(65, 229, 255, 0.95);
+      background: rgba(65, 229, 255, 0.12);
+    }
+
+    body.debug .hotspot-label {
+      opacity: 1;
+      border-color: rgba(65, 229, 255, 0.95);
+      background: rgba(8, 20, 30, 0.9);
+    }
+
+    body.debug .screen-overlay {
+      background: rgba(255, 90, 140, 0.24);
+      box-shadow: inset 0 0 0 2px rgba(255, 90, 140, 0.75);
+    }
+
+    #debug-hint {
+      position: fixed;
+      right: 16px;
+      bottom: 14px;
+      z-index: 999;
+      padding: 6px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport" aria-label="Den side-scrolling scene">
+    <div id="stage">
+      <div id="world">
+        <div class="layer parallax-layer" id="parallax-far" aria-hidden="true"></div>
+        <div class="layer parallax-layer" id="parallax-mid" aria-hidden="true"></div>
+        <div class="layer parallax-layer" id="parallax-near" aria-hidden="true"></div>
+
+        <div class="layer" id="tile-layer" aria-hidden="true"></div>
+        <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
+        <div class="layer" id="screen-overlay-layer" aria-hidden="true"></div>
+        <div class="layer" id="effects-layer" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+  <div id="debug-hint">Press ~ to toggle debug hotspots</div>
+
+  <script>
+    (() => {
+      const DESIGN_HEIGHT = 2160;
+      const TILE_WIDTH = 3840;
+
+      // Add tiles here to extend the horizontal world.
+      const tiles = [
+        { src: 'assets/den-center.png' },
+        { src: 'assets/den-right-test.png' }
+      ].map((tile, index) => ({
+        ...tile,
+        x: index * TILE_WIDTH,
+        width: TILE_WIDTH,
+        height: DESIGN_HEIGHT
+      }));
+
+      // Fixed pixel hotspots in design-space coordinates.
+      // Edit x/y/w/h values as artwork alignment is refined.
+      const hotspots = [
+        { id: 'big-tv', x: 1140, y: 560, w: 940, h: 520 },
+        { id: 'left-monitor', x: 1478, y: 1064, w: 310, h: 220 },
+        { id: 'commodore-screen', x: 1840, y: 1040, w: 372, h: 246 },
+        { id: 'right-monitor', x: 2284, y: 1026, w: 278, h: 216 },
+        { id: 'aquarium', x: 2704, y: 720, w: 455, h: 420 },
+        { id: 'rca-board', x: 3110, y: 935, w: 296, h: 215 },
+        { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 },
+        { id: 'date-tracker', x: 2484, y: 912, w: 200, h: 130 },
+        { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
+      ];
+
+      // Overlay placeholders over transparent screen cutouts.
+      const overlays = [
+        { id: 'overlay-big-tv', x: 1148, y: 568, w: 924, h: 505 },
+        { id: 'overlay-left-monitor', x: 1488, y: 1072, w: 292, h: 205 },
+        { id: 'overlay-commodore-screen', x: 1852, y: 1050, w: 348, h: 227 },
+        { id: 'overlay-right-monitor', x: 2292, y: 1036, w: 262, h: 198 }
+      ];
+
+      const viewport = document.getElementById('viewport');
+      const stage = document.getElementById('stage');
+      const world = document.getElementById('world');
+      const tileLayer = document.getElementById('tile-layer');
+      const hotspotLayer = document.getElementById('hotspot-layer');
+      const screenOverlayLayer = document.getElementById('screen-overlay-layer');
+
+      const parallaxLayers = [
+        { el: document.getElementById('parallax-far'), speed: 0.25 },
+        { el: document.getElementById('parallax-mid'), speed: 0.5 },
+        { el: document.getElementById('parallax-near'), speed: 0.75 }
+      ];
+
+      const worldWidth = tiles.length * TILE_WIDTH;
+      const worldHeight = DESIGN_HEIGHT;
+
+      let scale = 1;
+      let visibleWidth = worldWidth;
+      let maxCameraX = 0;
+      let cameraX = 0;
+      let isDragging = false;
+      let lastPointerX = 0;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(value, max));
+      }
+
+      function createTiles() {
+        tiles.forEach((tile) => {
+          const img = document.createElement('img');
+          img.className = 'tile';
+          img.src = tile.src;
+          img.alt = '';
+          img.draggable = false;
+          img.style.left = `${tile.x}px`;
+          img.width = tile.width;
+          img.height = tile.height;
+          tileLayer.appendChild(img);
+        });
+      }
+
+      function createHotspots() {
+        hotspots.forEach((spot) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'hotspot';
+          el.id = spot.id;
+          el.style.left = `${spot.x}px`;
+          el.style.top = `${spot.y}px`;
+          el.style.width = `${spot.w}px`;
+          el.style.height = `${spot.h}px`;
+          el.setAttribute('aria-label', spot.id);
+
+          const label = document.createElement('span');
+          label.className = 'hotspot-label';
+          label.textContent = `${spot.id} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
+          el.appendChild(label);
+
+          el.addEventListener('click', () => {
+            console.log(`[hotspot] ${spot.id}`);
+          });
+
+          hotspotLayer.appendChild(el);
+        });
+      }
+
+      function createOverlays() {
+        overlays.forEach((overlay) => {
+          const el = document.createElement('div');
+          el.id = overlay.id;
+          el.className = 'screen-overlay';
+          el.style.left = `${overlay.x}px`;
+          el.style.top = `${overlay.y}px`;
+          el.style.width = `${overlay.w}px`;
+          el.style.height = `${overlay.h}px`;
+          screenOverlayLayer.appendChild(el);
+        });
+      }
+
+      function applyTransforms() {
+        world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
+
+        parallaxLayers.forEach(({ el, speed }) => {
+          el.style.transform = `translate3d(${cameraX * (1 - speed)}px, 0, 0)`;
+        });
+      }
+
+      function setCameraX(nextCameraX) {
+        cameraX = clamp(nextCameraX, 0, maxCameraX);
+        applyTransforms();
+      }
+
+      function resize() {
+        scale = window.innerHeight / DESIGN_HEIGHT;
+        visibleWidth = window.innerWidth / scale;
+        maxCameraX = Math.max(0, worldWidth - visibleWidth);
+
+        stage.style.width = `${worldWidth}px`;
+        stage.style.transform = `translate3d(0, -50%, 0) scale(${scale})`;
+        world.style.width = `${worldWidth}px`;
+        world.style.height = `${worldHeight}px`;
+
+        // Start camera centered on the desk area of tile 0.
+        const deskCenterX = 1920;
+        if (cameraX === 0) {
+          setCameraX(deskCenterX - visibleWidth / 2);
+        } else {
+          setCameraX(cameraX);
+        }
+      }
+
+      function onWheel(event) {
+        event.preventDefault();
+        const delta = event.deltaY + event.deltaX;
+        setCameraX(cameraX + delta);
+      }
+
+      function onPointerDown(event) {
+        isDragging = true;
+        lastPointerX = event.clientX;
+        viewport.classList.add('dragging');
+        viewport.setPointerCapture(event.pointerId);
+      }
+
+      function onPointerMove(event) {
+        if (!isDragging) return;
+        const dx = event.clientX - lastPointerX;
+        lastPointerX = event.clientX;
+
+        // Convert screen drag delta to design-space world delta.
+        setCameraX(cameraX - dx / scale);
+      }
+
+      function onPointerUp(event) {
+        isDragging = false;
+        viewport.classList.remove('dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      function onKeyDown(event) {
+        if (event.code === 'Backquote') {
+          document.body.classList.toggle('debug');
+        }
+      }
+
+      createTiles();
+      createHotspots();
+      createOverlays();
+
+      viewport.addEventListener('wheel', onWheel, { passive: false });
+      viewport.addEventListener('pointerdown', onPointerDown);
+      viewport.addEventListener('pointermove', onPointerMove);
+      viewport.addEventListener('pointerup', onPointerUp);
+      viewport.addEventListener('pointercancel', onPointerUp);
+      viewport.addEventListener('pointerleave', onPointerUp);
+
+      window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('resize', resize);
+
+      resize();
+    })();
+  </script>
+</body>
+</html>
