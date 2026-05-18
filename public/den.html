@@ -417,7 +417,7 @@
         maxCameraX = Math.max(0, worldWidth - visibleWidth);
 
         stage.style.width = `${worldWidth}px`;
-        stage.style.transform = `translate3d(0, -50%, 0) scale(${scale})`;
+        stage.style.transform = `scale(${scale}) translate3d(0, -50%, 0)`;
         world.style.width = `${worldWidth}px`;
         world.style.height = `${worldHeight}px`;
 
