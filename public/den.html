@@ -252,7 +252,7 @@
     </div>
   </div>
   <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
-  <div id="debug-hint">Press ~ (or Ctrl+Shift+D) to toggle debug hotspots</div>
+  <div id="debug-hint" role="status" aria-live="polite">Press ~ (or Ctrl/Cmd+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
@@ -262,6 +262,8 @@
       const DESK_CENTER_X = 1920;
       const WHEEL_SCROLL_SPEED = 0.8;
       const LINE_SCROLL_PIXELS = 40;
+      const DOM_DELTA_LINE = 1;
+      const DOM_DELTA_PAGE = 2;
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -341,11 +343,14 @@
       }
 
       function createHotspots() {
-        hotspots.forEach((spot) => {
-          const readableLabel = spot.id
+        const toTitleCase = (value) =>
+          value
             .split('-')
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
+
+        hotspots.forEach((spot) => {
+          const readableLabel = toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
@@ -424,9 +429,9 @@
       function onWheel(event) {
         event.preventDefault();
         let unitScale = 1;
-        if (event.deltaMode === 1) {
+        if (event.deltaMode === DOM_DELTA_LINE) {
           unitScale = LINE_SCROLL_PIXELS;
-        } else if (event.deltaMode === 2) {
+        } else if (event.deltaMode === DOM_DELTA_PAGE) {
           unitScale = window.innerHeight;
         }
         const primaryAxisDelta =
@@ -460,7 +465,12 @@
       }
 
       function onKeyDown(event) {
-        if (event.code === 'Backquote' || (event.code === 'KeyD' && event.ctrlKey && event.shiftKey)) {
+        const debugComboPressed =
+          event.code === 'KeyD' &&
+          (event.ctrlKey || event.metaKey) &&
+          event.shiftKey;
+
+        if (event.code === 'Backquote' || debugComboPressed) {
           toggleDebugMode();
         }
       }
