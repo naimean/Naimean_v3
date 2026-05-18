@@ -274,6 +274,7 @@
       const CAMERA_SMOOTHING_FACTOR = 0.22;
       const CAMERA_SETTLE_EPSILON = 0.05;
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
+      const WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -385,6 +386,9 @@
 
           el.addEventListener('click', () => {
             console.log(`[hotspot] ${spot.id}`);
+            if (spot.id === 'rca-board' || spot.id === 'whiteboard') {
+              window.location.assign(WHITEBOARD_URL);
+            }
           });
 
           el.addEventListener('keydown', (event) => {
