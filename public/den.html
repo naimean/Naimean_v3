@@ -264,7 +264,8 @@
     (() => {
       const DESIGN_HEIGHT = 2160;
       const TILE_WIDTH = 3840;
-      const DESK_CENTER_X = 1920;
+      const SCENE_OFFSET_X = TILE_WIDTH;
+      const DESK_CENTER_X = SCENE_OFFSET_X + 1920;
       const WHEEL_SCROLL_MULTIPLIER = 0.8;
       const LINE_SCROLL_PIXELS = 40;
       const DOM_DELTA_LINE = 1;
@@ -272,7 +273,8 @@
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
-        { src: 'assets/images/den.PNG' }
+        { src: 'assets/images/den_arcade.PNG' },
+        { src: 'assets/images/den_computer.png' }
       ].map((tile, index) => ({
         ...tile,
         x: index * TILE_WIDTH,
@@ -292,7 +294,7 @@
         { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 },
         { id: 'date-tracker', x: 2484, y: 912, w: 200, h: 130 },
         { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
-      ];
+      ].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));
 
       // Overlay placeholders over transparent screen cutouts.
       const overlays = [
@@ -300,7 +302,7 @@
         { id: 'overlay-left-monitor', x: 1488, y: 1072, w: 292, h: 205 },
         { id: 'overlay-commodore-screen', x: 1852, y: 1050, w: 348, h: 227 },
         { id: 'overlay-right-monitor', x: 2292, y: 1036, w: 262, h: 198 }
-      ];
+      ].map((overlay) => ({ ...overlay, x: overlay.x + SCENE_OFFSET_X }));
 
       const viewport = document.getElementById('viewport');
       const stage = document.getElementById('stage');
