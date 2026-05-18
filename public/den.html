@@ -272,6 +272,8 @@
       const DOM_DELTA_PAGE = 2;
       const DRAG_START_THRESHOLD_PX = 8;
       const CAMERA_SMOOTHING_FACTOR = 0.22;
+      const CAMERA_SETTLE_EPSILON = 0.05;
+      const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -336,7 +338,7 @@
       let lastPointerX = 0;
       let hasInitializedCamera = false;
       let dragStartedOnHotspot = false;
-      let suppressHotspotClick = false;
+      let suppressHotspotClickUntil = 0;
       let cameraAnimationFrameId = null;
 
       function clamp(value, min, max) {
@@ -437,7 +439,7 @@
       function tickCamera() {
         cameraAnimationFrameId = null;
         const delta = targetCameraX - cameraX;
-        if (Math.abs(delta) < 0.05) {
+        if (Math.abs(delta) < CAMERA_SETTLE_EPSILON) {
           setCameraX(targetCameraX);
           return;
         }
@@ -487,11 +489,12 @@
         pointerStartX = event.clientX;
         lastPointerX = event.clientX;
         dragStartedOnHotspot = Boolean(event.target.closest('.hotspot'));
-        suppressHotspotClick = false;
+        suppressHotspotClickUntil = 0;
       }
 
       function onPointerMove(event) {
         if (!isPointerDown || event.pointerId !== activePointerId) return;
+        event.preventDefault();
 
         if (!isDragging) {
           const dragDistance = Math.abs(event.clientX - pointerStartX);
@@ -502,7 +505,7 @@
           viewport.classList.add('dragging');
           viewport.setPointerCapture(event.pointerId);
           if (dragStartedOnHotspot) {
-            suppressHotspotClick = true;
+            suppressHotspotClickUntil = Date.now() + HOTSPOT_CLICK_SUPPRESSION_MS;
           }
         }
 
@@ -511,7 +514,6 @@
 
         // Convert screen drag delta to design-space world delta.
         setTargetCameraX(targetCameraX - dx / scale);
-        event.preventDefault();
       }
 
       function onPointerUp(event) {
@@ -554,10 +556,9 @@
       viewport.addEventListener('pointerup', onPointerUp);
       viewport.addEventListener('pointercancel', onPointerUp);
       hotspotLayer.addEventListener('click', (event) => {
-        if (suppressHotspotClick) {
+        if (Date.now() < suppressHotspotClickUntil) {
           event.preventDefault();
           event.stopPropagation();
-          suppressHotspotClick = false;
         }
       }, true);
 
