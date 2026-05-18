@@ -270,6 +270,8 @@
       const LINE_SCROLL_PIXELS = 40;
       const DOM_DELTA_LINE = 1;
       const DOM_DELTA_PAGE = 2;
+      const DRAG_START_THRESHOLD_PX = 8;
+      const CAMERA_SMOOTHING_FACTOR = 0.22;
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -326,9 +328,15 @@
       let visibleWidth = worldWidth;
       let maxCameraX = 0;
       let cameraX = 0;
+      let targetCameraX = 0;
       let isDragging = false;
+      let isPointerDown = false;
+      let activePointerId = null;
+      let pointerStartX = 0;
       let lastPointerX = 0;
       let hasInitializedCamera = false;
+      let dragStartedOnHotspot = false;
+      let suppressHotspotClick = false;
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -413,6 +421,20 @@
         applyTransforms();
       }
 
+      function setTargetCameraX(nextCameraX) {
+        targetCameraX = clamp(nextCameraX, 0, maxCameraX);
+      }
+
+      function tickCamera() {
+        const delta = targetCameraX - cameraX;
+        if (Math.abs(delta) < 0.05) {
+          setCameraX(targetCameraX);
+        } else {
+          setCameraX(cameraX + delta * CAMERA_SMOOTHING_FACTOR);
+        }
+        window.requestAnimationFrame(tickCamera);
+      }
+
       function resize() {
         scale = window.innerHeight / DESIGN_HEIGHT;
         visibleWidth = window.innerWidth / scale;
@@ -426,9 +448,11 @@
         // Start camera centered on the desk area in tile 0.
         if (!hasInitializedCamera) {
           setCameraX(DESK_CENTER_X - visibleWidth / 2);
+          targetCameraX = cameraX;
           hasInitializedCamera = true;
         } else {
           setCameraX(cameraX);
+          targetCameraX = cameraX;
         }
       }
 
@@ -443,27 +467,48 @@
         // Map both vertical wheel and horizontal trackpad movement into horizontal camera travel.
         const useHorizontalAxis = Math.abs(event.deltaX) > Math.abs(event.deltaY);
         const primaryAxisDelta = useHorizontalAxis ? event.deltaX : event.deltaY;
-        setCameraX(cameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
+        setTargetCameraX(targetCameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
       }
 
       function onPointerDown(event) {
-        if (event.target.closest('.hotspot')) return;
-        isDragging = true;
+        if (activePointerId !== null) return;
+        isPointerDown = true;
+        activePointerId = event.pointerId;
+        pointerStartX = event.clientX;
         lastPointerX = event.clientX;
-        viewport.classList.add('dragging');
-        viewport.setPointerCapture(event.pointerId);
+        dragStartedOnHotspot = Boolean(event.target.closest('.hotspot'));
+        suppressHotspotClick = false;
       }
 
       function onPointerMove(event) {
-        if (!isDragging) return;
+        if (!isPointerDown || event.pointerId !== activePointerId) return;
+
+        if (!isDragging) {
+          const dragDistance = Math.abs(event.clientX - pointerStartX);
+          if (dragDistance < DRAG_START_THRESHOLD_PX) {
+            return;
+          }
+          isDragging = true;
+          viewport.classList.add('dragging');
+          viewport.setPointerCapture(event.pointerId);
+          if (dragStartedOnHotspot) {
+            suppressHotspotClick = true;
+          }
+        }
+
         const dx = event.clientX - lastPointerX;
         lastPointerX = event.clientX;
 
         // Convert screen drag delta to design-space world delta.
-        setCameraX(cameraX - dx / scale);
+        setTargetCameraX(targetCameraX - dx / scale);
+        event.preventDefault();
       }
 
       function onPointerUp(event) {
+        if (event.pointerId !== activePointerId) return;
+        isPointerDown = false;
+        activePointerId = null;
+        dragStartedOnHotspot = false;
         isDragging = false;
         viewport.classList.remove('dragging');
         if (viewport.hasPointerCapture(event.pointerId)) {
@@ -498,6 +543,12 @@
       viewport.addEventListener('pointermove', onPointerMove);
       viewport.addEventListener('pointerup', onPointerUp);
       viewport.addEventListener('pointercancel', onPointerUp);
+      hotspotLayer.addEventListener('click', (event) => {
+        if (!suppressHotspotClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+        suppressHotspotClick = false;
+      }, true);
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('resize', resize);
@@ -505,6 +556,7 @@
       setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       resize();
+      tickCamera();
     })();
   </script>
 </body>
