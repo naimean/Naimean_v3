@@ -230,7 +230,7 @@
       </div>
     </div>
   </div>
-  <div id="debug-hint" aria-hidden="true">Press ~ to toggle debug hotspots</div>
+  <div id="debug-hint" aria-hidden="true">Press ~ (or Ctrl+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
@@ -318,6 +318,10 @@
 
       function createHotspots() {
         hotspots.forEach((spot) => {
+          const readableLabel = spot.id
+            .split('-')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
@@ -326,7 +330,7 @@
           el.style.top = `${spot.y}px`;
           el.style.width = `${spot.w}px`;
           el.style.height = `${spot.h}px`;
-          el.setAttribute('aria-label', spot.id);
+          el.setAttribute('aria-label', readableLabel);
 
           const label = document.createElement('span');
           label.className = 'hotspot-label';
@@ -335,6 +339,13 @@
 
           el.addEventListener('click', () => {
             console.log(`[hotspot] ${spot.id}`);
+          });
+
+          el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              el.click();
+            }
           });
 
           hotspotLayer.appendChild(el);
@@ -395,6 +406,7 @@
       }
 
       function onPointerDown(event) {
+        if (event.target.closest('.hotspot')) return;
         isDragging = true;
         lastPointerX = event.clientX;
         viewport.classList.add('dragging');
@@ -419,7 +431,7 @@
       }
 
       function onKeyDown(event) {
-        if (event.code === 'Backquote') {
+        if (event.code === 'Backquote' || (event.code === 'KeyD' && event.ctrlKey && event.shiftKey)) {
           document.body.classList.toggle('debug');
           debugStatus.textContent = document.body.classList.contains('debug')
             ? 'Debug mode enabled'
