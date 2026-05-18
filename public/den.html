@@ -337,6 +337,7 @@
       let hasInitializedCamera = false;
       let dragStartedOnHotspot = false;
       let suppressHotspotClick = false;
+      let cameraAnimationFrameId = 0;
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -422,17 +423,26 @@
       }
 
       function setTargetCameraX(nextCameraX) {
-        targetCameraX = clamp(nextCameraX, 0, maxCameraX);
+        const nextTarget = clamp(nextCameraX, 0, maxCameraX);
+        if (targetCameraX === nextTarget) return;
+        targetCameraX = nextTarget;
+        startCameraAnimation();
+      }
+
+      function startCameraAnimation() {
+        if (cameraAnimationFrameId !== 0) return;
+        cameraAnimationFrameId = window.requestAnimationFrame(tickCamera);
       }
 
       function tickCamera() {
+        cameraAnimationFrameId = 0;
         const delta = targetCameraX - cameraX;
         if (Math.abs(delta) < 0.05) {
           setCameraX(targetCameraX);
-        } else {
-          setCameraX(cameraX + delta * CAMERA_SMOOTHING_FACTOR);
+          return;
         }
-        window.requestAnimationFrame(tickCamera);
+        setCameraX(cameraX + delta * CAMERA_SMOOTHING_FACTOR);
+        startCameraAnimation();
       }
 
       function resize() {
@@ -544,10 +554,11 @@
       viewport.addEventListener('pointerup', onPointerUp);
       viewport.addEventListener('pointercancel', onPointerUp);
       hotspotLayer.addEventListener('click', (event) => {
-        if (!suppressHotspotClick) return;
-        event.preventDefault();
-        event.stopPropagation();
-        suppressHotspotClick = false;
+        if (suppressHotspotClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressHotspotClick = false;
+        }
       }, true);
 
       window.addEventListener('keydown', onKeyDown);
@@ -556,7 +567,6 @@
       setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       resize();
-      tickCamera();
     })();
   </script>
 </body>
