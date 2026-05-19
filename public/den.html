@@ -8,6 +8,8 @@
     :root {
       --design-height: 2160;
       --tile-width: 3840;
+      --uw-canvas-width: 3440;
+      --uw-canvas-height: 1440;
     }
 
     * {
@@ -71,38 +73,33 @@
 
     /* Parallax layers sit behind room tiles. */
     .parallax-layer {
-      opacity: 0.85;
       will-change: transform;
     }
 
-    #parallax-far {
-      background:
-        radial-gradient(circle at 18% 40%, rgba(59, 103, 153, 0.35) 0%, transparent 38%),
-        radial-gradient(circle at 72% 30%, rgba(44, 87, 132, 0.35) 0%, transparent 42%),
-        linear-gradient(180deg, #0a0f1c 0%, #07080d 100%);
+    .parallax-canvas {
+      position: absolute;
+      left: 200px;
+      top: calc((var(--design-height) - var(--uw-canvas-height)) * 1px);
+      width: calc(var(--uw-canvas-width) * 1px);
+      height: calc(var(--uw-canvas-height) * 1px);
+      object-fit: cover;
+      pointer-events: none;
     }
 
-    #parallax-mid {
-      background:
-        repeating-linear-gradient(
-          115deg,
-          rgba(109, 164, 255, 0.09) 0 70px,
-          rgba(109, 164, 255, 0.02) 70px 130px,
-          rgba(0, 0, 0, 0) 130px 190px
-        );
-      mix-blend-mode: screen;
-      opacity: 0.5;
+    #parallax-uw1 {
+      opacity: 0.9;
     }
 
-    #parallax-near {
-      background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(2, 5, 12, 0.6) 100%),
-        repeating-linear-gradient(
-          90deg,
-          rgba(86, 189, 255, 0.03) 0 6px,
-          rgba(0, 0, 0, 0) 6px 22px
-        );
-      opacity: 0.45;
+    #parallax-uw2 {
+      opacity: 0.85;
+    }
+
+    #parallax-uw3 {
+      opacity: 0.88;
+    }
+
+    #parallax-uw4 {
+      opacity: 0.95;
     }
 
     /* Tile image layer (exact 3840x2160 PNGs placed side-by-side). */
@@ -255,9 +252,18 @@
   <div id="viewport" aria-label="Den side-scrolling scene">
     <div id="stage">
       <div id="world">
-        <div class="layer parallax-layer" id="parallax-far" aria-hidden="true"></div>
-        <div class="layer parallax-layer" id="parallax-mid" aria-hidden="true"></div>
-        <div class="layer parallax-layer" id="parallax-near" aria-hidden="true"></div>
+        <div class="layer parallax-layer" id="parallax-uw1" aria-hidden="true">
+          <img class="parallax-canvas" src="assets/images/uw1.png" alt="" />
+        </div>
+        <div class="layer parallax-layer" id="parallax-uw2" aria-hidden="true">
+          <img class="parallax-canvas" src="assets/images/uw2.png" alt="" />
+        </div>
+        <div class="layer parallax-layer" id="parallax-uw3" aria-hidden="true">
+          <img class="parallax-canvas" src="assets/images/uw3.png" alt="" />
+        </div>
+        <div class="layer parallax-layer" id="parallax-uw4" aria-hidden="true">
+          <img class="parallax-canvas" src="assets/images/uw4.png" alt="" />
+        </div>
 
         <div class="layer" id="tile-layer" aria-hidden="true"></div>
         <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
@@ -335,9 +341,10 @@
       const useLiteRendering = isIOSDevice || hasCoarsePointer;
 
       const parallaxLayers = [
-        { el: document.getElementById('parallax-far'), speed: 0.25 },
-        { el: document.getElementById('parallax-mid'), speed: 0.5 },
-        { el: document.getElementById('parallax-near'), speed: 0.75 }
+        { el: document.getElementById('parallax-uw1'), speed: 0.1 },
+        { el: document.getElementById('parallax-uw2'), speed: 0.25 },
+        { el: document.getElementById('parallax-uw3'), speed: 0.55 },
+        { el: document.getElementById('parallax-uw4'), speed: 0.9 }
       ];
 
       const worldWidth = tiles.length * TILE_WIDTH;
