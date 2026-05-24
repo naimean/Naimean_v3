@@ -1326,14 +1326,28 @@
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
-      const AQUARIUM_CLIP_LOAD_FALLBACK_MS = 1500;
-      const AQUARIUM_CLIP_EMBED_BASE_URL = 'https://www.youtube-nocookie.com/embed/';
-      // Starshrimp source videos and safe start windows used for random 10-second aquarium clips.
-      const AQUARIUM_STARSHRIMP_VIDEO_SOURCES = [
-        { videoId: 'GZ7jsIR_TnY', minStartSeconds: 1, maxStartSeconds: 150 },
-        { videoId: 'dgAz1qEG2uo', minStartSeconds: 0, maxStartSeconds: 150 },
-        { videoId: 'sFwo1mwrbxw', minStartSeconds: 61, maxStartSeconds: 180 }
-      ];
+      const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze([
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 0 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 10 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 20 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 30 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 40 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 50 },
+        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 60 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 0 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 10 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 20 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 30 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 40 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 50 },
+        { src: 'assets/video/notarickroll-piece-1.v20260424.mp4', startSeconds: 60 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 0 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 10 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 20 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 30 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 40 },
+        { src: 'assets/video/notarickroll-piece-2.v20260424.mp4', startSeconds: 50 }
+      ]);
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
         'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
@@ -1488,7 +1502,7 @@
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
       let aquariumOverlayEl = null;
-      let aquariumClipIframeEl = null;
+      let aquariumClipVideoEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let aquariumClipPlaybackTimeoutId = null;
@@ -1536,8 +1550,8 @@
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
         const aquariumEmbedActive = Boolean(
-          aquariumClipIframeEl &&
-          aquariumClipIframeEl.style.display !== 'none'
+          aquariumClipVideoEl &&
+          aquariumClipVideoEl.style.display !== 'none'
         );
         const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive || aquariumEmbedActive;
         if (discordWidgetIframeEl) {
@@ -1565,44 +1579,29 @@
         clearAquariumClipPlaybackTimeout();
       }
 
-      function getRandomAquariumClipEmbedUrl() {
-        const source =
-          AQUARIUM_STARSHRIMP_VIDEO_SOURCES[
-            Math.floor(Math.random() * AQUARIUM_STARSHRIMP_VIDEO_SOURCES.length)
-          ];
-        const minStart = Math.max(0, Math.floor(source.minStartSeconds));
-        const maxStart = Math.max(minStart, Math.floor(source.maxStartSeconds));
-        const startRange = maxStart - minStart;
-        const startSeconds = startRange > 0
-          ? minStart + Math.floor(Math.random() * startRange)
-          : minStart;
-        const endSeconds = startSeconds + AQUARIUM_CLIP_DURATION_SECONDS;
-        const params = new URLSearchParams({
-          autoplay: '1',
-          mute: '1',
-          playsinline: '1',
-          controls: '0',
-          rel: '0',
-          modestbranding: '1',
-          start: String(startSeconds),
-          end: String(endSeconds)
-        });
-        return `${AQUARIUM_CLIP_EMBED_BASE_URL}${source.videoId}?${params.toString()}`;
+      function getRandomAquariumLocalClip() {
+        return AQUARIUM_LOCAL_CLIP_POOL[
+          Math.floor(Math.random() * AQUARIUM_LOCAL_CLIP_POOL.length)
+        ];
       }
 
-      function setAquariumClipPlayback({ shouldPlay = false, embedUrl = '' } = {}) {
-        if (!aquariumClipIframeEl) {
+      function setAquariumClipPlayback({ shouldPlay = false, clip = null } = {}) {
+        if (!aquariumClipVideoEl) {
           return;
         }
 
         if (shouldPlay) {
-          aquariumClipIframeEl.style.display = 'block';
-          aquariumClipIframeEl.src = embedUrl;
+          aquariumClipVideoEl.style.display = 'block';
+          if (clip?.src && aquariumClipVideoEl.getAttribute('src') !== clip.src) {
+            aquariumClipVideoEl.src = clip.src;
+            aquariumClipVideoEl.load();
+          }
           return;
         }
 
-        aquariumClipIframeEl.style.display = 'none';
-        aquariumClipIframeEl.src = 'about:blank';
+        aquariumClipVideoEl.pause();
+        aquariumClipVideoEl.style.display = 'none';
+        aquariumClipVideoEl.currentTime = 0;
       }
 
       function waitForMediaPlaybackToEnd(mediaEl) {
@@ -1636,30 +1635,15 @@
       function waitForAquariumClipWindow(sequenceToken) {
         return new Promise((resolve) => {
           clearAquariumClipPlaybackTimeout();
-          let loadFallbackTimeoutId = null;
           let clipWindowTimeoutId = null;
-          const onClipLoad = () => {
-            if (clipWindowTimeoutId !== null) {
-              return;
-            }
-            if (loadFallbackTimeoutId !== null) {
-              window.clearTimeout(loadFallbackTimeoutId);
-              loadFallbackTimeoutId = null;
-            }
-            clipWindowTimeoutId = window.setTimeout(() => {
-              clipWindowTimeoutId = null;
-              if (aquariumClipPlaybackResolve) {
-                aquariumClipPlaybackResolve(true);
-              }
-            }, AQUARIUM_CLIP_DURATION_SECONDS * 1000);
-          };
+          let clipEndSeconds = AQUARIUM_CLIP_DURATION_SECONDS;
           const cleanup = () => {
-            if (aquariumClipIframeEl) {
-              aquariumClipIframeEl.removeEventListener('load', onClipLoad);
-            }
-            if (loadFallbackTimeoutId !== null) {
-              window.clearTimeout(loadFallbackTimeoutId);
-              loadFallbackTimeoutId = null;
+            if (aquariumClipVideoEl) {
+              aquariumClipVideoEl.pause();
+              aquariumClipVideoEl.removeEventListener('loadedmetadata', onClipLoad);
+              aquariumClipVideoEl.removeEventListener('timeupdate', onClipTimeUpdate);
+              aquariumClipVideoEl.removeEventListener('ended', onClipEnded);
+              aquariumClipVideoEl.removeEventListener('error', onClipError);
             }
             if (clipWindowTimeoutId !== null) {
               window.clearTimeout(clipWindowTimeoutId);
@@ -1667,14 +1651,74 @@
             }
             aquariumClipPlaybackTimeoutId = null;
           };
-          if (aquariumClipIframeEl) {
-            aquariumClipIframeEl.addEventListener('load', onClipLoad);
+          const onClipError = () => {
+            if (aquariumClipPlaybackResolve) {
+              aquariumClipPlaybackResolve(false);
+            }
+          };
+          const onClipEnded = () => {
+            if (aquariumClipPlaybackResolve) {
+              aquariumClipPlaybackResolve(true);
+            }
+          };
+          const onClipTimeUpdate = () => {
+            if (!aquariumClipVideoEl) {
+              return;
+            }
+            if (aquariumClipVideoEl.currentTime >= clipEndSeconds && aquariumClipPlaybackResolve) {
+              aquariumClipPlaybackResolve(true);
+            }
+          };
+          const startClipPlayback = () => {
+            if (!aquariumClipVideoEl) {
+              return;
+            }
+            const requestedStart = Number(aquariumClipVideoEl.dataset.clipStartSeconds || 0);
+            const clipStartSeconds = Number.isFinite(requestedStart) ? Math.max(0, requestedStart) : 0;
+            const duration = Number.isFinite(aquariumClipVideoEl.duration) ? aquariumClipVideoEl.duration : 0;
+            const safeStartSeconds = duration > 0
+              ? Math.min(clipStartSeconds, Math.max(0, duration - 0.1))
+              : clipStartSeconds;
+            clipEndSeconds = duration > 0
+              ? Math.min(duration, safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS)
+              : safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS;
+            if (clipEndSeconds <= safeStartSeconds && aquariumClipPlaybackResolve) {
+              aquariumClipPlaybackResolve(true);
+              return;
+            }
+            try {
+              aquariumClipVideoEl.currentTime = safeStartSeconds;
+            } catch {
+              // Ignore out-of-range seek attempts.
+            }
+            const playPromise = aquariumClipVideoEl.play();
+            if (playPromise?.catch) {
+              playPromise.catch((error) => {
+                if (error?.name !== 'AbortError') {
+                  console.warn('Unable to play aquarium local clip.', error);
+                }
+              });
+            }
+            clipWindowTimeoutId = window.setTimeout(() => {
+              clipWindowTimeoutId = null;
+              if (aquariumClipPlaybackResolve) {
+                aquariumClipPlaybackResolve(true);
+              }
+            }, Math.max(250, (clipEndSeconds - safeStartSeconds) * 1000));
+            aquariumClipPlaybackTimeoutId = clipWindowTimeoutId;
+          };
+          const onClipLoad = () => {
+            startClipPlayback();
+          };
+          if (aquariumClipVideoEl) {
+            aquariumClipVideoEl.addEventListener('loadedmetadata', onClipLoad);
+            aquariumClipVideoEl.addEventListener('timeupdate', onClipTimeUpdate);
+            aquariumClipVideoEl.addEventListener('ended', onClipEnded);
+            aquariumClipVideoEl.addEventListener('error', onClipError);
+            if (aquariumClipVideoEl.readyState >= 1) {
+              startClipPlayback();
+            }
           }
-          loadFallbackTimeoutId = window.setTimeout(() => {
-            loadFallbackTimeoutId = null;
-            onClipLoad();
-          }, AQUARIUM_CLIP_LOAD_FALLBACK_MS);
-          aquariumClipPlaybackTimeoutId = loadFallbackTimeoutId;
           aquariumClipPlaybackResolve = (didFinish) => {
             aquariumClipPlaybackResolve = null;
             cleanup();
@@ -1720,12 +1764,19 @@
       }
 
       async function playAquariumRandomClipPass(sequenceToken) {
-        if (!aquariumClipIframeEl || !aquariumStaticOverlayEl) {
+        if (!aquariumClipVideoEl || !aquariumStaticOverlayEl) {
           return false;
         }
 
+        const clip = getRandomAquariumLocalClip();
+        if (!clip?.src) {
+          return false;
+        }
         aquariumStaticOverlayEl.classList.remove('is-active');
-        setAquariumClipPlayback({ shouldPlay: true, embedUrl: getRandomAquariumClipEmbedUrl() });
+        if (aquariumClipVideoEl) {
+          aquariumClipVideoEl.dataset.clipStartSeconds = String(Math.max(0, Math.floor(clip.startSeconds || 0)));
+        }
+        setAquariumClipPlayback({ shouldPlay: true, clip });
         syncBigTvContentVisibility();
         const shouldContinue = await waitForAquariumClipWindow(sequenceToken);
         setAquariumClipPlayback();
@@ -2752,7 +2803,7 @@
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
         aquariumOverlayEl = null;
-        aquariumClipIframeEl = null;
+        aquariumClipVideoEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         bigTvPromptOverlayEl = null;
@@ -2799,15 +2850,18 @@
             aquariumOverlayEl = el;
             el.classList.add('aquarium-video-overlay');
 
-            aquariumClipIframeEl = document.createElement('iframe');
-            aquariumClipIframeEl.className = 'aquarium-embed-video';
-            aquariumClipIframeEl.title = 'Naimean Aquarium Starshrimp Clip';
-            aquariumClipIframeEl.loading = 'lazy';
-            aquariumClipIframeEl.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-            aquariumClipIframeEl.referrerPolicy = 'strict-origin-when-cross-origin';
-            aquariumClipIframeEl.sandbox = 'allow-scripts allow-presentation';
-            aquariumClipIframeEl.src = 'about:blank';
-            el.appendChild(aquariumClipIframeEl);
+            aquariumClipVideoEl = document.createElement('video');
+            aquariumClipVideoEl.className = 'aquarium-embed-video';
+            aquariumClipVideoEl.setAttribute('aria-label', 'Naimean Aquarium Local Clip');
+            aquariumClipVideoEl.preload = 'auto';
+            aquariumClipVideoEl.muted = true;
+            aquariumClipVideoEl.defaultMuted = true;
+            aquariumClipVideoEl.playsInline = true;
+            aquariumClipVideoEl.setAttribute('playsinline', '');
+            aquariumClipVideoEl.setAttribute('webkit-playsinline', '');
+            aquariumClipVideoEl.controls = false;
+            aquariumClipVideoEl.loop = false;
+            el.appendChild(aquariumClipVideoEl);
 
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
