@@ -2472,7 +2472,10 @@
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
-          if (OVERLAY_CONTROL_TO_OVERLAY_ID.has(spot.id)) {
+          if (
+            OVERLAY_CONTROL_TO_OVERLAY_ID.has(spot.id) &&
+            spot.id !== COMMODORE_OVERLAY_CONTROL_ID
+          ) {
             el.classList.add('overlay-control-hotspot');
           }
           if (LOCKED_DEBUG_HOTSPOT_IDS.has(spot.id)) {
