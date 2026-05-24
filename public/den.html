@@ -651,10 +651,24 @@
       pointer-events: auto;
     }
 
+    body.debug .hotspot.overlay-control-hotspot.locked-debug-hotspot {
+      pointer-events: none;
+    }
+
     body.debug .hotspot-label {
       opacity: 1;
       border-color: rgba(65, 229, 255, 0.95);
       background: rgba(8, 20, 30, 0.9);
+    }
+
+    body.debug .hotspot.locked-debug-hotspot {
+      border-color: transparent;
+      background: transparent;
+      cursor: default;
+    }
+
+    body.debug .hotspot.locked-debug-hotspot .hotspot-label {
+      opacity: 0;
     }
 
     body.debug .screen-overlay {
@@ -744,6 +758,11 @@
     body.debug .resize-handle {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    body.debug .hotspot.locked-debug-hotspot .resize-handle {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .resize-n, .resize-s {
@@ -954,6 +973,11 @@
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
+      const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
+        COMMODORE_OVERLAY_CONTROL_ID,
+        'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
+        'overlaymonitorscreencontrol'
+      ]);
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
@@ -1605,6 +1629,9 @@
           if (OVERLAY_CONTROL_TO_OVERLAY_ID.has(spot.id)) {
             el.classList.add('overlay-control-hotspot');
           }
+          if (LOCKED_DEBUG_HOTSPOT_IDS.has(spot.id)) {
+            el.classList.add('locked-debug-hotspot');
+          }
           el.id = spot.id;
           el.style.left = `${spot.x}px`;
           el.style.top = `${spot.y}px`;
@@ -1933,6 +1960,7 @@
       }
 
       function startDebugEdit(event, el, type, dir) {
+        if (el.classList.contains('locked-debug-hotspot')) return;
         activePointerId = event.pointerId;
         debugEditType = type;
         debugEditEl = el;
@@ -1999,13 +2027,13 @@
           const handle = event.target.closest('.resize-handle');
           if (handle) {
             const hotspotEl = handle.closest('.hotspot');
-            if (hotspotEl) {
+            if (hotspotEl && !hotspotEl.classList.contains('locked-debug-hotspot')) {
               startDebugEdit(event, hotspotEl, 'resize', handle.dataset.dir);
               return;
             }
           }
           const hotspotEl = event.target.closest('.hotspot');
-          if (hotspotEl) {
+          if (hotspotEl && !hotspotEl.classList.contains('locked-debug-hotspot')) {
             startDebugEdit(event, hotspotEl, 'move', null);
             return;
           }
