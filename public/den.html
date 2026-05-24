@@ -59,6 +59,7 @@
       top: 0;
       left: 0;
       height: 100%;
+      background: linear-gradient(180deg, #0a4256 0%, #0c6f78 48%, #103e57 100%);
       will-change: transform;
     }
 
@@ -66,41 +67,6 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-    }
-
-    /* Parallax layers sit behind room tiles. */
-    .parallax-layer {
-      will-change: transform;
-    }
-
-    .parallax-canvas {
-      position: absolute;
-      left: 0;
-      top: calc((var(--design-height) - var(--uw-canvas-height)) * 1px);
-      width: calc(var(--uw-canvas-width) * 1px);
-      height: calc(var(--uw-canvas-height) * 1px);
-      object-fit: cover;
-      pointer-events: none;
-    }
-
-    .parallax-canvas.parallax-canvas-secondary {
-      left: calc(var(--uw-canvas-width) * 1px);
-    }
-
-    #parallax-uw1 {
-      opacity: 0.9;
-    }
-
-    #parallax-uw2 {
-      opacity: 0.85;
-    }
-
-    #parallax-uw3 {
-      opacity: 0.88;
-    }
-
-    #parallax-uw4 {
-      opacity: 0.95;
     }
 
     /* Tile image layer (exact 3840x2160 PNGs placed side-by-side). */
@@ -888,28 +854,11 @@
 <body>
   <div id="viewport" aria-label="Den side-scrolling scene">
     <div id="stage">
-      <div id="world">
-        <div class="layer parallax-layer" id="parallax-uw1" aria-hidden="true">
-          <img class="parallax-canvas" data-src="assets/images/uw1.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw1.png" alt="" />
-        </div>
-        <div class="layer parallax-layer" id="parallax-uw2" aria-hidden="true">
-          <img class="parallax-canvas" data-src="assets/images/uw2.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw2.png" alt="" />
-        </div>
-        <div class="layer parallax-layer" id="parallax-uw3" aria-hidden="true">
-          <img class="parallax-canvas" data-src="assets/images/uw3.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw3.png" alt="" />
-        </div>
-        <div class="layer parallax-layer" id="parallax-uw4" aria-hidden="true">
-          <img class="parallax-canvas" data-src="assets/images/uw4.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw4.png" alt="" />
-        </div>
-
-        <div class="layer" id="tile-layer" aria-hidden="true"></div>
-        <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
-        <div class="layer" id="screen-overlay-layer" aria-hidden="true"></div>
-        <div class="layer" id="effects-layer" aria-hidden="true"></div>
+  <div id="world">
+    <div class="layer" id="tile-layer" aria-hidden="true"></div>
+    <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
+    <div class="layer" id="screen-overlay-layer" aria-hidden="true"></div>
+    <div class="layer" id="effects-layer" aria-hidden="true"></div>
       </div>
     </div>
   </div>
@@ -1043,13 +992,6 @@
         (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
       const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       const useLiteRendering = isIOSDevice || hasCoarsePointer;
-
-      const parallaxLayers = [
-        { el: document.getElementById('parallax-uw1'), speed: 0.1 },
-        { el: document.getElementById('parallax-uw2'), speed: 0.25 },
-        { el: document.getElementById('parallax-uw3'), speed: 0.55 },
-        { el: document.getElementById('parallax-uw4'), speed: 0.9 }
-      ];
 
       const worldWidth = tiles.length * TILE_WIDTH;
       const worldHeight = DESIGN_HEIGHT;
@@ -1847,23 +1789,8 @@
         });
       }
 
-      function hydrateParallaxCanvases() {
-        document.querySelectorAll('.parallax-canvas[data-src]').forEach((el) => {
-          const src = el.dataset.src;
-          if (!src) return;
-          el.src = src;
-          el.removeAttribute('data-src');
-        });
-      }
-
       function applyTransforms() {
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
-
-        if (!useLiteRendering) {
-          parallaxLayers.forEach(({ el, speed }) => {
-            el.style.transform = `translate3d(${cameraX * (1 - speed)}px, 0, 0)`;
-          });
-        }
       }
 
       function setCameraX(nextCameraX) {
@@ -2201,8 +2128,6 @@
         createOverlays();
         if (useLiteRendering) {
           document.body.classList.add('lite-rendering');
-        } else {
-          hydrateParallaxCanvases();
         }
 
         resize();
