@@ -469,6 +469,8 @@
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
       const HOTSPOT_STORAGE_KEY = 'den_hotspot_overrides';
       const HOTSPOT_API_PATH = '/api/hotspots';
+      const LEGACY_HOTSPOT_API_PATH = '/api/data';
+      const LEGACY_HOTSPOT_RECORD_TITLE = 'den-hotspots-v3';
       const SAVE_BUTTON_RESET_MS = 2000;
       const SAVE_RETRY_ATTEMPTS = 3;
       const SAVE_RETRY_DELAY_MS = 350;
@@ -559,6 +561,7 @@
       let momentumVelocityX = 0;
       let lastMomentumTimestamp = 0;
       let saveButtonResetTimeoutId = null;
+      let hotspotApiMode = 'primary';
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -658,10 +661,54 @@
         } catch (_) {}
       }
 
+      function shouldUseLegacyDataApi(status) {
+        return status === 404;
+      }
+
+      function extractSourceHotspotsFromLegacyRows(rows) {
+        if (!Array.isArray(rows)) return null;
+        for (const row of rows) {
+          if (!row || row.title !== LEGACY_HOTSPOT_RECORD_TITLE) continue;
+          let parsed = null;
+          if (typeof row.content === 'string') {
+            try {
+              parsed = JSON.parse(row.content);
+            } catch (_) {}
+          } else if (Array.isArray(row.content)) {
+            parsed = row.content;
+          }
+          const sanitized = sanitizeSourceHotspots(parsed);
+          if (sanitized) return sanitized;
+        }
+        return null;
+      }
+
+      async function loadHotspotsFromLegacyServer() {
+        try {
+          const response = await fetch(LEGACY_HOTSPOT_API_PATH, { cache: 'no-store' });
+          if (!response.ok) return null;
+          const payload = await response.json();
+          const sanitized = extractSourceHotspotsFromLegacyRows(payload);
+          return sanitized ? sourceHotspotsToRuntime(sanitized) : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
       async function loadHotspotsFromServer() {
+        if (hotspotApiMode === 'legacy') {
+          return loadHotspotsFromLegacyServer();
+        }
+
         try {
           const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store' });
-          if (!response.ok) return null;
+          if (!response.ok) {
+            if (shouldUseLegacyDataApi(response.status)) {
+              hotspotApiMode = 'legacy';
+              return loadHotspotsFromLegacyServer();
+            }
+            return null;
+          }
           const payload = await response.json();
           const sanitized = sanitizeSourceHotspots(payload?.hotspots);
           return sanitized ? sourceHotspotsToRuntime(sanitized) : null;
@@ -692,7 +739,47 @@
         return '';
       }
 
+      async function postHotspotsToLegacyServer(savedSourceHotspots) {
+        let lastError = null;
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(LEGACY_HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                title: LEGACY_HOTSPOT_RECORD_TITLE,
+                content: JSON.stringify(savedSourceHotspots)
+              }),
+              cache: 'no-store'
+            });
+
+            if (!response.ok) {
+              const errorDetails = await readResponseErrorText(response);
+              throw new Error(
+                errorDetails
+                  ? `Server save failed (${response.status}): ${errorDetails}`
+                  : `Server save failed (${response.status})`
+              );
+            }
+
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+            }
+          }
+        }
+
+        throw lastError || new Error('Server save failed');
+      }
+
       async function postHotspotsToServer(savedSourceHotspots) {
+        if (hotspotApiMode === 'legacy') {
+          await postHotspotsToLegacyServer(savedSourceHotspots);
+          return;
+        }
+
         let lastError = null;
 
         for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
@@ -705,6 +792,11 @@
             });
 
             if (!response.ok) {
+              if (shouldUseLegacyDataApi(response.status)) {
+                hotspotApiMode = 'legacy';
+                await postHotspotsToLegacyServer(savedSourceHotspots);
+                return;
+              }
               const errorDetails = await readResponseErrorText(response);
               throw new Error(
                 errorDetails
