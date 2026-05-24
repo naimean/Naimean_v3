@@ -1643,8 +1643,9 @@
         return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
       }
 
-      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs = performance.now() } = {}) {
+      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs } = {}) {
         const position = clamp(tuningPosition, 0, 1);
+        const effectiveTimestampMs = Number.isFinite(timestampMs) ? timestampMs : performance.now();
         const state = audioEl.__radioTuningState || {
           lastPosition: position,
           movementEnergy: 0
@@ -1663,7 +1664,7 @@
         audioEl.__radioTuningState = state;
 
         const stationStrength = getRadioStationStrength(position);
-        const wobble = Math.sin((timestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
+        const wobble = Math.sin((effectiveTimestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
           * state.movementEnergy
           * RADIO_TUNING_WOBBLE_DEPTH;
         audioEl.playbackRate = clamp(
@@ -1992,7 +1993,7 @@
             selectorDot.setAttribute('aria-valuemax', '100');
             selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
 
-            function updateTuningFromClientX(clientX, { playAudio, timestampMs } = { playAudio: true, timestampMs: performance.now() }) {
+            function updateTuningFromClientX(clientX, { playAudio = true, timestampMs } = {}) {
               const rect = scaleBlock.getBoundingClientRect();
               if (!rect.width) return false;
               const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
