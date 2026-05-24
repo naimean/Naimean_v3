@@ -955,6 +955,7 @@
       const TOUCH_MOMENTUM_DECAY = 0.004;
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const NOAHS_ARCADE_URL = '/noahs-arcade.html';
+      const COMMODORE_URL = '/commodore.html';
       const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
       const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
@@ -964,7 +965,7 @@
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
-      const COMMODORE_DESK_IMAGE_URL = 'https://github.com/user-attachments/assets/75a5d6c0-7f26-45c9-adb2-5b1dc185515e';
+      const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1685,6 +1686,10 @@
             console.log(`[hotspot] ${spot.id}`);
             if (spot.id === NOAHS_ARCADE_HOTSPOT_ID) {
               window.location.assign(NOAHS_ARCADE_URL);
+              return;
+            }
+            if (spot.id === 'commodore-screen' || spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+              window.location.assign(COMMODORE_URL);
               return;
             }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
