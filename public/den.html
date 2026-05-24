@@ -177,6 +177,18 @@
       transform-origin: top left;
     }
 
+    .aquarium-youtube-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: none;
+      pointer-events: auto;
+      z-index: 1;
+      background: #000;
+    }
+
     .discord-static-overlay {
       position: absolute;
       inset: 0;
@@ -975,6 +987,7 @@
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const AQUARIUM_YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&rel=0';
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
@@ -1088,6 +1101,7 @@
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
+      let aquariumYoutubeIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
@@ -1109,11 +1123,37 @@
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
       }
 
-      function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
+      function setAquariumYoutubePlayback(shouldPlay) {
+        if (!aquariumYoutubeIframeEl) {
+          return;
+        }
+
+        if (shouldPlay) {
+          aquariumYoutubeIframeEl.style.display = 'block';
+          aquariumYoutubeIframeEl.src = AQUARIUM_YOUTUBE_EMBED_URL;
+          return;
+        }
+
+        aquariumYoutubeIframeEl.style.display = 'none';
+        aquariumYoutubeIframeEl.src = 'about:blank';
+      }
+
+      function hideAquariumStaticOverlay({ resetPlayback = true, showYoutubeAfter = false } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
-        if (discordWidgetIframeEl) {
+        if (showYoutubeAfter) {
+          if (discordWidgetIframeEl) {
+            discordWidgetIframeEl.style.visibility = 'hidden';
+          }
+          setAquariumYoutubePlayback(true);
+        } else {
+          setAquariumYoutubePlayback(false);
+          if (discordWidgetIframeEl) {
+            discordWidgetIframeEl.style.visibility = 'visible';
+          }
+        }
+        if (discordWidgetIframeEl && !showYoutubeAfter) {
           discordWidgetIframeEl.style.visibility = 'visible';
         }
         if (aquariumStaticVideoEl) {
@@ -1129,6 +1169,7 @@
           return;
         }
 
+        setAquariumYoutubePlayback(false);
         if (discordWidgetIframeEl) {
           discordWidgetIframeEl.style.visibility = 'hidden';
         }
@@ -1721,6 +1762,7 @@
       function createOverlays() {
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
+        aquariumYoutubeIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -1750,6 +1792,15 @@
             discordWidgetIframeEl = iframe;
             el.appendChild(iframe);
 
+            aquariumYoutubeIframeEl = document.createElement('iframe');
+            aquariumYoutubeIframeEl.className = 'aquarium-youtube-frame';
+            aquariumYoutubeIframeEl.title = 'Naimean YouTube Video';
+            aquariumYoutubeIframeEl.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+            aquariumYoutubeIframeEl.setAttribute('allowfullscreen', '');
+            aquariumYoutubeIframeEl.loading = 'lazy';
+            aquariumYoutubeIframeEl.src = 'about:blank';
+            el.appendChild(aquariumYoutubeIframeEl);
+
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
             aquariumStaticOverlayEl.setAttribute('aria-hidden', 'true');
@@ -1763,7 +1814,7 @@
             aquariumStaticVideoEl.playsInline = true;
             aquariumStaticVideoEl.setAttribute('playsinline', '');
             aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
-            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
+            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay({ showYoutubeAfter: true }));
             aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
