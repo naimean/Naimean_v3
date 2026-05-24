@@ -713,7 +713,7 @@
           } catch (error) {
             lastError = error;
             if (attempt < SAVE_RETRY_ATTEMPTS) {
-              await wait(SAVE_RETRY_DELAY_MS * attempt);
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
             }
           }
         }
