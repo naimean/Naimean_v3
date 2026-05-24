@@ -321,6 +321,14 @@
       cursor: pointer;
     }
 
+    body:not(.debug) #save-hotspots-btn {
+      display: none;
+    }
+
+    body.debug #save-hotspots-btn {
+      display: block;
+    }
+
     #save-hotspots-btn:focus-visible {
       outline: 2px solid rgba(65, 229, 255, 0.95);
       outline-offset: 2px;
@@ -1065,11 +1073,15 @@
         }
       }
 
-      function toggleDebugMode() {
-        document.body.classList.toggle('debug');
-        debugStatus.textContent = document.body.classList.contains('debug')
+      function setDebugMode(enabled) {
+        document.body.classList.toggle('debug', enabled);
+        debugStatus.textContent = enabled
           ? 'Debug mode enabled'
           : 'Debug mode disabled';
+      }
+
+      function toggleDebugMode() {
+        setDebugMode(!document.body.classList.contains('debug'));
       }
 
       async function saveHotspots() {
@@ -1089,9 +1101,8 @@
           if (!response.ok) {
             throw new Error(`Server save failed (${response.status})`);
           }
-          setSaveButtonText('Saved');
-          debugStatus.textContent = 'Hotspot positions saved to the server';
-          resetSaveButtonSoon();
+          setDebugMode(false);
+          window.location.reload();
         } catch (error) {
           setSaveButtonText('Save failed');
           debugStatus.textContent = 'Server save failed; showing manual copy fallback';
