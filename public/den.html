@@ -798,26 +798,6 @@
       box-shadow: none;
     }
 
-    #debug-hint {
-      position: fixed;
-      right: 16px;
-      bottom: 72px;
-      z-index: 999;
-      padding: 6px 9px;
-      border-radius: 6px;
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      background: rgba(0, 0, 0, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.9);
-      pointer-events: none;
-      transition: opacity 0.35s ease;
-    }
-
-    #debug-hint.hidden {
-      opacity: 0;
-    }
-
     #debug-toggle-btn {
       position: fixed;
       right: 12px;
@@ -1044,7 +1024,6 @@
       </div>
     </div>
   </div>
-  <div id="debug-hint" role="status" aria-live="polite">Press ~ (or Ctrl/Cmd+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
@@ -2651,8 +2630,6 @@
           hideSaveModal();
         }
       });
-
-      setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       initializeScene();
     })();
