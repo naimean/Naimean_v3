@@ -29,6 +29,10 @@ const JSON_HEADERS = {
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'content-type'
 };
+const REQUIRED_AQUARIUM_FRAME_SOURCES = [
+  'https://www.youtube-nocookie.com',
+  'https://www.youtube.com'
+];
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -40,6 +44,53 @@ function clamp(value, min, max) {
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function appendAquariumFrameSourcesToCsp(csp) {
+  if (typeof csp !== 'string' || !csp.trim()) return csp;
+
+  const directives = csp.split(';').map((entry) => entry.trim()).filter(Boolean);
+  let hasFrameSrc = false;
+  let changed = false;
+  const nextDirectives = directives.map((directive) => {
+    const [name, ...sources] = directive.split(/\s+/);
+    if (!name || name.toLowerCase() !== 'frame-src') {
+      return directive;
+    }
+
+    hasFrameSrc = true;
+    const existing = new Set(sources);
+    const sourcesToAppend = REQUIRED_AQUARIUM_FRAME_SOURCES.filter((source) => !existing.has(source));
+    if (!sourcesToAppend.length) {
+      return directive;
+    }
+    changed = true;
+    return [name, ...sources, ...sourcesToAppend].join(' ');
+  });
+
+  if (!hasFrameSrc) {
+    changed = true;
+    nextDirectives.push(`frame-src ${REQUIRED_AQUARIUM_FRAME_SOURCES.join(' ')}`);
+  }
+
+  if (!changed) return csp;
+  return nextDirectives.join('; ');
+}
+
+function withAquariumEmbedFrameCsp(response) {
+  const currentCsp = response.headers.get('content-security-policy');
+  const nextCsp = appendAquariumFrameSourcesToCsp(currentCsp);
+  if (!nextCsp || nextCsp === currentCsp) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set('content-security-policy', nextCsp);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
 }
 
 function sanitizeHotspots(input) {
@@ -116,6 +167,7 @@ export default {
       return env.HOTSPOT_STORE.get(id).fetch(request);
     }
 
-    return env.ASSETS.fetch(request);
+    const assetResponse = await env.ASSETS.fetch(request);
+    return withAquariumEmbedFrameCsp(assetResponse);
   }
 };
