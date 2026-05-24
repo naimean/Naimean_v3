@@ -989,6 +989,8 @@
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&rel=0';
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
+      const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
+      const RADIO_TUNING_STATION_WIDTH = 0.06;
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const NOTES_URL = 'notes.html';
@@ -1616,6 +1618,35 @@
         return clamped;
       }
 
+      function getRadioStationStrength(position) {
+        const clampedPosition = clamp(position, 0, 1);
+        const strongestStationDistance = RADIO_TUNING_STATION_POSITIONS.reduce(
+          (closest, stationPosition) => Math.min(closest, Math.abs(clampedPosition - stationPosition)),
+          Number.POSITIVE_INFINITY
+        );
+        const ratio = strongestStationDistance / RADIO_TUNING_STATION_WIDTH;
+        return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
+      }
+
+      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false } = {}) {
+        const position = clamp(tuningPosition, 0, 1);
+        const state = audioEl.__radioTuningState || {
+          lastPosition: position,
+          movementEnergy: 0
+        };
+        const movementDelta = Math.abs(position - state.lastPosition);
+        state.lastPosition = position;
+        state.movementEnergy = isMoving
+          ? clamp(state.movementEnergy * 0.45 + movementDelta * 18 + 0.2, 0, 1)
+          : state.movementEnergy * 0.8;
+        audioEl.__radioTuningState = state;
+
+        const stationStrength = getRadioStationStrength(position);
+        const wobble = Math.sin((performance.now() * 0.015) + (position * 15)) * state.movementEnergy * 0.08;
+        audioEl.playbackRate = clamp(0.84 + (stationStrength * 0.24) + wobble, 0.72, 1.28);
+        audioEl.volume = clamp(0.14 + (stationStrength * 0.74) + (state.movementEnergy * 0.1), 0.08, 1);
+      }
+
       function ensureRadioTuningLoopPlayback(audioEl) {
         if (!audioEl.paused) return;
         const playPromise = audioEl.play();
@@ -1626,6 +1657,11 @@
 
       function stopRadioTuningLoopPlayback(audioEl) {
         audioEl.pause();
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
+        if (audioEl.__radioTuningState) {
+          audioEl.__radioTuningState.movementEnergy = 0;
+        }
       }
 
       function startFlipClock(container) {
@@ -1906,6 +1942,7 @@
             tuningAudio.preload = 'auto';
             tuningAudio.loop = true;
             flipClockRadioTuningAudioEl = tuningAudio;
+            applyRadioTuningWarp(tuningAudio, tuningPosition);
             const TUNING_DRAG_THRESHOLD_PX = 1;
             const KEYBOARD_TUNING_STEP = 0.02;
             const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
@@ -1929,6 +1966,7 @@
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true });
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -1988,6 +2026,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true });
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
