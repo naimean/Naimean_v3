@@ -185,13 +185,14 @@
       opacity: 0;
       visibility: hidden;
       background: #040506;
-      transition: opacity 120ms ease;
+      transition: opacity 120ms ease, visibility 0s linear 120ms;
     }
 
     .screen-overlay.aquarium-video-overlay.is-active {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
+      transition-delay: 0s;
     }
 
     .screen-overlay.commodore-desk-overlay {
@@ -1372,12 +1373,12 @@
           aquariumClipIframeEl &&
           aquariumClipIframeEl.style.display !== 'none'
         );
-        const aquariumOverlayActive = aquariumActive || nedryGateActive || aquariumEmbedActive;
+        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive || aquariumEmbedActive;
         if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility = aquariumOverlayActive ? 'hidden' : 'visible';
+          discordWidgetIframeEl.style.visibility = shouldShowBigTvVideoOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
-          aquariumOverlayEl.classList.toggle('is-active', aquariumOverlayActive);
+          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvVideoOverlay);
         }
       }
 
