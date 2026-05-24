@@ -196,13 +196,24 @@
 
     /* ── Flip Clock / Calendar Overlay ────────────────────── */
     .flip-clock-overlay {
+      --fc-scale: 0.8;
+      --fc-card-height: calc(84px * var(--fc-scale));
+      --fc-digit-width: calc(58px * var(--fc-scale));
+      --fc-month-width: calc(96px * var(--fc-scale));
+      --fc-digit-font-size: calc(70px * var(--fc-scale));
+      --fc-month-font-size: calc(27px * var(--fc-scale));
       display: flex;
       align-items: stretch;
       background:
-        linear-gradient(180deg, rgba(31, 31, 31, 0.94) 0%, rgba(11, 11, 11, 0.98) 100%);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 26px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.08);
+        linear-gradient(180deg, rgba(220, 178, 120, 0.16) 0%, rgba(220, 178, 120, 0) 24%),
+        repeating-linear-gradient(90deg, rgba(82, 45, 22, 0.2) 0 10px, rgba(126, 78, 43, 0.18) 10px 20px, rgba(95, 58, 32, 0.2) 20px 30px),
+        linear-gradient(180deg, rgba(122, 76, 45, 0.98) 0%, rgba(74, 41, 22, 0.98) 100%);
+      border-radius: calc(14px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(241, 214, 167, 0.24);
+      box-shadow:
+        0 calc(10px * var(--fc-scale)) calc(26px * var(--fc-scale)) rgba(0, 0, 0, 0.68),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 236, 205, 0.22),
+        inset 0 calc(-2px * var(--fc-scale)) 0 rgba(52, 29, 14, 0.55);
       pointer-events: auto;
       overflow: hidden;
     }
@@ -213,8 +224,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 14px 10px 8px;
-      gap: 6px;
+      padding: calc(14px * var(--fc-scale)) calc(10px * var(--fc-scale)) calc(8px * var(--fc-scale));
+      gap: calc(6px * var(--fc-scale));
       background: transparent;
       cursor: pointer;
       transition: background 0.12s;
@@ -222,42 +233,42 @@
     }
 
     .fc-half-clock {
-      background: linear-gradient(180deg, rgba(24, 24, 24, 0.94) 0%, rgba(10, 10, 10, 0.96) 100%);
+      background: linear-gradient(180deg, rgba(68, 37, 19, 0.3) 0%, rgba(42, 21, 11, 0.18) 100%);
     }
 
     .fc-half-calendar {
       background:
-        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 42%),
-        linear-gradient(180deg, rgba(247, 237, 208, 0.98) 0%, rgba(234, 220, 181, 0.98) 100%);
+        radial-gradient(circle at 50% 0%, rgba(255, 228, 190, 0.1) 0%, rgba(255, 228, 190, 0) 42%),
+        linear-gradient(180deg, rgba(78, 44, 23, 0.24) 0%, rgba(49, 27, 14, 0.12) 100%);
     }
 
-    .fc-half:hover { background: rgba(255,255,255,0.05); }
-    .fc-half:active { background: rgba(255,255,255,0.09); }
+    .fc-half:hover { background: rgba(255, 237, 211, 0.08); }
+    .fc-half:active { background: rgba(44, 23, 12, 0.16); }
 
     .fc-digits {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: calc(5px * var(--fc-scale));
     }
 
     .fc-colon {
-      font-size: 52px;
+      font-size: calc(52px * var(--fc-scale));
       font-weight: 900;
       font-family: 'Courier New', Courier, monospace;
-      color: rgba(245, 210, 90, 0.8);
+      color: rgba(242, 178, 93, 0.95);
       line-height: 1;
-      margin: 0 1px;
-      padding-bottom: 8px;
-      text-shadow: 0 0 10px rgba(255,200,60,0.35);
+      margin: 0 calc(1px * var(--fc-scale));
+      padding-bottom: calc(8px * var(--fc-scale));
+      text-shadow: 0 0 calc(10px * var(--fc-scale)) rgba(255, 170, 72, 0.28);
       user-select: none;
       pointer-events: none;
     }
 
     .fc-label {
-      font-size: 10px;
+      font-size: calc(10px * var(--fc-scale));
       font-family: Inter, system-ui, sans-serif;
       font-weight: 600;
-      color: rgba(255,255,255,0.28);
+      color: rgba(255, 235, 207, 0.56);
       letter-spacing: 0.14em;
       text-transform: uppercase;
       user-select: none;
@@ -265,35 +276,38 @@
     }
 
     .fc-half-calendar .fc-label {
-      color: rgba(52, 43, 28, 0.76);
+      color: rgba(255, 227, 183, 0.7);
       letter-spacing: 0.12em;
     }
 
     .fc-vdivider {
-      width: 2px;
-      background: rgba(255,255,255,0.07);
+      width: max(1px, calc(2px * var(--fc-scale)));
+      background: rgba(56, 28, 14, 0.7);
       align-self: stretch;
       flex-shrink: 0;
+      box-shadow: inset calc(1px * var(--fc-scale)) 0 0 rgba(255, 226, 184, 0.08);
     }
 
     /* Digit and month cards */
     .fc-digit, .fc-month {
       position: relative;
-      border-radius: 4px;
+      border-radius: calc(4px * var(--fc-scale));
       overflow: hidden;
-      background: #1c1c1c;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+      background: #25130c;
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(182, 124, 69, 0.28);
+      box-shadow:
+        0 calc(2px * var(--fc-scale)) calc(5px * var(--fc-scale)) rgba(0, 0, 0, 0.45),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 214, 167, 0.08);
       pointer-events: none;
     }
 
     .fc-half-calendar .fc-digit,
     .fc-half-calendar .fc-month {
-      background: #f8efd2;
-      box-shadow: 0 2px 6px rgba(52, 40, 18, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      background: #2a170f;
     }
 
-    .fc-digit { width: 58px; height: 84px; }
-    .fc-month { width: 96px; height: 84px; }
+    .fc-digit { width: var(--fc-digit-width); height: var(--fc-card-height); }
+    .fc-month { width: var(--fc-month-width); height: var(--fc-card-height); }
 
     .fc-digit .fc-top, .fc-digit .fc-bot,
     .fc-month .fc-top, .fc-month .fc-bot {
@@ -305,38 +319,38 @@
 
     .fc-digit .fc-top, .fc-month .fc-top {
       top: 0;
-      background: #262626;
-      border-bottom: 1px solid #000;
+      background: #3b2114;
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(15, 6, 2, 0.95);
     }
 
     .fc-digit .fc-bot, .fc-month .fc-bot {
       bottom: 0;
-      background: #1c1c1c;
+      background: #24120b;
     }
 
     .fc-half-calendar .fc-digit .fc-top,
     .fc-half-calendar .fc-month .fc-top {
-      background: #fff7df;
-      border-bottom: 1px solid rgba(74, 60, 30, 0.25);
+      background: #402317;
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(15, 6, 2, 0.95);
     }
 
     .fc-half-calendar .fc-digit .fc-bot,
     .fc-half-calendar .fc-month .fc-bot {
-      background: #f1e2b6;
+      background: #28140c;
     }
 
     /* Number span positioned so each half clips the correct half of the glyph */
     .fc-digit .fc-num {
       position: absolute;
       left: 0; right: 0;
-      height: 84px;
-      line-height: 84px;
+      height: var(--fc-card-height);
+      line-height: var(--fc-card-height);
       text-align: center;
-      font-size: 70px;
+      font-size: var(--fc-digit-font-size);
       font-weight: 900;
       font-family: 'Courier New', Courier, monospace;
-      color: #f0d870;
-      text-shadow: 0 0 8px rgba(240,210,80,0.2);
+      color: #f3b163;
+      text-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(242, 148, 54, 0.24);
       user-select: none;
       pointer-events: none;
     }
@@ -344,23 +358,23 @@
     .fc-month .fc-num {
       position: absolute;
       left: 0; right: 0;
-      height: 84px;
-      line-height: 84px;
+      height: var(--fc-card-height);
+      line-height: var(--fc-card-height);
       text-align: center;
-      font-size: 27px;
+      font-size: var(--fc-month-font-size);
       font-weight: 700;
       font-family: Inter, system-ui, sans-serif;
       letter-spacing: 0.08em;
-      color: #f0d870;
-      text-shadow: 0 0 8px rgba(240,210,80,0.18);
+      color: #f3b163;
+      text-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(242, 148, 54, 0.2);
       user-select: none;
       pointer-events: none;
     }
 
     .fc-half-calendar .fc-digit .fc-num,
     .fc-half-calendar .fc-month .fc-num {
-      color: #3b2d16;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+      color: #f6bf78;
+      text-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(255, 162, 69, 0.22);
     }
 
     /* Top half clips glyph from top; bottom half clips from bottom */
@@ -378,28 +392,28 @@
       overflow: hidden;
       z-index: 4;
       transform-origin: bottom center;
-      background: #262626;
-      border-bottom: 1px solid #000;
+      background: #3b2114;
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(15, 6, 2, 0.95);
       pointer-events: none;
     }
 
     .fc-flap .fc-num {
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 84px;
-      line-height: 84px;
+      height: var(--fc-card-height);
+      line-height: var(--fc-card-height);
       text-align: center;
-      font-size: 70px;
+      font-size: var(--fc-digit-font-size);
       font-weight: 900;
       font-family: 'Courier New', Courier, monospace;
-      color: #f0d870;
-      text-shadow: 0 0 8px rgba(240,210,80,0.2);
+      color: #f3b163;
+      text-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(242, 148, 54, 0.24);
       user-select: none;
       pointer-events: none;
     }
 
     .fc-month .fc-flap .fc-num {
-      font-size: 27px;
+      font-size: var(--fc-month-font-size);
       font-family: Inter, system-ui, sans-serif;
       letter-spacing: 0.08em;
       font-weight: 700;
@@ -796,7 +810,7 @@
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
-        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 945, y: 1720, w: 450, h: 195 }
+        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 }
       ];
 
       // Overlay placeholders over transparent screen cutouts.
@@ -805,7 +819,7 @@
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
-        { id: FLIP_CLOCK_OVERLAY_ID, x: 945, y: 1720, w: 450, h: 195 }
+        { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
       ].map((overlay) => {
         const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
         if (overlay.id === DISCORD_OVERLAY_ID) {
