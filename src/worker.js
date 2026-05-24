@@ -74,7 +74,7 @@ function appendAquariumFrameSourcesToCsp(csp) {
   }
 
   if (!changed) return csp;
-  return `${nextDirectives.join('; ')};`;
+  return nextDirectives.join('; ');
 }
 
 function withAquariumEmbedFrameCsp(response) {

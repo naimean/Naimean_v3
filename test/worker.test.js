@@ -226,8 +226,16 @@ test('worker augments frame-src CSP with YouTube aquarium sources', async () => 
 
   const response = await router.fetch(new Request('https://example.com/den.html'), env);
   const csp = response.headers.get('content-security-policy');
+  const frameSrcDirective = csp
+    ?.split(';')
+    .map((directive) => directive.trim())
+    .find((directive) => directive.startsWith('frame-src '));
+  const frameSources = new Set(frameSrcDirective?.split(/\s+/).slice(1));
 
-  assert.ok(csp?.includes('frame-src https://discord.com https://discordapp.com https://www.youtube-nocookie.com https://www.youtube.com'));
+  assert.ok(frameSources.has('https://discord.com'));
+  assert.ok(frameSources.has('https://discordapp.com'));
+  assert.ok(frameSources.has('https://www.youtube-nocookie.com'));
+  assert.ok(frameSources.has('https://www.youtube.com'));
 });
 
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
