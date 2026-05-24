@@ -310,7 +310,6 @@
       left: 68px;
       bottom: 12px;
       z-index: 1000;
-      display: none;
       min-width: 44px;
       min-height: 44px;
       border-radius: 8px;
@@ -320,6 +319,10 @@
       font-size: 11px;
       letter-spacing: 0.05em;
       cursor: pointer;
+    }
+
+    body:not(.debug) #save-hotspots-btn {
+      display: none;
     }
 
     body.debug #save-hotspots-btn {
@@ -1098,7 +1101,6 @@
           if (!response.ok) {
             throw new Error(`Server save failed (${response.status})`);
           }
-          debugStatus.textContent = 'Hotspot positions saved to the server';
           setDebugMode(false);
           window.location.reload();
         } catch (error) {
