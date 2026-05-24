@@ -1,12 +1,13 @@
 const DEFAULT_HOTSPOTS = [
   { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 },
-  { id: 'big-tv', x: 1148, y: 568, w: 924, h: 505 },
-  { id: 'left-monitor', x: 1488, y: 1072, w: 292, h: 205 },
-  { id: 'commodore-screen', x: 1852, y: 1050, w: 348, h: 227 },
-  { id: 'right-monitor', x: 2292, y: 1036, w: 262, h: 198 },
-  { id: 'aquarium', x: 2704, y: 720, w: 455, h: 420 },
-  { id: 'rca-board', x: 3220, y: 260, w: 470, h: 1060 },
-  { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 }
+  { id: 'left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
+  { id: 'commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
+  { id: 'right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
+  { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
+  { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+  { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+  { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
+  { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 }
 ];
 
 const HOTSPOT_LIMITS = {
