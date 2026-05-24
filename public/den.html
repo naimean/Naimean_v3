@@ -148,7 +148,8 @@
       z-index: 1;
     }
 
-    .screen-overlay.join-discord-overlay {
+    .screen-overlay.join-discord-overlay,
+    .screen-overlay.calendar-monitor-overlay {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -200,6 +201,91 @@
       -webkit-user-drag: none;
     }
 
+    .calendar-app-icon {
+      width: min(72%, calc(100% - 20px));
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 14%;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, #f9fbff 0%, #d9f0ff 100%);
+      box-shadow:
+        0 12px 28px rgba(2, 10, 22, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+      padding: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      cursor: pointer;
+    }
+
+    .calendar-app-icon:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 3px;
+    }
+
+    .calendar-app-icon-face {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 10% 10% 12%;
+      border-radius: inherit;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(226, 244, 255, 0.98));
+      color: #0a1930;
+      text-align: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .calendar-app-icon-top {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16%;
+      align-items: center;
+      padding-bottom: 8%;
+      border-bottom: 0.14em solid rgba(21, 69, 123, 0.12);
+      color: #ffffff;
+      background: linear-gradient(180deg, #ff6b6b 0%, #e54343 100%);
+      border-radius: 18% 18% 12% 12%;
+      margin: -2% -2% 10%;
+      padding-top: 8%;
+    }
+
+    .calendar-app-icon-ring {
+      width: 26%;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 0.16em rgba(120, 0, 0, 0.18);
+    }
+
+    .calendar-app-icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8%;
+      align-content: center;
+      justify-items: center;
+      padding: 0 8%;
+    }
+
+    .calendar-app-icon-grid span {
+      width: 58%;
+      aspect-ratio: 1;
+      border-radius: 0.32em;
+      background: rgba(36, 108, 192, 0.18);
+    }
+
+    .calendar-app-icon-label {
+      align-self: end;
+      font-weight: 700;
+      font-size: clamp(10px, 13%, 32px);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #133968;
+      padding-top: 10%;
+    }
+
     .discord-widget-frame {
       width: 100%;
       height: calc(178% - 10px);
@@ -210,6 +296,18 @@
       z-index: 1;
       transform: scale(2);
       transform-origin: top left;
+    }
+
+    .aquarium-youtube-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: none;
+      pointer-events: auto;
+      z-index: 1;
+      background: #000;
     }
 
     .discord-static-overlay {
@@ -1035,11 +1133,30 @@
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const AQUARIUM_YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&rel=0';
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
+      const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
+      const RADIO_TUNING_STATION_WIDTH = 0.06;
+      const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
+      const RADIO_TUNING_MOVEMENT_DECAY_IDLE = 0.8;
+      const RADIO_TUNING_MOVEMENT_GAIN = 18;
+      const RADIO_TUNING_MOVEMENT_FLOOR = 0.2;
+      const RADIO_TUNING_WOBBLE_SPEED = 0.015;
+      const RADIO_TUNING_WOBBLE_POSITION_FACTOR = 15;
+      const RADIO_TUNING_WOBBLE_DEPTH = 0.08;
+      const RADIO_TUNING_PLAYBACK_RATE_BASE = 0.84;
+      const RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN = 0.24;
+      const RADIO_TUNING_PLAYBACK_RATE_MIN = 0.72;
+      const RADIO_TUNING_PLAYBACK_RATE_MAX = 1.28;
+      const RADIO_TUNING_VOLUME_BASE = 0.14;
+      const RADIO_TUNING_VOLUME_STATION_GAIN = 0.74;
+      const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
+      const RADIO_TUNING_VOLUME_MIN = 0.08;
       const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
+      const CALENDAR_PAGE_URL = '/calendar.html';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1051,6 +1168,7 @@
       const WORLD_WIDTH_SEGMENTS = 2;
       const SCENE_TILE_IMAGE_URLS = ['assets/images/den_arcade.PNG', 'assets/images/den_computer.png'];
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
@@ -1060,6 +1178,7 @@
       ]);
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
@@ -1082,7 +1201,8 @@
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
-        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 }
+        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
+        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, x: 1322, y: 1028, w: 298, h: 206 }
       ];
 
       // Overlay placeholders over transparent screen cutouts.
@@ -1150,6 +1270,7 @@
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
+      let aquariumYoutubeIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let nedryGateOverlayEl = null;
@@ -1179,12 +1300,39 @@
         }
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
-        discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive ? 'hidden' : 'visible';
+        const aquariumYoutubeActive = Boolean(
+          aquariumYoutubeIframeEl &&
+          aquariumYoutubeIframeEl.style.display !== 'none' &&
+          aquariumYoutubeIframeEl.src
+        );
+        discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive || aquariumYoutubeActive ? 'hidden' : 'visible';
       }
 
-      function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
+      function setAquariumYoutubePlayback(shouldPlay) {
+        if (!aquariumYoutubeIframeEl) {
+          return;
+        }
+
+        if (shouldPlay) {
+          aquariumYoutubeIframeEl.style.display = 'block';
+          const embedUrl = new URL(AQUARIUM_YOUTUBE_EMBED_URL);
+          embedUrl.searchParams.set('origin', window.location.origin);
+          aquariumYoutubeIframeEl.src = embedUrl.toString();
+          return;
+        }
+
+        aquariumYoutubeIframeEl.style.display = 'none';
+        aquariumYoutubeIframeEl.src = '';
+      }
+
+      function hideAquariumStaticOverlay({ resetPlayback = true, showYoutubeAfter = false } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
+        }
+        if (showYoutubeAfter) {
+          setAquariumYoutubePlayback(true);
+        } else {
+          setAquariumYoutubePlayback(false);
         }
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
@@ -1201,6 +1349,7 @@
         }
 
         hideNedryGateOverlay();
+        setAquariumYoutubePlayback(false);
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
@@ -1677,6 +1826,54 @@
         return clamped;
       }
 
+      function getRadioStationStrength(position) {
+        const clampedPosition = clamp(position, 0, 1);
+        const strongestStationDistance = RADIO_TUNING_STATION_POSITIONS.reduce(
+          (closest, stationPosition) => Math.min(closest, Math.abs(clampedPosition - stationPosition)),
+          Number.POSITIVE_INFINITY
+        );
+        const ratio = strongestStationDistance / RADIO_TUNING_STATION_WIDTH;
+        return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
+      }
+
+      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs } = {}) {
+        const position = clamp(tuningPosition, 0, 1);
+        const effectiveTimestampMs = Number.isFinite(timestampMs) ? timestampMs : performance.now();
+        const state = audioEl.__radioTuningState || {
+          lastPosition: position,
+          movementEnergy: 0
+        };
+        const movementDelta = Math.abs(position - state.lastPosition);
+        state.lastPosition = position;
+        state.movementEnergy = isMoving
+          ? clamp(
+            state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_ACTIVE
+              + movementDelta * RADIO_TUNING_MOVEMENT_GAIN
+              + RADIO_TUNING_MOVEMENT_FLOOR,
+            0,
+            1
+          )
+          : state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_IDLE;
+        audioEl.__radioTuningState = state;
+
+        const stationStrength = getRadioStationStrength(position);
+        const wobble = Math.sin((effectiveTimestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
+          * state.movementEnergy
+          * RADIO_TUNING_WOBBLE_DEPTH;
+        audioEl.playbackRate = clamp(
+          RADIO_TUNING_PLAYBACK_RATE_BASE + (stationStrength * RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN) + wobble,
+          RADIO_TUNING_PLAYBACK_RATE_MIN,
+          RADIO_TUNING_PLAYBACK_RATE_MAX
+        );
+        audioEl.volume = clamp(
+          RADIO_TUNING_VOLUME_BASE
+            + (stationStrength * RADIO_TUNING_VOLUME_STATION_GAIN)
+            + (state.movementEnergy * RADIO_TUNING_VOLUME_MOVEMENT_GAIN),
+          RADIO_TUNING_VOLUME_MIN,
+          1
+        );
+      }
+
       function ensureRadioTuningLoopPlayback(audioEl) {
         if (!audioEl.paused) return;
         const playPromise = audioEl.play();
@@ -1687,6 +1884,11 @@
 
       function stopRadioTuningLoopPlayback(audioEl) {
         audioEl.pause();
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
+        if (audioEl.__radioTuningState) {
+          audioEl.__radioTuningState.movementEnergy = 0;
+        }
       }
 
       function startFlipClock(container) {
@@ -1792,6 +1994,10 @@
               window.location.assign(NOAHS_ARCADE_URL);
               return;
             }
+            if (spot.id === 'left-monitor') {
+              window.location.assign(CALENDAR_PAGE_URL);
+              return;
+            }
             if (spot.id === 'commodore-screen' || spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
               window.location.assign(COMMODORE_URL);
               return;
@@ -1828,6 +2034,7 @@
       function createOverlays() {
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
+        aquariumYoutubeIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         nedryGateOverlayEl = null;
@@ -1859,6 +2066,15 @@
             discordWidgetIframeEl = iframe;
             el.appendChild(iframe);
 
+            aquariumYoutubeIframeEl = document.createElement('iframe');
+            aquariumYoutubeIframeEl.className = 'aquarium-youtube-frame';
+            aquariumYoutubeIframeEl.title = 'Naimean YouTube Video';
+            aquariumYoutubeIframeEl.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+            aquariumYoutubeIframeEl.setAttribute('allowfullscreen', '');
+            aquariumYoutubeIframeEl.loading = 'eager';
+            aquariumYoutubeIframeEl.src = '';
+            el.appendChild(aquariumYoutubeIframeEl);
+
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
             aquariumStaticOverlayEl.setAttribute('aria-hidden', 'true');
@@ -1872,7 +2088,7 @@
             aquariumStaticVideoEl.playsInline = true;
             aquariumStaticVideoEl.setAttribute('playsinline', '');
             aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
-            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
+            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay({ showYoutubeAfter: true }));
             aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
@@ -1892,6 +2108,40 @@
             nedryGateVideoEl.addEventListener('error', () => hideNedryGateOverlay());
             nedryGateOverlayEl.appendChild(nedryGateVideoEl);
             el.appendChild(nedryGateOverlayEl);
+          }
+
+          if (overlay.id === 'overlay-left-monitor') {
+            el.classList.add('calendar-monitor-overlay');
+            const icon = document.createElement('button');
+            icon.type = 'button';
+            icon.className = 'calendar-app-icon';
+            icon.setAttribute('aria-label', 'Open Calendar');
+            icon.addEventListener('pointerdown', (event) => event.stopPropagation());
+            icon.addEventListener('click', (event) => {
+              event.stopPropagation();
+              window.location.assign(CALENDAR_PAGE_URL);
+            });
+
+            const face = document.createElement('span');
+            face.className = 'calendar-app-icon-face';
+
+            const top = document.createElement('span');
+            top.className = 'calendar-app-icon-top';
+            top.innerHTML = '<span class=\"calendar-app-icon-ring\"></span><span class=\"calendar-app-icon-ring\"></span>';
+
+            const grid = document.createElement('span');
+            grid.className = 'calendar-app-icon-grid';
+            for (let i = 0; i < 9; i += 1) {
+              grid.appendChild(document.createElement('span'));
+            }
+
+            const label = document.createElement('span');
+            label.className = 'calendar-app-icon-label';
+            label.textContent = 'CAL';
+
+            face.append(top, grid, label);
+            icon.appendChild(face);
+            el.appendChild(icon);
           }
 
           if (overlay.id === 'overlay-commodore-screen') {
@@ -2004,6 +2254,7 @@
             tuningAudio.preload = 'auto';
             tuningAudio.loop = true;
             flipClockRadioTuningAudioEl = tuningAudio;
+            applyRadioTuningWarp(tuningAudio, tuningPosition);
             const TUNING_DRAG_THRESHOLD_PX = 1;
             const KEYBOARD_TUNING_STEP = 0.02;
             const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
@@ -2020,13 +2271,14 @@
             selectorDot.setAttribute('aria-valuemax', '100');
             selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
 
-            function updateTuningFromClientX(clientX, { playAudio } = { playAudio: true }) {
+            function updateTuningFromClientX(clientX, { playAudio = true, timestampMs } = {}) {
               const rect = scaleBlock.getBoundingClientRect();
               if (!rect.width) return false;
               const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs });
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2054,7 +2306,7 @@
               if (event.pointerId !== activeTunePointerId) return;
               event.preventDefault();
               event.stopPropagation();
-              const didMove = updateTuningFromClientX(event.clientX);
+              const didMove = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didMove && Math.abs(event.clientX - lastPointerClientX) > TUNING_DRAG_THRESHOLD_PX) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2086,6 +2338,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
