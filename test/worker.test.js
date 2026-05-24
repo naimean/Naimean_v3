@@ -36,9 +36,10 @@ test('HotspotStore GET returns default hotspots when storage is empty', async ()
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('content-type'), 'application/json; charset=UTF-8');
-  assert.equal(body.hotspots.length, 10);
-  assert.deepEqual(body.hotspots[0], { id: 'big-tv', x: 1148, y: 568, w: 924, h: 505 });
-  assert.deepEqual(body.hotspots[5], { id: 'rca-board', x: 3220, y: 260, w: 470, h: 1060 });
+  assert.equal(body.hotspots.length, 8);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+  assert.deepEqual(body.hotspots[1], { id: 'big-tv', x: 1148, y: 568, w: 924, h: 505 });
+  assert.deepEqual(body.hotspots[6], { id: 'rca-board', x: 3220, y: 260, w: 470, h: 1060 });
 });
 
 test('HotspotStore POST rejects invalid JSON', async () => {
@@ -80,11 +81,12 @@ test('HotspotStore POST sanitizes, clamps and stores hotspot payloads', async ()
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
-  assert.equal(body.hotspots.length, 10);
-  assert.deepEqual(body.hotspots[0], { id: 'big-tv', x: 0, y: 2160, w: 20, h: 2160 });
-  assert.deepEqual(body.hotspots[1], { id: 'left-monitor', x: 1501, y: 1072, w: 292, h: 206 });
-  assert.deepEqual(body.hotspots[2], { id: 'commodore-screen', x: 1852, y: 1050, w: 348, h: 227 });
-  assert.deepEqual(body.hotspots[3], { id: 'right-monitor', x: 2292, y: 1036, w: 262, h: 198 });
+  assert.equal(body.hotspots.length, 8);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+  assert.deepEqual(body.hotspots[1], { id: 'big-tv', x: 0, y: 2160, w: 20, h: 2160 });
+  assert.deepEqual(body.hotspots[2], { id: 'left-monitor', x: 1501, y: 1072, w: 292, h: 206 });
+  assert.deepEqual(body.hotspots[3], { id: 'commodore-screen', x: 1852, y: 1050, w: 348, h: 227 });
+  assert.deepEqual(body.hotspots[4], { id: 'right-monitor', x: 2292, y: 1036, w: 262, h: 198 });
 
   assert.equal(calls.put.length, 1);
   assert.equal(calls.put[0].key, 'hotspots');

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noah's Arcade — Naimean</title>
+  <meta name="description" content="Step into Noah's arcade and launch a cabinet from the Naimean collection.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Naimean">
+  <meta property="og:url" content="https://naimean.com/noahs-arcade.html">
+  <meta property="og:title" content="Noah's Arcade">
+  <meta property="og:description" content="Browse the Naimean arcade cabinet collection.">
+  <meta property="og:image" content="https://naimean.com/assets/images/den_arcade.PNG">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Noah's Arcade">
+  <meta name="twitter:description" content="Browse the Naimean arcade cabinet collection.">
+  <meta name="twitter:image" content="https://naimean.com/assets/images/den_arcade.PNG">
+  <style>
+    :root {
+      --bg: #06060b;
+      --panel: rgba(14, 16, 24, 0.92);
+      --border: rgba(255, 180, 92, 0.28);
+      --text: #f8ead8;
+      --muted: rgba(248, 234, 216, 0.72);
+      --accent: #ff9d3d;
+      --accent-2: #ffd166;
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        linear-gradient(rgba(6, 6, 11, 0.72), rgba(6, 6, 11, 0.9)),
+        url('/assets/images/den_arcade.PNG') center/cover fixed;
+    }
+
+    main {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-2);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .panel {
+      padding: 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 18px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    #status {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .cabinet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .cabinet-card {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .cabinet-card:hover,
+    .cabinet-card:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+      outline: none;
+    }
+
+    .cabinet-art {
+      aspect-ratio: 4 / 5;
+      width: 100%;
+      object-fit: cover;
+      display: block;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .cabinet-copy {
+      padding: 14px 16px 16px;
+    }
+
+    .cabinet-copy h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .cabinet-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: var(--accent-2);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100% - 20px, 1200px);
+        padding-top: 20px;
+      }
+
+      .hero,
+      .panel {
+        border-radius: 16px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+      }
+
+      .panel-head {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="/den.html">← Back to the den</a>
+
+    <section class="hero">
+      <p class="eyebrow">Now entering</p>
+      <h1>Noah's Arcade</h1>
+      <p>Pick a cabinet and jump straight into the collection. Cabinets open in a new tab when they point off-site.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Cabinets</h2>
+        <p id="count"></p>
+      </div>
+      <p id="status">Loading cabinets…</p>
+      <div id="cabinet-grid" class="cabinet-grid" hidden></div>
+    </section>
+  </main>
+
+  <script>
+    (async () => {
+      const status = document.getElementById('status');
+      const count = document.getElementById('count');
+      const grid = document.getElementById('cabinet-grid');
+
+      try {
+        const response = await fetch('/assets/arcade/cabinets.json', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to load cabinets (${response.status})`);
+        }
+
+        const cabinets = await response.json();
+        status.hidden = true;
+        grid.hidden = false;
+        count.textContent = `${cabinets.length} cabinets`;
+
+        cabinets.forEach((cabinet) => {
+          const card = document.createElement('a');
+          card.className = 'cabinet-card';
+          card.href = cabinet.url;
+          if (/^https?:\/\//.test(cabinet.url)) {
+            card.target = '_blank';
+            card.rel = 'noopener';
+          }
+
+          const art = document.createElement('img');
+          art.className = 'cabinet-art';
+          art.src = cabinet.cabinetArt || cabinet.image || '/assets/images/den_arcade.PNG';
+          art.alt = `${cabinet.name} cabinet art`;
+          art.loading = 'lazy';
+          card.appendChild(art);
+
+          const copy = document.createElement('div');
+          copy.className = 'cabinet-copy';
+
+          const title = document.createElement('h3');
+          title.textContent = cabinet.name;
+          copy.appendChild(title);
+
+          const tag = document.createElement('p');
+          tag.textContent = cabinet.tag || cabinet.url;
+          copy.appendChild(tag);
+
+          card.appendChild(copy);
+          grid.appendChild(card);
+        });
+      } catch (error) {
+        status.textContent = error.message;
+        count.textContent = '';
+      }
+    })();
+  </script>
+</body>
+</html>
