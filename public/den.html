@@ -246,6 +246,147 @@
       white-space: nowrap;
       border: 0;
     }
+
+    /* Debug-mode hotspot drag/resize editing */
+    body.debug .hotspot {
+      cursor: move;
+    }
+
+    .resize-handle {
+      position: absolute;
+      background: rgba(65, 229, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      border-radius: 2px;
+      opacity: 0;
+      pointer-events: none;
+      touch-action: none;
+      z-index: 2;
+    }
+
+    body.debug .resize-handle {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .resize-n, .resize-s {
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 10px;
+    }
+
+    .resize-e, .resize-w {
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 24px;
+    }
+
+    .resize-ne, .resize-nw, .resize-se, .resize-sw {
+      width: 14px;
+      height: 14px;
+    }
+
+    .resize-n  { top: -5px;    cursor: n-resize; }
+    .resize-s  { bottom: -5px; cursor: s-resize; }
+    .resize-e  { right: -5px;  cursor: e-resize; }
+    .resize-w  { left: -5px;   cursor: w-resize; }
+    .resize-ne { top: -7px;    right: -7px;  cursor: ne-resize; }
+    .resize-nw { top: -7px;    left: -7px;   cursor: nw-resize; }
+    .resize-se { bottom: -7px; right: -7px;  cursor: se-resize; }
+    .resize-sw { bottom: -7px; left: -7px;   cursor: sw-resize; }
+
+    /* Save button (sits to the right of Debug button) */
+    #save-hotspots-btn {
+      position: fixed;
+      left: 68px;
+      bottom: 12px;
+      z-index: 1000;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    #save-hotspots-btn:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 2px;
+    }
+
+    /* Save output modal */
+    #save-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+    }
+
+    #save-modal.hidden {
+      display: none;
+    }
+
+    #save-modal-inner {
+      background: #0e1520;
+      border: 1px solid rgba(65, 229, 255, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 90vw;
+      width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #save-modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(65, 229, 255, 0.95);
+      margin: 0;
+    }
+
+    #save-modal-textarea {
+      flex: 1;
+      min-height: 240px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #cce8ff;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      padding: 10px;
+      resize: vertical;
+    }
+
+    #save-modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .save-modal-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .save-modal-btn.primary {
+      background: rgba(65, 229, 255, 0.2);
+      border-color: rgba(65, 229, 255, 0.6);
+      color: rgba(65, 229, 255, 1);
+    }
   </style>
 </head>
 <body>
@@ -273,6 +414,17 @@
     </div>
   </div>
   <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
+  <button id="save-hotspots-btn" type="button" aria-label="Save hotspot positions">Save</button>
+  <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
+    <div id="save-modal-inner">
+      <p id="save-modal-title">Hotspot positions saved — copy the code below to update source</p>
+      <textarea id="save-modal-textarea" readonly spellcheck="false"></textarea>
+      <div id="save-modal-actions">
+        <button type="button" class="save-modal-btn primary" id="save-modal-copy-btn">Copy to clipboard</button>
+        <button type="button" class="save-modal-btn" id="save-modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
   <div id="debug-hint" role="status" aria-live="polite">Press ~ (or Ctrl/Cmd+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
@@ -290,6 +442,7 @@
       const CAMERA_SMOOTHING_FACTOR = 0.22;
       const CAMERA_SETTLE_EPSILON = 0.05;
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
+      const HOTSPOT_STORAGE_KEY = 'den_hotspot_overrides';
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
 
@@ -365,6 +518,24 @@
       let suppressHotspotClickUntil = 0;
       let cameraAnimationFrameId = null;
 
+      // Debug hotspot editing state
+      let debugEditType = null; // 'move' | 'resize'
+      let debugEditEl = null;
+      let debugEditDir = null;
+      let debugEditStartX = 0;
+      let debugEditStartY = 0;
+      let debugEditOrigRect = null; // { left, top, w, h } in design-space px
+
+      // Load any previously saved hotspot overrides from localStorage.
+      // Saved values are full design-space coordinates (including SCENE_OFFSET_X).
+      let hotspotOverrides = {};
+      try {
+        const stored = localStorage.getItem(HOTSPOT_STORAGE_KEY);
+        if (stored) {
+          JSON.parse(stored).forEach((o) => { hotspotOverrides[o.id] = o; });
+        }
+      } catch (_) {}
+
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
       }
@@ -383,6 +554,26 @@
         });
       }
 
+      function addResizeHandles(el) {
+        ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'].forEach((dir) => {
+          const handle = document.createElement('div');
+          handle.className = `resize-handle resize-${dir}`;
+          handle.dataset.dir = dir;
+          handle.setAttribute('aria-hidden', 'true');
+          el.appendChild(handle);
+        });
+      }
+
+      function updateHotspotLabel(el) {
+        const label = el.querySelector('.hotspot-label');
+        if (!label) return;
+        const x = Math.round(parseFloat(el.style.left));
+        const y = Math.round(parseFloat(el.style.top));
+        const w = Math.round(parseFloat(el.style.width));
+        const h = Math.round(parseFloat(el.style.height));
+        label.textContent = `${el.id} (${x}, ${y}) ${w}×${h}`;
+      }
+
       function createHotspots() {
         const toTitleCase = (value) =>
           value
@@ -391,21 +582,29 @@
             .join(' ');
 
         hotspots.forEach((spot) => {
+          const override = hotspotOverrides[spot.id];
+          const x = override ? override.x : spot.x;
+          const y = override ? override.y : spot.y;
+          const w = override ? override.w : spot.w;
+          const h = override ? override.h : spot.h;
+
           const readableLabel = toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
           el.id = spot.id;
-          el.style.left = `${spot.x}px`;
-          el.style.top = `${spot.y}px`;
-          el.style.width = `${spot.w}px`;
-          el.style.height = `${spot.h}px`;
+          el.style.left = `${x}px`;
+          el.style.top = `${y}px`;
+          el.style.width = `${w}px`;
+          el.style.height = `${h}px`;
           el.setAttribute('aria-label', readableLabel);
 
           const label = document.createElement('span');
           label.className = 'hotspot-label';
-          label.textContent = `${spot.id} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
+          label.textContent = `${spot.id} (${x}, ${y}) ${w}×${h}`;
           el.appendChild(label);
+
+          addResizeHandles(el);
 
           el.addEventListener('click', () => {
             console.log(`[hotspot] ${spot.id}`);
@@ -511,8 +710,73 @@
         setTargetCameraX(targetCameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
       }
 
+      function startDebugEdit(event, el, type, dir) {
+        activePointerId = event.pointerId;
+        debugEditType = type;
+        debugEditEl = el;
+        debugEditDir = dir;
+        debugEditStartX = event.clientX;
+        debugEditStartY = event.clientY;
+        debugEditOrigRect = {
+          left: parseFloat(el.style.left),
+          top: parseFloat(el.style.top),
+          w: parseFloat(el.style.width),
+          h: parseFloat(el.style.height)
+        };
+        viewport.setPointerCapture(event.pointerId);
+      }
+
+      function applyDebugEdit(event) {
+        const dx = (event.clientX - debugEditStartX) / scale;
+        const dy = (event.clientY - debugEditStartY) / scale;
+        const { left, top, w, h } = debugEditOrigRect;
+        const el = debugEditEl;
+        const MIN_SIZE = 20;
+
+        if (debugEditType === 'move') {
+          el.style.left = `${left + dx}px`;
+          el.style.top = `${top + dy}px`;
+        } else {
+          const dir = debugEditDir;
+          let newLeft = left;
+          let newTop = top;
+          let newW = w;
+          let newH = h;
+
+          if (dir.includes('e')) newW = Math.max(MIN_SIZE, w + dx);
+          if (dir.includes('w')) { newLeft = left + dx; newW = Math.max(MIN_SIZE, w - dx); }
+          if (dir.includes('s')) newH = Math.max(MIN_SIZE, h + dy);
+          if (dir.includes('n')) { newTop = top + dy; newH = Math.max(MIN_SIZE, h - dy); }
+
+          el.style.left   = `${newLeft}px`;
+          el.style.top    = `${newTop}px`;
+          el.style.width  = `${newW}px`;
+          el.style.height = `${newH}px`;
+        }
+
+        updateHotspotLabel(el);
+      }
+
       function onPointerDown(event) {
         if (activePointerId !== null) return;
+
+        // In debug mode, intercept drags on hotspots and resize handles.
+        if (document.body.classList.contains('debug')) {
+          const handle = event.target.closest('.resize-handle');
+          if (handle) {
+            const hotspotEl = handle.closest('.hotspot');
+            if (hotspotEl) {
+              startDebugEdit(event, hotspotEl, 'resize', handle.dataset.dir);
+              return;
+            }
+          }
+          const hotspotEl = event.target.closest('.hotspot');
+          if (hotspotEl) {
+            startDebugEdit(event, hotspotEl, 'move', null);
+            return;
+          }
+        }
+
         isPointerDown = true;
         activePointerId = event.pointerId;
         pointerStartX = event.clientX;
@@ -522,7 +786,15 @@
       }
 
       function onPointerMove(event) {
-        if (!isPointerDown || event.pointerId !== activePointerId) return;
+        if (event.pointerId !== activePointerId) return;
+
+        // Debug edit in progress — move or resize the hotspot.
+        if (debugEditType !== null) {
+          applyDebugEdit(event);
+          return;
+        }
+
+        if (!isPointerDown) return;
 
         if (!isDragging) {
           const dragDistance = Math.abs(event.clientX - pointerStartX);
@@ -547,6 +819,21 @@
 
       function onPointerUp(event) {
         if (event.pointerId !== activePointerId) return;
+
+        // End a debug edit operation.
+        if (debugEditType !== null) {
+          suppressHotspotClickUntil = Date.now() + HOTSPOT_CLICK_SUPPRESSION_MS;
+          debugEditType = null;
+          debugEditEl = null;
+          debugEditDir = null;
+          debugEditOrigRect = null;
+          activePointerId = null;
+          if (viewport.hasPointerCapture(event.pointerId)) {
+            viewport.releasePointerCapture(event.pointerId);
+          }
+          return;
+        }
+
         isPointerDown = false;
         activePointerId = null;
         dragStartedOnHotspot = false;
@@ -573,6 +860,35 @@
         debugStatus.textContent = document.body.classList.contains('debug')
           ? 'Debug mode enabled'
           : 'Debug mode disabled';
+      }
+
+      function saveHotspots() {
+        const saved = [];
+        hotspotLayer.querySelectorAll('.hotspot').forEach((el) => {
+          saved.push({
+            id: el.id,
+            x: Math.round(parseFloat(el.style.left)),
+            y: Math.round(parseFloat(el.style.top)),
+            w: Math.round(parseFloat(el.style.width)),
+            h: Math.round(parseFloat(el.style.height))
+          });
+        });
+
+        try {
+          localStorage.setItem(HOTSPOT_STORAGE_KEY, JSON.stringify(saved));
+        } catch (_) {}
+
+        // Display values with SCENE_OFFSET_X subtracted so they can be pasted
+        // directly back into the hotspots array in the source.
+        const lines = saved.map((s) =>
+          `  { id: '${s.id}', x: ${s.x - SCENE_OFFSET_X}, y: ${s.y}, w: ${s.w}, h: ${s.h} },`
+        );
+        const output =
+          `const hotspots = [\n${lines.join('\n')}\n` +
+          `].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));`;
+
+        document.getElementById('save-modal-textarea').value = output;
+        document.getElementById('save-modal').classList.remove('hidden');
       }
 
       function cleanup() {
@@ -605,6 +921,34 @@
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
+
+      const saveBtn = document.getElementById('save-hotspots-btn');
+      saveBtn.addEventListener('click', saveHotspots);
+
+      document.getElementById('save-modal-close-btn').addEventListener('click', () => {
+        document.getElementById('save-modal').classList.add('hidden');
+      });
+
+      document.getElementById('save-modal-copy-btn').addEventListener('click', () => {
+        const textarea = document.getElementById('save-modal-textarea');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(textarea.value).catch(() => {
+            textarea.select();
+            document.execCommand('copy');
+          });
+        } else {
+          textarea.select();
+          document.execCommand('copy');
+        }
+      });
+
+      // Close save modal on backdrop click
+      document.getElementById('save-modal').addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+          event.currentTarget.classList.add('hidden');
+        }
+      });
+
       setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       resize();
