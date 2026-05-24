@@ -22,13 +22,106 @@
       padding: 12px;
     }
 
-    img {
-      display: block;
+    #scene {
+      position: relative;
       width: min(100%, 1200px);
+      max-height: calc(100svh - 24px);
+    }
+
+    #scene img {
+      display: block;
+      width: 100%;
       height: auto;
       max-height: calc(100svh - 24px);
-      object-fit: contain;
       border-radius: 8px;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    #overlay-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+    }
+
+    .editable {
+      position: absolute;
+    }
+
+    .shadow-layer {
+      background: rgba(0, 0, 0, 0.72);
+      box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .label {
+      display: none;
+      position: absolute;
+      top: -20px;
+      left: 0;
+      font: 600 11px/1.2 system-ui, sans-serif;
+      padding: 2px 6px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border-radius: 999px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .resize-handle {
+      display: none;
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #00d1ff;
+      border: 1px solid #002633;
+      border-radius: 2px;
+      pointer-events: auto;
+    }
+
+    .resize-handle[data-dir="nw"] { top: -5px; left: -5px; cursor: nwse-resize; }
+    .resize-handle[data-dir="ne"] { top: -5px; right: -5px; cursor: nesw-resize; }
+    .resize-handle[data-dir="sw"] { bottom: -5px; left: -5px; cursor: nesw-resize; }
+    .resize-handle[data-dir="se"] { right: -5px; bottom: -5px; cursor: nwse-resize; }
+
+    #debug-toggle-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 30;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: 600 13px/1 system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    body.debug .editable {
+      outline: 1px dashed rgba(255, 255, 255, 0.9);
+      cursor: move;
+      pointer-events: auto;
+    }
+
+    body.debug .shadow-layer {
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    body.debug .hotspot {
+      background: rgba(0, 255, 128, 0.2);
+    }
+
+    body.debug .label,
+    body.debug .resize-handle {
+      display: block;
     }
 
     @media (min-width: 900px) {
@@ -36,13 +129,203 @@
         padding: 24px;
       }
 
-      img {
+      #scene {
         max-height: calc(100svh - 48px);
+      }
+
+      #scene img {
+        max-height: calc(100svh - 48px);
+      }
+
+      #debug-toggle-btn {
+        top: 20px;
+        right: 20px;
       }
     }
   </style>
 </head>
 <body>
-  <img src="assets/images/commodore64.v20260424.jpg" alt="Commodore 64" />
+  <button id="debug-toggle-btn" type="button" aria-pressed="false">Debug</button>
+  <main id="scene">
+    <img id="scene-image" src="assets/images/commodore64.v20260424.jpg" alt="Commodore 64" />
+    <div id="overlay-layer" aria-label="Commodore hotspots and overlays"></div>
+  </main>
+  <script>
+    (() => {
+      const DESIGN_WIDTH = 444;
+      const DESIGN_HEIGHT = 557;
+      const MIN_SIZE = 12;
+      const STORAGE_KEY = 'commodore.editor.layout.v1';
+      const DEFAULT_LAYOUT = {
+        'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
+        'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
+        'power-button': { x: 376, y: 472, w: 34, h: 24, kind: 'hotspot', label: 'Power Button' }
+      };
+      const HANDLE_DIRS = ['nw', 'ne', 'sw', 'se'];
+
+      const overlayLayer = document.getElementById('overlay-layer');
+      const debugButton = document.getElementById('debug-toggle-btn');
+      const layout = loadLayout();
+      let editState = null;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(value, max));
+      }
+
+      function sanitizeRect(rect, fallback) {
+        const x = Number.isFinite(rect?.x) ? rect.x : fallback.x;
+        const y = Number.isFinite(rect?.y) ? rect.y : fallback.y;
+        const w = Number.isFinite(rect?.w) ? rect.w : fallback.w;
+        const h = Number.isFinite(rect?.h) ? rect.h : fallback.h;
+        const safeX = clamp(Math.round(x), 0, DESIGN_WIDTH - MIN_SIZE);
+        const safeY = clamp(Math.round(y), 0, DESIGN_HEIGHT - MIN_SIZE);
+        return {
+          x: safeX,
+          y: safeY,
+          w: clamp(Math.round(w), MIN_SIZE, DESIGN_WIDTH - safeX),
+          h: clamp(Math.round(h), MIN_SIZE, DESIGN_HEIGHT - safeY),
+          kind: fallback.kind,
+          label: fallback.label
+        };
+      }
+
+      function loadLayout() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+          const next = {};
+          Object.entries(DEFAULT_LAYOUT).forEach(([id, fallback]) => {
+            next[id] = sanitizeRect(saved[id], fallback);
+          });
+          return next;
+        } catch {
+          const next = {};
+          Object.entries(DEFAULT_LAYOUT).forEach(([id, fallback]) => {
+            next[id] = { ...fallback };
+          });
+          return next;
+        }
+      }
+
+      function saveLayout() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+      }
+
+      function makeEditable(id, config) {
+        const el = document.createElement(config.kind === 'hotspot' ? 'button' : 'div');
+        el.className = `editable ${config.kind === 'shadow' ? 'shadow-layer' : 'hotspot'}`;
+        el.dataset.id = id;
+        if (config.kind === 'hotspot') {
+          el.type = 'button';
+          el.ariaLabel = config.label;
+        }
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = config.label;
+        el.appendChild(label);
+
+        HANDLE_DIRS.forEach((dir) => {
+          const handle = document.createElement('span');
+          handle.className = 'resize-handle';
+          handle.dataset.dir = dir;
+          el.appendChild(handle);
+        });
+
+        overlayLayer.appendChild(el);
+      }
+
+      function renderLayout() {
+        Object.entries(layout).forEach(([id, rect]) => {
+          const el = overlayLayer.querySelector(`[data-id="${id}"]`);
+          if (!el) return;
+          el.style.left = `${(rect.x / DESIGN_WIDTH) * 100}%`;
+          el.style.top = `${(rect.y / DESIGN_HEIGHT) * 100}%`;
+          el.style.width = `${(rect.w / DESIGN_WIDTH) * 100}%`;
+          el.style.height = `${(rect.h / DESIGN_HEIGHT) * 100}%`;
+        });
+      }
+
+      function startEdit(event, type, dir, editableEl) {
+        event.preventDefault();
+        const id = editableEl.dataset.id;
+        const rect = layout[id];
+        const scale = overlayLayer.clientWidth / DESIGN_WIDTH;
+        if (!rect || scale <= 0) return;
+        editState = {
+          id,
+          type,
+          dir,
+          scale,
+          startX: event.clientX,
+          startY: event.clientY,
+          rect: { ...rect }
+        };
+      }
+
+      function updateDrag(event) {
+        if (!editState) return;
+        const dx = (event.clientX - editState.startX) / editState.scale;
+        const dy = (event.clientY - editState.startY) / editState.scale;
+        const next = { ...editState.rect };
+
+        if (editState.type === 'move') {
+          next.x = clamp(Math.round(next.x + dx), 0, DESIGN_WIDTH - next.w);
+          next.y = clamp(Math.round(next.y + dy), 0, DESIGN_HEIGHT - next.h);
+        } else {
+          if (editState.dir.includes('e')) {
+            next.w = clamp(Math.round(editState.rect.w + dx), MIN_SIZE, DESIGN_WIDTH - next.x);
+          }
+          if (editState.dir.includes('s')) {
+            next.h = clamp(Math.round(editState.rect.h + dy), MIN_SIZE, DESIGN_HEIGHT - next.y);
+          }
+          if (editState.dir.includes('w')) {
+            const maxX = editState.rect.x + editState.rect.w - MIN_SIZE;
+            next.x = clamp(Math.round(editState.rect.x + dx), 0, maxX);
+            next.w = clamp(Math.round(editState.rect.w - (next.x - editState.rect.x)), MIN_SIZE, DESIGN_WIDTH - next.x);
+          }
+          if (editState.dir.includes('n')) {
+            const maxY = editState.rect.y + editState.rect.h - MIN_SIZE;
+            next.y = clamp(Math.round(editState.rect.y + dy), 0, maxY);
+            next.h = clamp(Math.round(editState.rect.h - (next.y - editState.rect.y)), MIN_SIZE, DESIGN_HEIGHT - next.y);
+          }
+        }
+
+        layout[editState.id] = next;
+        renderLayout();
+      }
+
+      function endEdit() {
+        if (!editState) return;
+        editState = null;
+        saveLayout();
+      }
+
+      function setDebug(enabled) {
+        document.body.classList.toggle('debug', enabled);
+        debugButton.setAttribute('aria-pressed', String(enabled));
+        debugButton.textContent = enabled ? 'Debug On' : 'Debug';
+      }
+
+      Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
+      renderLayout();
+
+      overlayLayer.addEventListener('pointerdown', (event) => {
+        if (!document.body.classList.contains('debug')) return;
+        const handle = event.target.closest('.resize-handle');
+        if (handle) {
+          startEdit(event, 'resize', handle.dataset.dir, handle.closest('.editable'));
+          return;
+        }
+        const editable = event.target.closest('.editable');
+        if (editable) {
+          startEdit(event, 'move', null, editable);
+        }
+      });
+      window.addEventListener('pointermove', updateDrag);
+      window.addEventListener('pointerup', endEdit);
+      window.addEventListener('pointercancel', endEdit);
+      debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
+    })();
+  </script>
 </body>
 </html>
