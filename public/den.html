@@ -1326,6 +1326,7 @@
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
+      const AQUARIUM_CLIP_MIN_TIMEOUT_SECONDS = 0.25;
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze([
         { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 0 },
         { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 10 },
@@ -1602,6 +1603,7 @@
 
         aquariumClipVideoEl.pause();
         aquariumClipVideoEl.style.display = 'none';
+        aquariumClipVideoEl.dataset.clipSrc = '';
         try {
           aquariumClipVideoEl.currentTime = 0;
         } catch {
@@ -1684,7 +1686,10 @@
             if (clipWindowTimeoutId !== null) {
               window.clearTimeout(clipWindowTimeoutId);
             }
-            const remainingSeconds = Math.max(0.25, clipEndSeconds - aquariumClipVideoEl.currentTime);
+            const remainingSeconds = Math.max(
+              AQUARIUM_CLIP_MIN_TIMEOUT_SECONDS,
+              clipEndSeconds - aquariumClipVideoEl.currentTime
+            );
             clipWindowTimeoutId = window.setTimeout(() => {
               clipWindowTimeoutId = null;
               if (aquariumClipPlaybackResolve) {
@@ -2868,7 +2873,7 @@
 
             aquariumClipVideoEl = document.createElement('video');
             aquariumClipVideoEl.className = 'aquarium-embed-video';
-            aquariumClipVideoEl.setAttribute('aria-label', 'Naimean Aquarium Local Clip');
+            aquariumClipVideoEl.title = 'Naimean Aquarium Local Clip';
             aquariumClipVideoEl.preload = 'auto';
             aquariumClipVideoEl.muted = true;
             aquariumClipVideoEl.defaultMuted = true;
