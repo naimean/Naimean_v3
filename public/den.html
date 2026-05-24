@@ -177,6 +177,24 @@
       box-shadow: 0 18px 32px 6px rgba(0, 0, 0, 0.7);
     }
 
+    .screen-overlay.commodore-desk-overlay {
+      overflow: visible;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .commodore-desk-image {
+      --commodore-scale: 0.58;
+      position: absolute;
+      width: calc(1536px * var(--commodore-scale));
+      height: auto;
+      left: calc(-448px * var(--commodore-scale));
+      top: calc(-131px * var(--commodore-scale));
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
     .discord-widget-frame {
       width: 100%;
       height: calc(178% - 10px);
@@ -962,6 +980,7 @@
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const COMMODORE_DESK_IMAGE_URL = 'https://github.com/user-attachments/assets/eaa20b05-012a-477e-81c7-1681cccbc10a';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1720,6 +1739,17 @@
             aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
+          }
+
+          if (overlay.id === 'overlay-commodore-screen') {
+            el.classList.add('commodore-desk-overlay');
+            const img = document.createElement('img');
+            img.className = 'commodore-desk-image';
+            img.src = COMMODORE_DESK_IMAGE_URL;
+            img.alt = 'Commodore desk screen';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            el.appendChild(img);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
