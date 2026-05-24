@@ -1,14 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "naimeav3",
-  "main": "src/worker.js",
+  "pages_build_output_dir": "public",
   "compatibility_date": "2026-05-18",
   "observability": {
     "enabled": true
-  },
-  "assets": {
-    "directory": "public",
-    "binding": "ASSETS"
   },
   "durable_objects": {
     "bindings": [
