@@ -260,6 +260,77 @@
       -webkit-user-drag: none;
     }
 
+    .overlay-static-layer {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .overlay-static-layer.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .overlay-static-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
+    }
+
+    .big-tv-prompt-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background:
+        radial-gradient(120% 90% at 50% 50%, rgba(0, 24, 0, 0.7) 0%, rgba(0, 7, 0, 0.96) 100%),
+        #001103;
+      color: #4dff91;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: clamp(10px, 3.5%, 24px);
+      box-sizing: border-box;
+      font: 700 clamp(12px, 5.5%, 36px) / 1.25 'Courier New', monospace;
+      text-shadow: 0 0 8px rgba(77, 255, 145, 0.65);
+      transition: opacity 120ms ease;
+    }
+
+    .big-tv-prompt-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .big-tv-prompt-line {
+      display: flex;
+      align-items: baseline;
+      gap: 0.08em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .big-tv-prompt-caret {
+      animation: prompt-caret-blink 1s steps(1, end) infinite;
+    }
+
+    @keyframes prompt-caret-blink {
+      0%, 45% {
+        opacity: 1;
+      }
+      46%, 100% {
+        opacity: 0;
+      }
+    }
+
     .calendar-app-icon {
       width: min(72%, calc(100% - 20px));
       aspect-ratio: 1.05 / 1;
@@ -1219,6 +1290,11 @@
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
+      const BIG_TV_PROMPT_PREFIX = 'Z';
+      const MONITOR_STATIC_MIN_DURATION_MS = 1000;
+      const MONITOR_STATIC_MAX_DURATION_MS = 2000;
+      const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
+      const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
       const CALENDAR_PAGE_URL = '/calendar.html';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -1345,9 +1421,19 @@
       let aquariumClipPlaybackTimeoutId = null;
       let aquariumClipPlaybackResolve = null;
       let aquariumPlaybackSequenceToken = 0;
+      let bigTvPromptOverlayEl = null;
+      let bigTvPromptInputEl = null;
+      let isBigTvPromptActive = false;
+      let bigTvPromptInputValue = '';
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
+      let rightMonitorStaticOverlayEl = null;
+      let rightMonitorStaticVideoEl = null;
+      let leftMonitorStaticOverlayEl = null;
+      let leftMonitorStaticVideoEl = null;
+      let rightMonitorFlickerTimeoutId = null;
+      let leftMonitorFlickerTimeoutId = null;
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
       let debugEditEl = null;
@@ -1369,13 +1455,15 @@
       function syncBigTvContentVisibility() {
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
+        const promptActive = isBigTvPromptActive;
         const aquariumEmbedActive = Boolean(
           aquariumClipIframeEl &&
           aquariumClipIframeEl.style.display !== 'none'
         );
         const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive || aquariumEmbedActive;
         if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility = shouldShowBigTvVideoOverlay ? 'hidden' : 'visible';
+          discordWidgetIframeEl.style.visibility =
+            shouldShowBigTvVideoOverlay || promptActive ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
           aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvVideoOverlay);
@@ -1594,6 +1682,7 @@
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
+        hideBigTvPromptOverlay({ clearInput: false });
         if (nedryGateOverlayEl) {
           nedryGateOverlayEl.classList.remove('is-active');
         }
@@ -1606,22 +1695,181 @@
         syncBigTvContentVisibility();
       }
 
-      async function playNedryGateOverlay() {
+      function activateBigTvPromptMode() {
         if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return;
         }
 
         cancelAquariumPlaybackSequence();
         hideAquariumStaticOverlay();
-        nedryGateOverlayEl.classList.add('is-active');
-        nedryGateVideoEl.currentTime = 0;
-        syncBigTvContentVisibility();
+        hideNedryGateOverlay();
+        showBigTvPromptOverlay();
+      }
 
-        try {
-          await nedryGateVideoEl.play();
-        } catch (error) {
-          console.warn('Unable to play Nedry gate overlay.', error);
-          hideNedryGateOverlay();
+      function getRandomMonitorStaticDurationMs() {
+        return MONITOR_STATIC_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_STATIC_MAX_DURATION_MS - MONITOR_STATIC_MIN_DURATION_MS + 1)
+        );
+      }
+
+      function getRandomMonitorContentDurationMs() {
+        return MONITOR_CONTENT_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_CONTENT_MAX_DURATION_MS - MONITOR_CONTENT_MIN_DURATION_MS + 1)
+        );
+      }
+
+      function clearMonitorFlickerTimeouts() {
+        if (rightMonitorFlickerTimeoutId !== null) {
+          clearTimeout(rightMonitorFlickerTimeoutId);
+          rightMonitorFlickerTimeoutId = null;
+        }
+        if (leftMonitorFlickerTimeoutId !== null) {
+          clearTimeout(leftMonitorFlickerTimeoutId);
+          leftMonitorFlickerTimeoutId = null;
+        }
+      }
+
+      function setMonitorStaticVisibility(staticOverlayEl, staticVideoEl, shouldShowStatic) {
+        if (!staticOverlayEl) {
+          return;
+        }
+        staticOverlayEl.classList.toggle('is-active', shouldShowStatic);
+        if (!staticVideoEl) {
+          return;
+        }
+        if (shouldShowStatic) {
+          staticVideoEl.currentTime = 0;
+          const playPromise = staticVideoEl.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {});
+          }
+          return;
+        }
+        staticVideoEl.pause();
+        staticVideoEl.currentTime = 0;
+      }
+
+      function scheduleRightMonitorFlicker(shouldShowStaticNext) {
+        if (!isBigTvPromptActive) {
+          rightMonitorFlickerTimeoutId = null;
+          return;
+        }
+        setMonitorStaticVisibility(
+          rightMonitorStaticOverlayEl,
+          rightMonitorStaticVideoEl,
+          shouldShowStaticNext
+        );
+        rightMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleRightMonitorFlicker(!shouldShowStaticNext),
+          shouldShowStaticNext ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function scheduleLeftMonitorFlicker(shouldShowStaticNext) {
+        if (!isBigTvPromptActive) {
+          leftMonitorFlickerTimeoutId = null;
+          return;
+        }
+        setMonitorStaticVisibility(
+          leftMonitorStaticOverlayEl,
+          leftMonitorStaticVideoEl,
+          shouldShowStaticNext
+        );
+        leftMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleLeftMonitorFlicker(!shouldShowStaticNext),
+          shouldShowStaticNext ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function startMonitorFlickerLoops() {
+        clearMonitorFlickerTimeouts();
+        const rightStartsStatic = Math.random() < 0.5;
+        const leftStartsStatic = Math.random() < 0.5;
+        setMonitorStaticVisibility(
+          rightMonitorStaticOverlayEl,
+          rightMonitorStaticVideoEl,
+          rightStartsStatic
+        );
+        setMonitorStaticVisibility(
+          leftMonitorStaticOverlayEl,
+          leftMonitorStaticVideoEl,
+          leftStartsStatic
+        );
+        rightMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleRightMonitorFlicker(!rightStartsStatic),
+          rightStartsStatic ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+        leftMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleLeftMonitorFlicker(!leftStartsStatic),
+          leftStartsStatic ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function stopMonitorFlickerLoops() {
+        clearMonitorFlickerTimeouts();
+        setMonitorStaticVisibility(rightMonitorStaticOverlayEl, rightMonitorStaticVideoEl, false);
+        setMonitorStaticVisibility(leftMonitorStaticOverlayEl, leftMonitorStaticVideoEl, false);
+      }
+
+      function updateBigTvPromptInput() {
+        if (!bigTvPromptInputEl) {
+          return;
+        }
+        bigTvPromptInputEl.textContent = bigTvPromptInputValue;
+      }
+
+      function showBigTvPromptOverlay() {
+        if (!bigTvPromptOverlayEl) {
+          return;
+        }
+        isBigTvPromptActive = true;
+        bigTvPromptInputValue = '';
+        updateBigTvPromptInput();
+        bigTvPromptOverlayEl.classList.add('is-active');
+        syncBigTvContentVisibility();
+        startMonitorFlickerLoops();
+      }
+
+      function hideBigTvPromptOverlay({ clearInput = true } = {}) {
+        isBigTvPromptActive = false;
+        if (bigTvPromptOverlayEl) {
+          bigTvPromptOverlayEl.classList.remove('is-active');
+        }
+        if (clearInput) {
+          bigTvPromptInputValue = '';
+          updateBigTvPromptInput();
+        }
+        stopMonitorFlickerLoops();
+        syncBigTvContentVisibility();
+      }
+
+      function handleBigTvPromptTyping(event) {
+        if (!isBigTvPromptActive) {
+          return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+          return;
+        }
+        if (event.key === 'Escape') {
+          hideBigTvPromptOverlay();
+          return;
+        }
+        if (event.key === 'Backspace') {
+          event.preventDefault();
+          bigTvPromptInputValue = bigTvPromptInputValue.slice(0, -1);
+          updateBigTvPromptInput();
+          return;
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          bigTvPromptInputValue = '';
+          updateBigTvPromptInput();
+          return;
+        }
+        if (event.key.length === 1) {
+          event.preventDefault();
+          bigTvPromptInputValue += event.key;
+          updateBigTvPromptInput();
         }
       }
 
@@ -2211,7 +2459,7 @@
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
-              playNedryGateOverlay();
+              activateBigTvPromptMode();
               return;
             }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
@@ -2238,6 +2486,13 @@
         aquariumClipIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        bigTvPromptOverlayEl = null;
+        bigTvPromptInputEl = null;
+        hideBigTvPromptOverlay();
+        rightMonitorStaticOverlayEl = null;
+        rightMonitorStaticVideoEl = null;
+        leftMonitorStaticOverlayEl = null;
+        leftMonitorStaticVideoEl = null;
         clearAquariumClipPlaybackTimeout();
         nedryGateOverlayEl = null;
         nedryGateVideoEl = null;
@@ -2299,6 +2554,24 @@
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
 
+            bigTvPromptOverlayEl = document.createElement('div');
+            bigTvPromptOverlayEl.className = 'big-tv-prompt-overlay';
+            bigTvPromptOverlayEl.setAttribute('aria-hidden', 'true');
+
+            const promptLine = document.createElement('div');
+            promptLine.className = 'big-tv-prompt-line';
+
+            const promptPrefix = document.createElement('span');
+            promptPrefix.textContent = BIG_TV_PROMPT_PREFIX;
+            bigTvPromptInputEl = document.createElement('span');
+            bigTvPromptInputEl.className = 'big-tv-prompt-input';
+            const promptCaret = document.createElement('span');
+            promptCaret.className = 'big-tv-prompt-caret';
+            promptCaret.textContent = '_';
+            promptLine.append(promptPrefix, bigTvPromptInputEl, promptCaret);
+            bigTvPromptOverlayEl.appendChild(promptLine);
+            el.appendChild(bigTvPromptOverlayEl);
+
             nedryGateOverlayEl = document.createElement('div');
             nedryGateOverlayEl.className = 'nedry-gate-overlay';
             nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
@@ -2348,6 +2621,22 @@
             face.append(top, grid, label);
             icon.appendChild(face);
             el.appendChild(icon);
+
+            leftMonitorStaticOverlayEl = document.createElement('div');
+            leftMonitorStaticOverlayEl.className = 'overlay-static-layer';
+            leftMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
+            leftMonitorStaticVideoEl = document.createElement('video');
+            leftMonitorStaticVideoEl.className = 'overlay-static-video';
+            leftMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            leftMonitorStaticVideoEl.preload = 'auto';
+            leftMonitorStaticVideoEl.muted = true;
+            leftMonitorStaticVideoEl.defaultMuted = true;
+            leftMonitorStaticVideoEl.loop = true;
+            leftMonitorStaticVideoEl.playsInline = true;
+            leftMonitorStaticVideoEl.setAttribute('playsinline', '');
+            leftMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            leftMonitorStaticOverlayEl.appendChild(leftMonitorStaticVideoEl);
+            el.appendChild(leftMonitorStaticOverlayEl);
           }
 
           if (overlay.id === 'overlay-commodore-screen') {
@@ -2371,7 +2660,7 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
-              playNedryGateOverlay();
+              activateBigTvPromptMode();
             });
 
             const img = document.createElement('img');
@@ -2382,6 +2671,22 @@
             img.decoding = 'async';
             button.appendChild(img);
             el.appendChild(button);
+
+            rightMonitorStaticOverlayEl = document.createElement('div');
+            rightMonitorStaticOverlayEl.className = 'overlay-static-layer';
+            rightMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
+            rightMonitorStaticVideoEl = document.createElement('video');
+            rightMonitorStaticVideoEl.className = 'overlay-static-video';
+            rightMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            rightMonitorStaticVideoEl.preload = 'auto';
+            rightMonitorStaticVideoEl.muted = true;
+            rightMonitorStaticVideoEl.defaultMuted = true;
+            rightMonitorStaticVideoEl.loop = true;
+            rightMonitorStaticVideoEl.playsInline = true;
+            rightMonitorStaticVideoEl.setAttribute('playsinline', '');
+            rightMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            rightMonitorStaticOverlayEl.appendChild(rightMonitorStaticVideoEl);
+            el.appendChild(rightMonitorStaticOverlayEl);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
@@ -2918,6 +3223,7 @@
       }
 
       function cleanup() {
+        hideBigTvPromptOverlay();
         if (cameraAnimationFrameId !== null) {
           window.cancelAnimationFrame(cameraAnimationFrameId);
           cameraAnimationFrameId = null;
@@ -2974,6 +3280,7 @@
       }, true);
 
       window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('keydown', handleBigTvPromptTyping);
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
