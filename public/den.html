@@ -2042,42 +2042,9 @@
         return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
       }
 
-      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs } = {}) {
-        const position = clamp(tuningPosition, 0, 1);
-        const effectiveTimestampMs = Number.isFinite(timestampMs) ? timestampMs : performance.now();
-        const state = audioEl.__radioTuningState || {
-          lastPosition: position,
-          movementEnergy: 0
-        };
-        const movementDelta = Math.abs(position - state.lastPosition);
-        state.lastPosition = position;
-        state.movementEnergy = isMoving
-          ? clamp(
-            state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_ACTIVE
-              + movementDelta * RADIO_TUNING_MOVEMENT_GAIN
-              + RADIO_TUNING_MOVEMENT_FLOOR,
-            0,
-            1
-          )
-          : state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_IDLE;
-        audioEl.__radioTuningState = state;
-
-        const stationStrength = getRadioStationStrength(position);
-        const wobble = Math.sin((effectiveTimestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
-          * state.movementEnergy
-          * RADIO_TUNING_WOBBLE_DEPTH;
-        audioEl.playbackRate = clamp(
-          RADIO_TUNING_PLAYBACK_RATE_BASE + (stationStrength * RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN) + wobble,
-          RADIO_TUNING_PLAYBACK_RATE_MIN,
-          RADIO_TUNING_PLAYBACK_RATE_MAX
-        );
-        audioEl.volume = clamp(
-          RADIO_TUNING_VOLUME_BASE
-            + (stationStrength * RADIO_TUNING_VOLUME_STATION_GAIN)
-            + (state.movementEnergy * RADIO_TUNING_VOLUME_MOVEMENT_GAIN),
-          RADIO_TUNING_VOLUME_MIN,
-          1
-        );
+      function resetRadioTuningPlayback(audioEl) {
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
       }
 
       function ensureRadioTuningLoopPlayback(audioEl) {
@@ -2090,6 +2057,7 @@
 
       function stopRadioTuningLoopPlayback(audioEl) {
         audioEl.pause();
+        audioEl.currentTime = 0;
         audioEl.playbackRate = 1;
         audioEl.volume = 1;
         if (audioEl.__radioTuningState) {
@@ -2460,7 +2428,7 @@
             tuningAudio.preload = 'auto';
             tuningAudio.loop = true;
             flipClockRadioTuningAudioEl = tuningAudio;
-            applyRadioTuningWarp(tuningAudio, tuningPosition);
+            resetRadioTuningPlayback(tuningAudio);
             const TUNING_DRAG_THRESHOLD_PX = 1;
             const KEYBOARD_TUNING_STEP = 0.02;
             const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
@@ -2484,7 +2452,7 @@
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs });
+              resetRadioTuningPlayback(tuningAudio);
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2508,7 +2476,7 @@
               selectorDot.setPointerCapture(event.pointerId);
               const didUpdateTuning = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didUpdateTuning) {
-                applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+                resetRadioTuningPlayback(tuningAudio);
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
             });
@@ -2549,7 +2517,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+              resetRadioTuningPlayback(tuningAudio);
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
