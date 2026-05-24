@@ -2735,6 +2735,10 @@
               window.location.assign(COMMODORE_URL);
               return;
             }
+            if (spot.id === FLIP_CLOCK_OVERLAY_CONTROL_ID) {
+              openClockApp();
+              return;
+            }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
               const whiteboardUrl = WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
               window.location.assign(whiteboardUrl);
