@@ -1237,7 +1237,21 @@
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
       const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
-      const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
+      const WHITEBOARD_TASK_HOTSPOTS = [
+        { id: 'cap-ex', label: 'Cap-Ex', x: 772, y: 462, w: 402, h: 120 },
+        { id: 'snow-tickets', label: 'SNOW Tickets', x: 772, y: 614, w: 402, h: 120 },
+        { id: 'ntst-cases', label: 'NTST Cases', x: 772, y: 766, w: 402, h: 120 },
+        { id: 'jira-board', label: 'JIRA Board', x: 772, y: 918, w: 402, h: 120 },
+        { id: 'change-mgmt', label: 'Change Mgmt', x: 772, y: 1070, w: 402, h: 120 }
+      ];
+      const WHITEBOARD_HOTSPOT_IDS = new Set([
+        'rca-board',
+        'whiteboard',
+        ...WHITEBOARD_TASK_HOTSPOTS.map((spot) => spot.id)
+      ]);
+      const HOTSPOT_READABLE_LABELS = new Map(
+        WHITEBOARD_TASK_HOTSPOTS.map(({ id, label }) => [id, label])
+      );
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
@@ -1318,6 +1332,7 @@
         { id: NOAHS_ARCADE_HOTSPOT_ID, x: 880, y: 320, w: 2050, h: 1280 },
         { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+        ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
@@ -2382,9 +2397,10 @@
             .join(' ');
 
         hotspotList.forEach((spot) => {
-          const readableLabel = NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
-            ? 'Join our Discord'
-            : toTitleCase(spot.id);
+          const readableLabel = HOTSPOT_READABLE_LABELS.get(spot.id) ||
+            (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
+              ? 'Join our Discord'
+              : toTitleCase(spot.id));
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
