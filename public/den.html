@@ -170,14 +170,15 @@
       overflow: hidden;
       border-radius: 6px;
       pointer-events: auto;
-      background: #11141d;
+      background:
+        radial-gradient(ellipse at 50% 42%, rgba(88, 101, 242, 0.2) 0%, rgba(25, 31, 60, 0.92) 100%),
+        #0f1224;
     }
 
     .discord-widget-frame {
       width: 100%;
-      height: calc(100% + 72px);
+      height: calc(178% - 10px);
       border: 0;
-      background: #11141d;
       display: block;
       pointer-events: auto;
     }
@@ -689,7 +690,13 @@
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
-      const STARSHRIMP_YOUTUBE_URL = 'https://www.youtube.com/@starshrimp';
+      const STOPWATCH_URL = 'https://www.google.com/search?q=stopwatch';
+      const STOPWATCH_HOTSPOT_ID = 'stopwatch';
+      const STARSHRIMP_YOUTUBE_VIDEO_URLS = [
+        'https://www.youtube.com/watch?v=GZ7jsIR_TnY',
+        'https://www.youtube.com/watch?v=dgAz1qEG2uo',
+        'https://www.youtube.com/watch?v=sFwo1mwrbxw'
+      ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
@@ -718,6 +725,7 @@
         { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+        { id: 'stopwatch', x: 656, y: 1741, w: 317, h: 112 },
         { id: 'date-tracker', x: 983, y: 1741, w: 317, h: 112 },
         { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
       ];
@@ -729,7 +737,16 @@
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
         { id: 'overlay-flip-clock', x: 945, y: 1720, w: 450, h: 195 }
-      ].map((overlay) => ({ ...overlay, x: overlay.x + SCENE_OFFSET_X }));
+      ].map((overlay) => {
+        const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
+        if (overlay.id === 'overlay-big-tv') {
+          adjustedOverlay.x += 1;
+          adjustedOverlay.y += 1;
+          adjustedOverlay.w = Math.max(0, adjustedOverlay.w - 2);
+          adjustedOverlay.h = Math.max(0, adjustedOverlay.h - 2);
+        }
+        return adjustedOverlay;
+      });
 
       const viewport = document.getElementById('viewport');
       const stage = document.getElementById('stage');
@@ -1274,8 +1291,13 @@
               window.location.assign(MICROSOFT_WHITEBOARD_URL);
               return;
             }
+            if (spot.id === STOPWATCH_HOTSPOT_ID) {
+              window.open(STOPWATCH_URL, '_blank', 'noopener');
+              return;
+            }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              window.location.assign(STARSHRIMP_YOUTUBE_URL);
+              const randomIndex = Math.floor(Math.random() * STARSHRIMP_YOUTUBE_VIDEO_URLS.length);
+              window.location.assign(STARSHRIMP_YOUTUBE_VIDEO_URLS[randomIndex]);
               return;
             }
           });
