@@ -1483,6 +1483,8 @@
           layerEl.className = 'parallax-layer';
           layerEl.src = layerDef.src;
           layerEl.alt = '';
+          layerEl.setAttribute('role', 'presentation');
+          layerEl.setAttribute('aria-hidden', 'true');
           layerEl.draggable = false;
           layerEl.style.opacity = String(layerDef.opacity);
           layerEl.style.top = `${layerDef.topOffset}px`;
