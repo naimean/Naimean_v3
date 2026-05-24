@@ -102,6 +102,17 @@ test('HotspotStore returns 405 for unsupported methods', async () => {
   assert.deepEqual(await response.json(), { error: 'Method not allowed.' });
 });
 
+test('HotspotStore handles OPTIONS preflight requests', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'OPTIONS' }));
+
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('access-control-allow-methods'), 'GET, POST, OPTIONS');
+  assert.equal(response.headers.get('access-control-allow-headers'), 'content-type');
+});
+
 test('worker routes /api/hotspots through HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], stubFetch: 0, assetsFetch: 0 };
   const expectedResponse = new Response(JSON.stringify({ ok: true }), {
@@ -141,6 +152,21 @@ test('worker routes /api/hotspots through HOTSPOT_STORE durable object', async (
   assert.deepEqual(calls.get, ['id:den-hotspots']);
   assert.equal(calls.stubFetch, 1);
   assert.equal(calls.assetsFetch, 0);
+});
+
+test('worker returns 500 for /api/hotspots when HOTSPOT_STORE binding is missing', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        return new Response('assets');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/hotspots', { method: 'POST' }), env);
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
 });
 
 test('worker serves non-api requests through ASSETS binding', async () => {
@@ -198,4 +224,14 @@ test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object
   assert.deepEqual(calls.idFromName, ['den-hotspots']);
   assert.deepEqual(calls.get, ['id:den-hotspots']);
   assert.equal(calls.fetch, 1);
+});
+
+test('functions/api/hotspots onRequest returns 500 when HOTSPOT_STORE binding is missing', async () => {
+  const response = await onRequest({
+    request: new Request('https://example.com/api/hotspots', { method: 'POST' }),
+    env: {}
+  });
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
 });

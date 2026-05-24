@@ -466,6 +466,8 @@
       const HOTSPOT_STORAGE_KEY = 'den_hotspot_overrides';
       const HOTSPOT_API_PATH = '/api/hotspots';
       const SAVE_BUTTON_RESET_MS = 2000;
+      const SAVE_RETRY_ATTEMPTS = 3;
+      const SAVE_RETRY_DELAY_MS = 350;
       const TOUCH_MOMENTUM_DECAY = 0.004;
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
@@ -662,6 +664,61 @@
         } catch (_) {
           return null;
         }
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      async function readResponseErrorText(response) {
+        try {
+          const payload = await response.clone().json();
+          if (payload && typeof payload.error === 'string' && payload.error.trim()) {
+            return payload.error.trim();
+          }
+        } catch (_) {}
+
+        try {
+          const text = await response.text();
+          if (text && text.trim()) return text.trim();
+        } catch (_) {}
+
+        return '';
+      }
+
+      async function postHotspotsToServer(savedSourceHotspots) {
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ hotspots: savedSourceHotspots }),
+              cache: 'no-store'
+            });
+
+            if (!response.ok) {
+              const errorDetails = await readResponseErrorText(response);
+              throw new Error(
+                errorDetails
+                  ? `Server save failed (${response.status}): ${errorDetails}`
+                  : `Server save failed (${response.status})`
+              );
+            }
+
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * attempt);
+            }
+          }
+        }
+
+        throw lastError || new Error('Server save failed');
       }
 
       function setSaveButtonText(text, disabled = false) {
@@ -1093,14 +1150,7 @@
 
         setSaveButtonText('Saving...', true);
         try {
-          const response = await fetch(HOTSPOT_API_PATH, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ hotspots: savedSourceHotspots })
-          });
-          if (!response.ok) {
-            throw new Error(`Server save failed (${response.status})`);
-          }
+          await postHotspotsToServer(savedSourceHotspots);
           setDebugMode(false);
           window.location.reload();
         } catch (error) {
