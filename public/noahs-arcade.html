@@ -126,6 +126,11 @@
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
     }
 
+    .cabinet-card[aria-disabled='true'] {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     .cabinet-card:hover,
     .cabinet-card:focus-visible {
       transform: translateY(-2px);
@@ -341,7 +346,7 @@
         const override = normalizeUrl(urlOverrides[cabinet.name]);
         if (override) return override;
         const fallback = normalizeUrl(cabinet.url);
-        return fallback || '#';
+        return fallback || '';
       }
 
       function setEditorStatus(message, isError = false) {
@@ -353,10 +358,14 @@
         grid.innerHTML = '';
         cabinets.forEach((cabinet) => {
           const url = getCabinetUrl(cabinet);
-          const card = document.createElement('a');
+          const card = document.createElement(url ? 'a' : 'div');
           card.className = 'cabinet-card';
-          card.href = url;
-          if (/^https?:\/\//.test(url)) {
+          if (url) {
+            card.href = url;
+          } else {
+            card.setAttribute('aria-disabled', 'true');
+          }
+          if (url && /^https?:\/\//.test(url)) {
             card.target = '_blank';
             card.rel = 'noopener';
           }
@@ -376,7 +385,7 @@
           copy.appendChild(title);
 
           const tag = document.createElement('p');
-          tag.textContent = cabinet.tag || url;
+          tag.textContent = cabinet.tag || url || 'No URL configured';
           copy.appendChild(tag);
 
           card.appendChild(copy);
@@ -400,7 +409,8 @@
           input.id = inputId;
           input.dataset.name = cabinet.name;
           input.placeholder = cabinet.url;
-          input.value = normalizeUrl(urlOverrides[cabinet.name]) || '';
+          const override = normalizeUrl(urlOverrides[cabinet.name]);
+          input.value = override || '';
 
           row.appendChild(label);
           row.appendChild(input);
