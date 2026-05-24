@@ -1162,7 +1162,15 @@
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
-      const AQUARIUM_EMBED_VIDEO_URL = 'assets/video/nedrygate.mp4';
+      const AQUARIUM_CLIP_DURATION_SECONDS = 10;
+      const AQUARIUM_CLIP_LOAD_FALLBACK_MS = 1500;
+      const AQUARIUM_CLIP_EMBED_BASE_URL = 'https://www.youtube-nocookie.com/embed/';
+      // Starshrimp source videos and safe start windows used for random 10-second aquarium clips.
+      const AQUARIUM_STARSHRIMP_VIDEO_SOURCES = [
+        { videoId: 'GZ7jsIR_TnY', minStartSeconds: 1, maxStartSeconds: 150 },
+        { videoId: 'dgAz1qEG2uo', minStartSeconds: 0, maxStartSeconds: 150 },
+        { videoId: 'sFwo1mwrbxw', minStartSeconds: 61, maxStartSeconds: 180 }
+      ];
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/frequency_search.mp3';
       const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
       const RADIO_TUNING_STATION_WIDTH = 0.06;
@@ -1302,10 +1310,12 @@
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
-      let aquariumEmbeddedVideoEl = null;
-      let aquariumEmbeddedVideoHintEl = null;
+      let aquariumClipIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
+      let aquariumClipPlaybackTimeoutId = null;
+      let aquariumClipPlaybackResolve = null;
+      let aquariumPlaybackSequenceToken = 0;
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
@@ -1334,55 +1344,152 @@
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const aquariumEmbedActive = Boolean(
-          aquariumEmbeddedVideoEl &&
-          aquariumEmbeddedVideoEl.style.display !== 'none'
+          aquariumClipIframeEl &&
+          aquariumClipIframeEl.style.display !== 'none'
         );
         discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive || aquariumEmbedActive ? 'hidden' : 'visible';
       }
 
-      function setAquariumEmbeddedVideoPlayback(shouldPlay) {
-        if (!aquariumEmbeddedVideoEl) {
+      function clearAquariumClipPlaybackTimeout() {
+        if (aquariumClipPlaybackTimeoutId !== null) {
+          window.clearTimeout(aquariumClipPlaybackTimeoutId);
+          aquariumClipPlaybackTimeoutId = null;
+        }
+        if (aquariumClipPlaybackResolve) {
+          aquariumClipPlaybackResolve(false);
+          aquariumClipPlaybackResolve = null;
+        }
+      }
+
+      function cancelAquariumPlaybackSequence() {
+        aquariumPlaybackSequenceToken += 1;
+        clearAquariumClipPlaybackTimeout();
+      }
+
+      function getRandomAquariumClipEmbedUrl() {
+        const source =
+          AQUARIUM_STARSHRIMP_VIDEO_SOURCES[
+            Math.floor(Math.random() * AQUARIUM_STARSHRIMP_VIDEO_SOURCES.length)
+          ];
+        const minStart = Math.max(0, Math.floor(source.minStartSeconds));
+        const maxStart = Math.max(minStart, Math.floor(source.maxStartSeconds));
+        const startRange = maxStart - minStart;
+        const startSeconds = startRange > 0
+          ? minStart + Math.floor(Math.random() * startRange)
+          : minStart;
+        const endSeconds = startSeconds + AQUARIUM_CLIP_DURATION_SECONDS;
+        const params = new URLSearchParams({
+          autoplay: '1',
+          mute: '1',
+          playsinline: '1',
+          controls: '0',
+          rel: '0',
+          modestbranding: '1',
+          start: String(startSeconds),
+          end: String(endSeconds)
+        });
+        return `${AQUARIUM_CLIP_EMBED_BASE_URL}${source.videoId}?${params.toString()}`;
+      }
+
+      function setAquariumClipPlayback({ shouldPlay = false, embedUrl = '' } = {}) {
+        if (!aquariumClipIframeEl) {
           return;
         }
 
         if (shouldPlay) {
-          aquariumEmbeddedVideoEl.style.display = 'block';
-          if (aquariumEmbeddedVideoHintEl) {
-            aquariumEmbeddedVideoHintEl.style.display = 'block';
-          }
-          aquariumEmbeddedVideoEl.currentTime = 0;
-          aquariumEmbeddedVideoEl
-            .play()
-            .catch((error) => {
-              console.warn('Unable to play aquarium embed video.', error);
-              aquariumEmbeddedVideoEl.style.display = 'none';
-              if (aquariumEmbeddedVideoHintEl) {
-                aquariumEmbeddedVideoHintEl.style.display = 'none';
-              }
-              if (discordWidgetIframeEl) {
-                discordWidgetIframeEl.style.visibility = 'visible';
-              }
-            });
+          aquariumClipIframeEl.style.display = 'block';
+          aquariumClipIframeEl.src = embedUrl;
           return;
         }
 
-        aquariumEmbeddedVideoEl.pause();
-        aquariumEmbeddedVideoEl.currentTime = 0;
-        aquariumEmbeddedVideoEl.style.display = 'none';
-        if (aquariumEmbeddedVideoHintEl) {
-          aquariumEmbeddedVideoHintEl.style.display = 'none';
-        }
+        aquariumClipIframeEl.style.display = 'none';
+        aquariumClipIframeEl.src = 'about:blank';
       }
 
-      function hideAquariumStaticOverlay({ resetPlayback = true, showEmbeddedVideoAfter = false } = {}) {
+      function waitForVideoPlaybackToEnd(videoEl) {
+        return new Promise((resolve) => {
+          const onEnded = () => {
+            cleanup();
+            resolve(true);
+          };
+          const onError = () => {
+            cleanup();
+            resolve(false);
+          };
+          const onPause = () => {
+            if (videoEl.ended) {
+              return;
+            }
+            cleanup();
+            resolve(false);
+          };
+          const cleanup = () => {
+            videoEl.removeEventListener('ended', onEnded);
+            videoEl.removeEventListener('error', onError);
+            videoEl.removeEventListener('pause', onPause);
+          };
+          videoEl.addEventListener('ended', onEnded);
+          videoEl.addEventListener('error', onError);
+          videoEl.addEventListener('pause', onPause);
+        });
+      }
+
+      function waitForAquariumClipWindow(sequenceToken) {
+        return new Promise((resolve) => {
+          clearAquariumClipPlaybackTimeout();
+          let loadFallbackTimeoutId = null;
+          let clipWindowTimeoutId = null;
+          const onClipLoad = () => {
+            if (clipWindowTimeoutId !== null) {
+              return;
+            }
+            if (loadFallbackTimeoutId !== null) {
+              window.clearTimeout(loadFallbackTimeoutId);
+              loadFallbackTimeoutId = null;
+            }
+            clipWindowTimeoutId = window.setTimeout(() => {
+              clipWindowTimeoutId = null;
+              if (aquariumClipPlaybackResolve) {
+                aquariumClipPlaybackResolve(true);
+              }
+            }, AQUARIUM_CLIP_DURATION_SECONDS * 1000);
+          };
+          const cleanup = () => {
+            if (aquariumClipIframeEl) {
+              aquariumClipIframeEl.removeEventListener('load', onClipLoad);
+            }
+            if (loadFallbackTimeoutId !== null) {
+              window.clearTimeout(loadFallbackTimeoutId);
+              loadFallbackTimeoutId = null;
+            }
+            if (clipWindowTimeoutId !== null) {
+              window.clearTimeout(clipWindowTimeoutId);
+              clipWindowTimeoutId = null;
+            }
+            aquariumClipPlaybackTimeoutId = null;
+          };
+          if (aquariumClipIframeEl) {
+            aquariumClipIframeEl.addEventListener('load', onClipLoad);
+          }
+          loadFallbackTimeoutId = window.setTimeout(() => {
+            loadFallbackTimeoutId = null;
+            onClipLoad();
+          }, AQUARIUM_CLIP_LOAD_FALLBACK_MS);
+          aquariumClipPlaybackTimeoutId = loadFallbackTimeoutId;
+          aquariumClipPlaybackResolve = (didFinish) => {
+            aquariumClipPlaybackResolve = null;
+            cleanup();
+            resolve(didFinish && sequenceToken === aquariumPlaybackSequenceToken);
+          };
+        });
+      }
+
+      function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
-        if (showEmbeddedVideoAfter) {
-          setAquariumEmbeddedVideoPlayback(true);
-        } else {
-          setAquariumEmbeddedVideoPlayback(false);
-        }
+        clearAquariumClipPlaybackTimeout();
+        setAquariumClipPlayback();
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
           if (resetPlayback) {
@@ -1392,13 +1499,11 @@
         syncBigTvContentVisibility();
       }
 
-      async function playAquariumStaticOverlay() {
+      async function playAquariumStaticPass(sequenceToken) {
         if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
-          return;
+          return false;
         }
 
-        hideNedryGateOverlay();
-        setAquariumEmbeddedVideoPlayback(false);
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
@@ -1407,8 +1512,51 @@
           await aquariumStaticVideoEl.play();
         } catch (error) {
           console.warn('Unable to play aquarium static overlay.', error);
-          hideAquariumStaticOverlay();
+          return false;
         }
+        const hasEnded = await waitForVideoPlaybackToEnd(aquariumStaticVideoEl);
+        return hasEnded && sequenceToken === aquariumPlaybackSequenceToken;
+      }
+
+      async function playAquariumRandomClipPass(sequenceToken) {
+        if (!aquariumClipIframeEl || !aquariumStaticOverlayEl) {
+          return false;
+        }
+
+        aquariumStaticOverlayEl.classList.remove('is-active');
+        setAquariumClipPlayback({ shouldPlay: true, embedUrl: getRandomAquariumClipEmbedUrl() });
+        syncBigTvContentVisibility();
+        const shouldContinue = await waitForAquariumClipWindow(sequenceToken);
+        setAquariumClipPlayback();
+        return shouldContinue;
+      }
+
+      async function playAquariumHotspotSequence() {
+        aquariumPlaybackSequenceToken += 1;
+        const sequenceToken = aquariumPlaybackSequenceToken;
+        clearAquariumClipPlaybackTimeout();
+        hideNedryGateOverlay();
+        setAquariumClipPlayback();
+
+        const firstStaticEnded = await playAquariumStaticPass(sequenceToken);
+        if (!firstStaticEnded || sequenceToken !== aquariumPlaybackSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
+        if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        const secondStaticEnded = await playAquariumStaticPass(sequenceToken);
+        if (!secondStaticEnded || sequenceToken !== aquariumPlaybackSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
@@ -1429,6 +1577,7 @@
           return;
         }
 
+        cancelAquariumPlaybackSequence();
         hideAquariumStaticOverlay();
         nedryGateOverlayEl.classList.add('is-active');
         nedryGateVideoEl.currentTime = 0;
@@ -2056,7 +2205,7 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              playAquariumStaticOverlay();
+              playAquariumHotspotSequence();
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
@@ -2083,10 +2232,10 @@
       function createOverlays() {
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
-        aquariumEmbeddedVideoEl = null;
-        aquariumEmbeddedVideoHintEl = null;
+        aquariumClipIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        clearAquariumClipPlaybackTimeout();
         nedryGateOverlayEl = null;
         nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -2116,34 +2265,15 @@
             discordWidgetIframeEl = iframe;
             el.appendChild(iframe);
 
-            aquariumEmbeddedVideoEl = document.createElement('video');
-            aquariumEmbeddedVideoEl.className = 'aquarium-embed-video';
-            aquariumEmbeddedVideoEl.title = 'Naimean Aquarium Video';
-            aquariumEmbeddedVideoEl.src = AQUARIUM_EMBED_VIDEO_URL;
-            aquariumEmbeddedVideoEl.preload = 'metadata';
-            aquariumEmbeddedVideoEl.controls = true;
-            aquariumEmbeddedVideoEl.muted = true;
-            aquariumEmbeddedVideoEl.playsInline = true;
-            aquariumEmbeddedVideoEl.setAttribute('aria-label', 'Naimean Aquarium video. Starts muted; use the video controls to unmute.');
-            aquariumEmbeddedVideoEl.setAttribute('playsinline', '');
-            aquariumEmbeddedVideoEl.setAttribute('webkit-playsinline', '');
-            aquariumEmbeddedVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
-            aquariumEmbeddedVideoEl.addEventListener('error', () => {
-              aquariumEmbeddedVideoEl.style.display = 'none';
-              if (aquariumEmbeddedVideoHintEl) {
-                aquariumEmbeddedVideoHintEl.style.display = 'none';
-              }
-              if (discordWidgetIframeEl) {
-                discordWidgetIframeEl.style.visibility = 'visible';
-              }
-            });
-            el.appendChild(aquariumEmbeddedVideoEl);
-
-            aquariumEmbeddedVideoHintEl = document.createElement('div');
-            aquariumEmbeddedVideoHintEl.className = 'aquarium-video-hint';
-            aquariumEmbeddedVideoHintEl.textContent = 'Muted — use controls to unmute';
-            aquariumEmbeddedVideoHintEl.setAttribute('aria-hidden', 'true');
-            el.appendChild(aquariumEmbeddedVideoHintEl);
+            aquariumClipIframeEl = document.createElement('iframe');
+            aquariumClipIframeEl.className = 'aquarium-embed-video';
+            aquariumClipIframeEl.title = 'Naimean Aquarium Starshrimp Clip';
+            aquariumClipIframeEl.loading = 'lazy';
+            aquariumClipIframeEl.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+            aquariumClipIframeEl.referrerPolicy = 'strict-origin-when-cross-origin';
+            aquariumClipIframeEl.sandbox = 'allow-scripts allow-presentation';
+            aquariumClipIframeEl.src = 'about:blank';
+            el.appendChild(aquariumClipIframeEl);
 
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
@@ -2158,8 +2288,6 @@
             aquariumStaticVideoEl.playsInline = true;
             aquariumStaticVideoEl.setAttribute('playsinline', '');
             aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
-            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay({ showEmbeddedVideoAfter: true }));
-            aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
 
