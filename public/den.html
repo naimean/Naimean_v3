@@ -991,6 +991,21 @@
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
       const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
       const RADIO_TUNING_STATION_WIDTH = 0.06;
+      const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
+      const RADIO_TUNING_MOVEMENT_DECAY_IDLE = 0.8;
+      const RADIO_TUNING_MOVEMENT_GAIN = 18;
+      const RADIO_TUNING_MOVEMENT_FLOOR = 0.2;
+      const RADIO_TUNING_WOBBLE_SPEED = 0.015;
+      const RADIO_TUNING_WOBBLE_POSITION_FACTOR = 15;
+      const RADIO_TUNING_WOBBLE_DEPTH = 0.08;
+      const RADIO_TUNING_PLAYBACK_RATE_BASE = 0.84;
+      const RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN = 0.24;
+      const RADIO_TUNING_PLAYBACK_RATE_MIN = 0.72;
+      const RADIO_TUNING_PLAYBACK_RATE_MAX = 1.28;
+      const RADIO_TUNING_VOLUME_BASE = 0.14;
+      const RADIO_TUNING_VOLUME_STATION_GAIN = 0.74;
+      const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
+      const RADIO_TUNING_VOLUME_MIN = 0.08;
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const NOTES_URL = 'notes.html';
@@ -1628,7 +1643,7 @@
         return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
       }
 
-      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false } = {}) {
+      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs = performance.now() } = {}) {
         const position = clamp(tuningPosition, 0, 1);
         const state = audioEl.__radioTuningState || {
           lastPosition: position,
@@ -1637,14 +1652,32 @@
         const movementDelta = Math.abs(position - state.lastPosition);
         state.lastPosition = position;
         state.movementEnergy = isMoving
-          ? clamp(state.movementEnergy * 0.45 + movementDelta * 18 + 0.2, 0, 1)
-          : state.movementEnergy * 0.8;
+          ? clamp(
+            state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_ACTIVE
+              + movementDelta * RADIO_TUNING_MOVEMENT_GAIN
+              + RADIO_TUNING_MOVEMENT_FLOOR,
+            0,
+            1
+          )
+          : state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_IDLE;
         audioEl.__radioTuningState = state;
 
         const stationStrength = getRadioStationStrength(position);
-        const wobble = Math.sin((performance.now() * 0.015) + (position * 15)) * state.movementEnergy * 0.08;
-        audioEl.playbackRate = clamp(0.84 + (stationStrength * 0.24) + wobble, 0.72, 1.28);
-        audioEl.volume = clamp(0.14 + (stationStrength * 0.74) + (state.movementEnergy * 0.1), 0.08, 1);
+        const wobble = Math.sin((timestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
+          * state.movementEnergy
+          * RADIO_TUNING_WOBBLE_DEPTH;
+        audioEl.playbackRate = clamp(
+          RADIO_TUNING_PLAYBACK_RATE_BASE + (stationStrength * RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN) + wobble,
+          RADIO_TUNING_PLAYBACK_RATE_MIN,
+          RADIO_TUNING_PLAYBACK_RATE_MAX
+        );
+        audioEl.volume = clamp(
+          RADIO_TUNING_VOLUME_BASE
+            + (stationStrength * RADIO_TUNING_VOLUME_STATION_GAIN)
+            + (state.movementEnergy * RADIO_TUNING_VOLUME_MOVEMENT_GAIN),
+          RADIO_TUNING_VOLUME_MIN,
+          1
+        );
       }
 
       function ensureRadioTuningLoopPlayback(audioEl) {
@@ -1959,14 +1992,14 @@
             selectorDot.setAttribute('aria-valuemax', '100');
             selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
 
-            function updateTuningFromClientX(clientX, { playAudio } = { playAudio: true }) {
+            function updateTuningFromClientX(clientX, { playAudio, timestampMs } = { playAudio: true, timestampMs: performance.now() }) {
               const rect = scaleBlock.getBoundingClientRect();
               if (!rect.width) return false;
               const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true });
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs });
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -1994,7 +2027,7 @@
               if (event.pointerId !== activeTunePointerId) return;
               event.preventDefault();
               event.stopPropagation();
-              const didMove = updateTuningFromClientX(event.clientX);
+              const didMove = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didMove && Math.abs(event.clientX - lastPointerClientX) > TUNING_DRAG_THRESHOLD_PX) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2026,7 +2059,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true });
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
