@@ -1326,7 +1326,7 @@
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
-      const AQUARIUM_CLIP_MIN_TIMEOUT_SECONDS = 0.25;
+      const AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS = 0.25;
       const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze([
         { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 0 },
@@ -1680,7 +1680,11 @@
             if (!aquariumClipVideoEl) {
               return;
             }
-            if (aquariumClipVideoEl.currentTime >= clipEndSeconds && aquariumClipPlaybackResolve) {
+            if (
+              aquariumClipVideoEl.currentTime >=
+                clipEndSeconds - AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS &&
+              aquariumClipPlaybackResolve
+            ) {
               aquariumClipPlaybackResolve(true);
             }
           };
@@ -1692,7 +1696,7 @@
               window.clearTimeout(clipWindowTimeoutId);
             }
             const remainingSeconds = Math.max(
-              AQUARIUM_CLIP_MIN_TIMEOUT_SECONDS,
+              AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS,
               clipEndSeconds - aquariumClipVideoEl.currentTime
             );
             clipWindowTimeoutId = window.setTimeout(() => {
