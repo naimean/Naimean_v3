@@ -690,6 +690,7 @@
       const SAVE_RETRY_DELAY_MS = 350;
       const TOUCH_MOMENTUM_DECAY = 0.004;
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
+      const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const STOPWATCH_URL = 'https://www.google.com/search?q=stopwatch';
@@ -1639,7 +1640,10 @@
         lastPointerMoveTime = event.timeStamp;
 
         // Convert screen drag delta to design-space world delta.
-        const worldDelta = -dx / scale;
+        const dragScrollMultiplier = shouldUseMomentum(activePointerType)
+          ? MOBILE_DRAG_SCROLL_MULTIPLIER
+          : 1;
+        const worldDelta = (-dx / scale) * dragScrollMultiplier;
         dragVelocityX = dragVelocityX * 0.75 + (worldDelta / elapsed) * 0.25;
         setTargetCameraX(targetCameraX + worldDelta);
       }
