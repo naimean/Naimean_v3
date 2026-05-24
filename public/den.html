@@ -1952,7 +1952,10 @@
       }
 
       function getOverlayRect(overlayId) {
-        const controlHotspotId = OVERLAY_ID_TO_CONTROL_ID.get(overlayId);
+        let controlHotspotId = OVERLAY_ID_TO_CONTROL_ID.get(overlayId);
+        if (!controlHotspotId && overlayId === AQUARIUM_OVERLAY_ID) {
+          controlHotspotId = DISCORD_OVERLAY_CONTROL_ID;
+        }
         if (controlHotspotId) {
           const controlledSpot = getRuntimeHotspotById(controlHotspotId);
           if (controlledSpot) {
@@ -1975,6 +1978,14 @@
           overlayEl.style.width = hotspotEl.style.width;
           overlayEl.style.height = hotspotEl.style.height;
         });
+        const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        const aquariumOverlayEl = overlayElementsById.get(AQUARIUM_OVERLAY_ID);
+        if (discordOverlayEl && aquariumOverlayEl) {
+          aquariumOverlayEl.style.left = discordOverlayEl.style.left;
+          aquariumOverlayEl.style.top = discordOverlayEl.style.top;
+          aquariumOverlayEl.style.width = discordOverlayEl.style.width;
+          aquariumOverlayEl.style.height = discordOverlayEl.style.height;
+        }
       }
 
       function getSourceOutput(sourceHotspots) {
