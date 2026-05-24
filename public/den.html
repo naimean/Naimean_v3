@@ -1797,10 +1797,11 @@
             aquariumEmbeddedVideoEl.className = 'aquarium-embed-video';
             aquariumEmbeddedVideoEl.title = 'Naimean Aquarium Video';
             aquariumEmbeddedVideoEl.src = AQUARIUM_EMBED_VIDEO_URL;
-            aquariumEmbeddedVideoEl.preload = 'auto';
+            aquariumEmbeddedVideoEl.preload = 'metadata';
             aquariumEmbeddedVideoEl.controls = true;
             aquariumEmbeddedVideoEl.muted = true;
             aquariumEmbeddedVideoEl.playsInline = true;
+            aquariumEmbeddedVideoEl.setAttribute('aria-label', 'Naimean Aquarium video. Starts muted; use the video controls to unmute.');
             aquariumEmbeddedVideoEl.setAttribute('playsinline', '');
             aquariumEmbeddedVideoEl.setAttribute('webkit-playsinline', '');
             aquariumEmbeddedVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
