@@ -1519,7 +1519,9 @@
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
-          console.warn('Unable to play aquarium static overlay.', error);
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play aquarium static overlay.', error);
+          }
           return false;
         }
         const hasEnded = await waitForVideoPlaybackToEnd(aquariumStaticVideoEl);

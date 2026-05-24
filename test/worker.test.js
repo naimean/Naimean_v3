@@ -202,6 +202,34 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/den.html']);
 });
 
+test('worker augments frame-src CSP with YouTube aquarium sources', async () => {
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      },
+      get() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      }
+    },
+    ASSETS: {
+      async fetch() {
+        return new Response('den page', {
+          status: 200,
+          headers: {
+            'content-security-policy': "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+          }
+        });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/den.html'), env);
+  const csp = response.headers.get('content-security-policy');
+
+  assert.ok(csp?.includes('frame-src https://discord.com https://discordapp.com https://www.youtube-nocookie.com https://www.youtube.com'));
+});
+
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], fetch: 0 };
   const expected = new Response('ok', { status: 200 });
