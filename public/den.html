@@ -1268,7 +1268,12 @@
         { videoId: 'dgAz1qEG2uo', minStartSeconds: 0, maxStartSeconds: 150 },
         { videoId: 'sFwo1mwrbxw', minStartSeconds: 61, maxStartSeconds: 180 }
       ];
-      const RADIO_TUNING_AUDIO_URL = 'assets/audio/frequency_search.mp3';
+      const RADIO_TUNING_AUDIO_URLS = [
+        'assets/audio/frequency_search.mp3',
+        'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
+        'assets/audio/freesound_community-static-poppy-light-107792.mp3',
+        'assets/audio/freesound_community-high-pitch-large-102845.mp3'
+      ];
       const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
       const RADIO_TUNING_STATION_WIDTH = 0.06;
       const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
@@ -1425,6 +1430,8 @@
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
+      const flipClockRadioTuningAudioElsByUrl = new Map();
+      let flipClockRadioTuningAudioCycle = [];
       let rightMonitorStaticOverlayEl = null;
       let rightMonitorStaticVideoEl = null;
       let leftMonitorStaticOverlayEl = null;
@@ -2336,6 +2343,30 @@
         }
       }
 
+      function getNextRadioTuningAudioUrl() {
+        if (!flipClockRadioTuningAudioCycle.length) {
+          flipClockRadioTuningAudioCycle = [...RADIO_TUNING_AUDIO_URLS];
+          for (let i = flipClockRadioTuningAudioCycle.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const swapValue = flipClockRadioTuningAudioCycle[i];
+            flipClockRadioTuningAudioCycle[i] = flipClockRadioTuningAudioCycle[j];
+            flipClockRadioTuningAudioCycle[j] = swapValue;
+          }
+        }
+        return flipClockRadioTuningAudioCycle.pop();
+      }
+
+      function getRadioTuningAudioElement(audioUrl) {
+        let audioEl = flipClockRadioTuningAudioElsByUrl.get(audioUrl);
+        if (!audioEl) {
+          audioEl = new Audio(audioUrl);
+          audioEl.preload = 'auto';
+          audioEl.loop = true;
+          flipClockRadioTuningAudioElsByUrl.set(audioUrl, audioEl);
+        }
+        return audioEl;
+      }
+
       function startFlipClock(container) {
         const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
                              'Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2758,9 +2789,7 @@
             selectorLine.className = 'rc-selector-line';
             selectorLine.setAttribute('aria-hidden', 'true');
             let tuningPosition = applyRadioTuningPosition(scaleBlock, 0.84);
-            const tuningAudio = flipClockRadioTuningAudioEl || new Audio(RADIO_TUNING_AUDIO_URL);
-            tuningAudio.preload = 'auto';
-            tuningAudio.loop = true;
+            let tuningAudio = flipClockRadioTuningAudioEl || getRadioTuningAudioElement(getNextRadioTuningAudioUrl());
             flipClockRadioTuningAudioEl = tuningAudio;
             resetRadioTuningPlayback(tuningAudio);
             const TUNING_DRAG_THRESHOLD_PX = 1;
@@ -2802,12 +2831,23 @@
               }
             }
 
+            function selectNextTuningAudio() {
+              const nextAudio = getRadioTuningAudioElement(getNextRadioTuningAudioUrl());
+              if (tuningAudio && tuningAudio !== nextAudio) {
+                stopRadioTuningLoopPlayback(tuningAudio);
+              }
+              tuningAudio = nextAudio;
+              flipClockRadioTuningAudioEl = tuningAudio;
+              resetRadioTuningPlayback(tuningAudio);
+            }
+
             selectorDot.addEventListener('pointerdown', (event) => {
               event.preventDefault();
               event.stopPropagation();
               activeTunePointerId = event.pointerId;
               lastPointerClientX = event.clientX;
               selectorDot.setPointerCapture(event.pointerId);
+              selectNextTuningAudio();
               const didUpdateTuning = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didUpdateTuning) {
                 resetRadioTuningPlayback(tuningAudio);
