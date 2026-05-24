@@ -654,8 +654,8 @@
         } catch (_) {}
       }
 
-      function shouldUseLegacyDataApi(status, errorText) {
-        return status === 404 && typeof errorText === 'string' && errorText.includes('/api/data');
+      function shouldUseLegacyDataApi(status) {
+        return status === 404;
       }
 
       function extractSourceHotspotsFromLegacyRows(rows) {
@@ -696,8 +696,7 @@
         try {
           const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store' });
           if (!response.ok) {
-            const errorText = await readResponseErrorText(response);
-            if (shouldUseLegacyDataApi(response.status, errorText)) {
+            if (shouldUseLegacyDataApi(response.status)) {
               hotspotApiMode = 'legacy';
               return loadHotspotsFromLegacyServer();
             }
@@ -772,12 +771,12 @@
             });
 
             if (!response.ok) {
-              const errorDetails = await readResponseErrorText(response);
-              if (shouldUseLegacyDataApi(response.status, errorDetails)) {
+              if (shouldUseLegacyDataApi(response.status)) {
                 hotspotApiMode = 'legacy';
                 await postHotspotsToLegacyServer(savedSourceHotspots);
                 return;
               }
+              const errorDetails = await readResponseErrorText(response);
               throw new Error(
                 errorDetails
                   ? `Server save failed (${response.status}): ${errorDetails}`
