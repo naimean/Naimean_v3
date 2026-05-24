@@ -935,7 +935,7 @@
       const CLOCK_URL_IOS = 'clock://';
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
-      const WORLD_TILE_COUNT = 2;
+      const WORLD_WIDTH_SEGMENTS = 2;
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
@@ -1001,7 +1001,7 @@
       const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       const useLiteRendering = isIOSDevice || hasCoarsePointer;
 
-      const worldWidth = WORLD_TILE_COUNT * TILE_WIDTH;
+      const worldWidth = WORLD_WIDTH_SEGMENTS * TILE_WIDTH;
       const worldHeight = DESIGN_HEIGHT;
 
       let scale = 1;
