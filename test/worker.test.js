@@ -201,7 +201,7 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/den.html']);
 });
 
-test('worker augments frame-src CSP with YouTube aquarium sources', async () => {
+test('worker preserves existing frame-src CSP for den path', async () => {
   const env = {
     HOTSPOT_STORE: {
       idFromName() {
@@ -225,19 +225,13 @@ test('worker augments frame-src CSP with YouTube aquarium sources', async () => 
 
   const response = await router.fetch(new Request('https://example.com/den.html'), env);
   const csp = response.headers.get('content-security-policy');
-  const frameSrcDirective = csp
-    ?.split(';')
-    .map((directive) => directive.trim())
-    .find((directive) => directive.startsWith('frame-src '));
-  const frameSources = new Set(frameSrcDirective?.split(/\s+/).slice(1));
-
-  assert.ok(frameSources.has('https://discord.com'));
-  assert.ok(frameSources.has('https://discordapp.com'));
-  assert.ok(frameSources.has('https://www.youtube-nocookie.com'));
-  assert.ok(frameSources.has('https://www.youtube.com'));
+  assert.equal(
+    csp,
+    "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+  );
 });
 
-test('worker augments frame-src CSP on extensionless den paths', async () => {
+test('worker preserves existing frame-src CSP on extensionless den paths', async () => {
   const env = {
     HOTSPOT_STORE: {
       idFromName() {
@@ -262,8 +256,10 @@ test('worker augments frame-src CSP on extensionless den paths', async () => {
   const response = await router.fetch(new Request('https://example.com/den'), env);
   const csp = response.headers.get('content-security-policy');
 
-  assert.match(csp, /frame-src[^;]*https:\/\/www\.youtube-nocookie\.com/);
-  assert.match(csp, /frame-src[^;]*https:\/\/www\.youtube\.com/);
+  assert.equal(
+    csp,
+    "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+  );
 });
 
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
