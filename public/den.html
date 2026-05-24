@@ -1119,7 +1119,7 @@
       const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&rel=0';
-      const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
+      const RADIO_TUNING_AUDIO_URL = 'assets/audio/frequency_search.mp3';
       const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
       const RADIO_TUNING_STATION_WIDTH = 0.06;
       const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
@@ -2288,6 +2288,9 @@
               activeTunePointerId = event.pointerId;
               lastPointerClientX = event.clientX;
               selectorDot.setPointerCapture(event.pointerId);
+              updateTuningFromClientX(event.clientX, { playAudio: false, timestampMs: event.timeStamp });
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+              ensureRadioTuningLoopPlayback(tuningAudio);
             });
 
             selectorDot.addEventListener('pointermove', (event) => {
