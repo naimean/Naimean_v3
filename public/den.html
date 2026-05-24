@@ -1041,7 +1041,7 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
-      let discordWidgetFrameEl = null;
+      let discordWidgetIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
 
@@ -1067,8 +1067,8 @@
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
-        if (discordWidgetFrameEl) {
-          discordWidgetFrameEl.style.visibility = '';
+        if (discordWidgetIframeEl) {
+          discordWidgetIframeEl.style.visibility = 'visible';
         }
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
@@ -1083,8 +1083,8 @@
           return;
         }
 
-        if (discordWidgetFrameEl) {
-          discordWidgetFrameEl.style.visibility = 'hidden';
+        if (discordWidgetIframeEl) {
+          discordWidgetIframeEl.style.visibility = 'hidden';
         }
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
@@ -1649,7 +1649,7 @@
 
       function createOverlays() {
         overlayElementsById.clear();
-        discordWidgetFrameEl = null;
+        discordWidgetIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         overlayDefaults.forEach((overlay) => {
@@ -1673,7 +1673,7 @@
             iframe.setAttribute('allowtransparency', 'true');
             iframe.sandbox = 'allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts';
             iframe.loading = 'lazy';
-            discordWidgetFrameEl = iframe;
+            discordWidgetIframeEl = iframe;
             el.appendChild(iframe);
 
             aquariumStaticOverlayEl = document.createElement('div');
