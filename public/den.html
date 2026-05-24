@@ -532,7 +532,8 @@
       try {
         const stored = localStorage.getItem(HOTSPOT_STORAGE_KEY);
         if (stored) {
-          JSON.parse(stored).forEach((o) => { hotspotOverrides[o.id] = o; });
+          const arr = JSON.parse(stored);
+          if (Array.isArray(arr)) arr.forEach((o) => { hotspotOverrides[o.id] = o; });
         }
       } catch (_) {}
 
@@ -744,9 +745,17 @@
           let newH = h;
 
           if (dir.includes('e')) newW = Math.max(MIN_SIZE, w + dx);
-          if (dir.includes('w')) { newLeft = left + dx; newW = Math.max(MIN_SIZE, w - dx); }
+          if (dir.includes('w')) {
+            const clampedW = Math.max(MIN_SIZE, w - dx);
+            newLeft = left + (w - clampedW);
+            newW = clampedW;
+          }
           if (dir.includes('s')) newH = Math.max(MIN_SIZE, h + dy);
-          if (dir.includes('n')) { newTop = top + dy; newH = Math.max(MIN_SIZE, h - dy); }
+          if (dir.includes('n')) {
+            const clampedH = Math.max(MIN_SIZE, h - dy);
+            newTop = top + (h - clampedH);
+            newH = clampedH;
+          }
 
           el.style.left   = `${newLeft}px`;
           el.style.top    = `${newTop}px`;
@@ -881,7 +890,7 @@
         // Display values with SCENE_OFFSET_X subtracted so they can be pasted
         // directly back into the hotspots array in the source.
         const lines = saved.map((s) =>
-          `  { id: '${s.id}', x: ${s.x - SCENE_OFFSET_X}, y: ${s.y}, w: ${s.w}, h: ${s.h} },`
+          `  { id: ${JSON.stringify(s.id)}, x: ${s.x - SCENE_OFFSET_X}, y: ${s.y}, w: ${s.w}, h: ${s.h} },`
         );
         const output =
           `const hotspots = [\n${lines.join('\n')}\n` +
@@ -929,16 +938,21 @@
         document.getElementById('save-modal').classList.add('hidden');
       });
 
-      document.getElementById('save-modal-copy-btn').addEventListener('click', () => {
+      document.getElementById('save-modal-copy-btn').addEventListener('click', (e) => {
         const textarea = document.getElementById('save-modal-textarea');
+        const btn = e.currentTarget;
+        const copy = () => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+        };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(textarea.value).catch(() => {
+          navigator.clipboard.writeText(textarea.value).then(copy).catch(() => {
             textarea.select();
-            document.execCommand('copy');
+            if (document.execCommand('copy')) copy();
           });
         } else {
           textarea.select();
-          document.execCommand('copy');
+          if (document.execCommand('copy')) copy();
         }
       });
 
