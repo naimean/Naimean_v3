@@ -167,6 +167,87 @@
       font-weight: 700;
     }
 
+    .editor-panel {
+      margin-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 20px;
+    }
+
+    .editor-panel h3 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+    }
+
+    .editor-panel p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .url-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .url-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) minmax(280px, 2.2fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .url-row label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .url-row input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 9px;
+      background: rgba(6, 6, 11, 0.75);
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.88rem;
+    }
+
+    .url-row input:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(255, 157, 61, 0.24);
+    }
+
+    .editor-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    .editor-actions button {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .editor-actions button:hover,
+    .editor-actions button:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    #editor-status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
     @media (max-width: 640px) {
       main {
         width: min(100% - 20px, 1200px);
@@ -206,6 +287,17 @@
       </div>
       <p id="status">Loading cabinets…</p>
       <div id="cabinet-grid" class="cabinet-grid" hidden></div>
+
+      <section class="editor-panel" hidden id="url-editor">
+        <h3>MAME URL Manager</h3>
+        <p>Update cabinet URLs below. Leave a field blank to use its default URL.</p>
+        <div id="url-list" class="url-list"></div>
+        <div class="editor-actions">
+          <button type="button" id="save-urls">Save URL updates</button>
+          <button type="button" id="reset-urls">Reset all updates</button>
+          <p id="editor-status"></p>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -214,23 +306,56 @@
       const status = document.getElementById('status');
       const count = document.getElementById('count');
       const grid = document.getElementById('cabinet-grid');
+      const editor = document.getElementById('url-editor');
+      const urlList = document.getElementById('url-list');
+      const saveButton = document.getElementById('save-urls');
+      const resetButton = document.getElementById('reset-urls');
+      const editorStatus = document.getElementById('editor-status');
+      const URL_OVERRIDES_KEY = 'naimean.arcade.urlOverrides';
 
-      try {
-        const response = await fetch('/assets/arcade/cabinets.json', { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to load cabinets (${response.status})`);
+      function parseOverrides() {
+        try {
+          const raw = localStorage.getItem(URL_OVERRIDES_KEY);
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+          return {};
         }
+      }
 
-        const cabinets = await response.json();
-        status.hidden = true;
-        grid.hidden = false;
-        count.textContent = `${cabinets.length} cabinets`;
+      function normalizeUrl(input) {
+        if (typeof input !== 'string') return null;
+        const trimmed = input.trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (/^(\/|\.\/|\.\.\/|\?|#)/.test(trimmed)) return trimmed;
+        return null;
+      }
 
+      let cabinets = [];
+      let urlOverrides = parseOverrides();
+
+      function getCabinetUrl(cabinet) {
+        const override = normalizeUrl(urlOverrides[cabinet.name]);
+        if (override) return override;
+        const fallback = normalizeUrl(cabinet.url);
+        return fallback || '#';
+      }
+
+      function setEditorStatus(message, isError = false) {
+        editorStatus.textContent = message;
+        editorStatus.style.color = isError ? '#fda4af' : 'var(--muted)';
+      }
+
+      function renderCabinetGrid() {
+        grid.innerHTML = '';
         cabinets.forEach((cabinet) => {
+          const url = getCabinetUrl(cabinet);
           const card = document.createElement('a');
           card.className = 'cabinet-card';
-          card.href = cabinet.url;
-          if (/^https?:\/\//.test(cabinet.url)) {
+          card.href = url;
+          if (/^https?:\/\//.test(url)) {
             card.target = '_blank';
             card.rel = 'noopener';
           }
@@ -250,15 +375,93 @@
           copy.appendChild(title);
 
           const tag = document.createElement('p');
-          tag.textContent = cabinet.tag || cabinet.url;
+          tag.textContent = cabinet.tag || url;
           copy.appendChild(tag);
 
           card.appendChild(copy);
           grid.appendChild(card);
         });
+      }
+
+      function renderUrlEditor() {
+        urlList.innerHTML = '';
+        cabinets.forEach((cabinet, index) => {
+          const row = document.createElement('div');
+          row.className = 'url-row';
+
+          const label = document.createElement('label');
+          const inputId = `url-row-${index}`;
+          label.setAttribute('for', inputId);
+          label.textContent = cabinet.name;
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.id = inputId;
+          input.dataset.name = cabinet.name;
+          input.placeholder = cabinet.url;
+          input.value = normalizeUrl(urlOverrides[cabinet.name]) || '';
+
+          row.appendChild(label);
+          row.appendChild(input);
+          urlList.appendChild(row);
+        });
+      }
+
+      function saveUrlOverrides() {
+        const nextOverrides = {};
+        const invalid = [];
+        const inputs = urlList.querySelectorAll('input[data-name]');
+
+        inputs.forEach((input) => {
+          const normalized = normalizeUrl(input.value);
+          if (normalized === null) {
+            invalid.push(input.dataset.name);
+            return;
+          }
+          if (normalized) nextOverrides[input.dataset.name] = normalized;
+        });
+
+        if (invalid.length) {
+          setEditorStatus(`Could not save. Invalid URL format: ${invalid.join(', ')}`, true);
+          return;
+        }
+
+        urlOverrides = nextOverrides;
+        localStorage.setItem(URL_OVERRIDES_KEY, JSON.stringify(urlOverrides));
+        renderCabinetGrid();
+        renderUrlEditor();
+        setEditorStatus('URL updates saved.');
+      }
+
+      function resetUrlOverrides() {
+        urlOverrides = {};
+        localStorage.removeItem(URL_OVERRIDES_KEY);
+        renderCabinetGrid();
+        renderUrlEditor();
+        setEditorStatus('URL updates reset.');
+      }
+
+      try {
+        const response = await fetch('/assets/arcade/cabinets.json', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to load cabinets (${response.status})`);
+        }
+
+        cabinets = await response.json();
+        status.hidden = true;
+        grid.hidden = false;
+        count.textContent = `${cabinets.length} cabinets`;
+        editor.hidden = false;
+
+        renderCabinetGrid();
+        renderUrlEditor();
+        setEditorStatus('Saved URL updates are applied automatically.');
+        saveButton.addEventListener('click', saveUrlOverrides);
+        resetButton.addEventListener('click', resetUrlOverrides);
       } catch (error) {
         status.textContent = error.message;
         count.textContent = '';
+        editor.hidden = true;
       }
     })();
   </script>
