@@ -8,8 +8,6 @@
     :root {
       --design-height: 2160;
       --tile-width: 3840;
-      --uw-canvas-width: 3440;
-      --uw-canvas-height: 1440;
     }
 
     * {
@@ -59,56 +57,13 @@
       top: 0;
       left: 0;
       height: 100%;
-      background: linear-gradient(180deg, #0a4256 0%, #0c6f78 48%, #103e57 100%);
+      background: rgba(0, 0, 0, 0.9);
       will-change: transform;
     }
 
     .layer {
       position: absolute;
       inset: 0;
-      pointer-events: none;
-    }
-
-    /* Tile image layer (exact 3840x2160 PNGs placed side-by-side). */
-    #parallax-background-layer {
-      z-index: 10;
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .parallax-layer {
-      position: absolute;
-      top: 0;
-      height: 100%;
-      object-fit: cover;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-      transform: translate3d(0, 0, 0);
-      will-change: transform;
-    }
-
-    #parallax-background-layer::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(ellipse at 50% 35%, rgba(153, 240, 255, 0.13) 0%, rgba(0, 0, 0, 0) 58%),
-        linear-gradient(180deg, rgba(2, 5, 13, 0.52) 0%, rgba(2, 8, 18, 0.14) 45%, rgba(4, 9, 13, 0.62) 100%);
-    }
-
-    #tile-layer {
-      z-index: 20;
-    }
-
-    .tile {
-      position: absolute;
-      top: 0;
-      width: calc(var(--tile-width) * 1px);
-      height: calc(var(--design-height) * 1px);
-      object-fit: fill;
-      image-rendering: auto;
       pointer-events: none;
     }
 
@@ -744,10 +699,6 @@
       display: none;
     }
 
-    body.lite-rendering .parallax-layer {
-      display: none;
-    }
-
     .sr-only {
       position: absolute;
       width: 1px;
@@ -920,8 +871,6 @@
   <div id="viewport" aria-label="Den side-scrolling scene">
     <div id="stage">
       <div id="world">
-        <div class="layer" id="parallax-background-layer" aria-hidden="true"></div>
-        <div class="layer" id="tile-layer" aria-hidden="true"></div>
         <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
         <div class="layer" id="screen-overlay-layer" aria-hidden="true"></div>
         <div class="layer" id="effects-layer" aria-hidden="true"></div>
@@ -986,13 +935,7 @@
       const CLOCK_URL_IOS = 'clock://';
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
-      const PARALLAX_LAYER_DEFS = [
-        { src: 'assets/images/uw1.png', speed: 0.11, opacity: 0.22, topOffset: -96, blur: 0, brightness: 0.68 },
-        { src: 'assets/images/uw2.png', speed: 0.24, opacity: 0.3, topOffset: -64, blur: 0, brightness: 0.74 },
-        { src: 'assets/images/uw3.png', speed: 0.42, opacity: 0.36, topOffset: -28, blur: 0.5, brightness: 0.82 },
-        { src: 'assets/images/uw4.png', speed: 0.62, opacity: 0.44, topOffset: 10, blur: 0.8, brightness: 0.92 }
-      ];
-      const PARALLAX_OVERFLOW_X = 720;
+      const WORLD_TILE_COUNT = 2;
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
@@ -1007,17 +950,6 @@
       const OVERLAY_ID_TO_CONTROL_ID = new Map(
         OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [overlayId, controlId])
       );
-
-      // Add tiles here to extend the horizontal world.
-      const tiles = [
-        { src: 'assets/images/den_arcade.PNG' },
-        { src: 'assets/images/den_computer.png' }
-      ].map((tile, index) => ({
-        ...tile,
-        x: index * TILE_WIDTH,
-        width: TILE_WIDTH,
-        height: DESIGN_HEIGHT
-      }));
 
       // Fixed pixel hotspots in design-space coordinates.
       // Edit x/y/w/h values as artwork alignment is refined.
@@ -1055,8 +987,6 @@
       const viewport = document.getElementById('viewport');
       const stage = document.getElementById('stage');
       const world = document.getElementById('world');
-      const parallaxBackgroundLayer = document.getElementById('parallax-background-layer');
-      const tileLayer = document.getElementById('tile-layer');
       const hotspotLayer = document.getElementById('hotspot-layer');
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
       const debugStatus = document.getElementById('debug-status');
@@ -1071,7 +1001,7 @@
       const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       const useLiteRendering = isIOSDevice || hasCoarsePointer;
 
-      const worldWidth = tiles.length * TILE_WIDTH;
+      const worldWidth = WORLD_TILE_COUNT * TILE_WIDTH;
       const worldHeight = DESIGN_HEIGHT;
 
       let scale = 1;
@@ -1102,8 +1032,6 @@
       let discordWidgetIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
-      let parallaxLayers = [];
-
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
       let debugEditEl = null;
@@ -1474,39 +1402,6 @@
 
       function shouldUseMomentum(pointerType) {
         return pointerType === 'touch' || (pointerType === 'pen' && hasCoarsePointer);
-      }
-
-      function createTiles() {
-        tiles.forEach((tile) => {
-          const img = document.createElement('img');
-          img.className = 'tile';
-          img.src = tile.src;
-          img.alt = '';
-          img.draggable = false;
-          img.style.left = `${tile.x}px`;
-          img.width = tile.width;
-          img.height = tile.height;
-          tileLayer.appendChild(img);
-        });
-      }
-
-      function createParallaxBackground() {
-        parallaxBackgroundLayer.textContent = '';
-        parallaxLayers = PARALLAX_LAYER_DEFS.map((layerDef) => {
-          const layerEl = document.createElement('img');
-          layerEl.className = 'parallax-layer';
-          layerEl.src = layerDef.src;
-          layerEl.alt = '';
-          layerEl.setAttribute('role', 'presentation');
-          layerEl.setAttribute('aria-hidden', 'true');
-          layerEl.draggable = false;
-          layerEl.style.opacity = String(layerDef.opacity);
-          layerEl.style.top = `${layerDef.topOffset}px`;
-          layerEl.style.left = `${-PARALLAX_OVERFLOW_X}px`;
-          layerEl.style.filter = `blur(${layerDef.blur}px) brightness(${layerDef.brightness})`;
-          parallaxBackgroundLayer.appendChild(layerEl);
-          return { el: layerEl, speed: layerDef.speed };
-        });
       }
 
       function addResizeHandles(el) {
@@ -1905,12 +1800,6 @@
 
       function applyTransforms() {
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
-        if (!useLiteRendering && parallaxLayers.length > 0) {
-          parallaxLayers.forEach(({ el, speed }) => {
-            const offsetX = cameraX * (1 - speed);
-            el.style.transform = `translate3d(${offsetX}px, 0, 0)`;
-          });
-        }
       }
 
       function setCameraX(nextCameraX) {
@@ -1986,11 +1875,6 @@
         stage.style.transform = `scale(${scale}) translate3d(0, -50%, 0)`;
         world.style.width = `${worldWidth}px`;
         world.style.height = `${worldHeight}px`;
-        const parallaxLayerWidth = worldWidth + PARALLAX_OVERFLOW_X * 2;
-        parallaxLayers.forEach(({ el }) => {
-          el.style.width = `${parallaxLayerWidth}px`;
-          el.style.height = `${worldHeight}px`;
-        });
 
         // Start camera centered on the desk area in tile 0.
         if (!hasInitializedCamera) {
@@ -2248,8 +2132,6 @@
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
         hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
 
-        createParallaxBackground();
-        createTiles();
         createHotspots(hotspots);
         createOverlays();
         if (useLiteRendering) {
