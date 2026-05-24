@@ -1272,6 +1272,11 @@
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
+      const BIG_TV_PROMPT_PREFIX = 'Z';
+      const MONITOR_STATIC_MIN_DURATION_MS = 1000;
+      const MONITOR_STATIC_MAX_DURATION_MS = 2000;
+      const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
+      const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
       const CALENDAR_PAGE_URL = '/calendar.html';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -1663,7 +1668,7 @@
         syncBigTvContentVisibility();
       }
 
-      async function playNedryGateOverlay() {
+      function activateBigTvPromptMode() {
         if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return;
         }
@@ -1675,11 +1680,15 @@
       }
 
       function getRandomMonitorStaticDurationMs() {
-        return 1000 + Math.floor(Math.random() * 1001);
+        return MONITOR_STATIC_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_STATIC_MAX_DURATION_MS - MONITOR_STATIC_MIN_DURATION_MS + 1)
+        );
       }
 
       function getRandomMonitorContentDurationMs() {
-        return 3000 + Math.floor(Math.random() * 2001);
+        return MONITOR_CONTENT_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_CONTENT_MAX_DURATION_MS - MONITOR_CONTENT_MIN_DURATION_MS + 1)
+        );
       }
 
       function clearMonitorFlickerTimeouts() {
@@ -2423,7 +2432,7 @@
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
-              playNedryGateOverlay();
+              activateBigTvPromptMode();
               return;
             }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
@@ -2520,7 +2529,7 @@
             promptLine.className = 'big-tv-prompt-line';
 
             const promptPrefix = document.createElement('span');
-            promptPrefix.textContent = 'Z';
+            promptPrefix.textContent = BIG_TV_PROMPT_PREFIX;
             bigTvPromptInputEl = document.createElement('span');
             bigTvPromptInputEl.className = 'big-tv-prompt-input';
             const promptCaret = document.createElement('span');
@@ -2618,7 +2627,7 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
-              playNedryGateOverlay();
+              activateBigTvPromptMode();
             });
 
             const img = document.createElement('img');
