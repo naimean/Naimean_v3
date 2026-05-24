@@ -751,6 +751,8 @@
       ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const NOTES_URL = 'notes.html';
+      const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
       const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
@@ -1409,6 +1411,10 @@
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
               const randomIndex = Math.floor(Math.random() * STARSHRIMP_YOUTUBE_VIDEO_URLS.length);
               window.location.assign(STARSHRIMP_YOUTUBE_VIDEO_URLS[randomIndex]);
+              return;
+            }
+            if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
+              window.location.assign(NOTES_URL);
               return;
             }
           });

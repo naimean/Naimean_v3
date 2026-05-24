@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Naimean Notes</title>
+  <meta name="description" content="Leave a note in the Naimean retro terminal — a C64-themed message board.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Naimean">
+  <meta property="og:url" content="https://naimean.com/notes.html">
+  <meta property="og:title" content="Naimean Notes">
+  <meta property="og:description" content="Leave a note in the Naimean retro terminal — a C64-themed message board.">
+  <meta property="og:image" content="https://naimean.com/assets/images/commodore64.v20260424.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Naimean Notes">
+  <meta name="twitter:description" content="Leave a note in the Naimean retro terminal — a C64-themed message board.">
+  <meta name="twitter:image" content="https://naimean.com/assets/images/commodore64.v20260424.jpg">
+  <link rel="icon" type="image/jpeg" href="assets/images/commodore64.v20260424.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050810;
+      --panel: #080e1c;
+      --panel2: #0a1020;
+      --border: rgba(180, 210, 255, 0.25);
+      --border-bright: rgba(180, 210, 255, 0.65);
+      --text: #c8deff;
+      --text-dim: rgba(180, 210, 255, 0.5);
+      --text-dimmer: rgba(180, 210, 255, 0.3);
+      --glow: 0 0 6px #b0d0ff, 0 0 14px #4060a0;
+      --glow-sm: 0 0 4px #b0d0ff, 0 0 8px #4060a0;
+      --btn-bg: rgba(140, 180, 255, 0.1);
+      --btn-hover: rgba(160, 200, 255, 0.22);
+      --btn-active: rgba(160, 200, 255, 0.35);
+      --pin-color: rgba(255, 210, 100, 0.9);
+      --sidebar-w: 280px;
+      --topbar-h: 42px;
+      --toolbar-h: 40px;
+      --transition: 0.2s ease;
+      --card-radius: 3px;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(180, 210, 255, 0.016) 0 1px,
+        transparent 1px 3px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── App shell ─────────────────────────────────────────────── */
+    .app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform var(--transition);
+    }
+
+    .sidebar-top {
+      flex-shrink: 0;
+      padding: 12px 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 10px;
+    }
+
+    .app-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6em;
+      letter-spacing: 3px;
+      text-shadow: var(--glow);
+      white-space: nowrap;
+    }
+
+    .sidebar-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85em;
+      cursor: pointer;
+      padding: 4px 7px;
+      line-height: 1;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .icon-btn:hover, .icon-btn:focus-visible {
+      background: var(--btn-hover);
+      border-color: var(--border-bright);
+      outline: none;
+    }
+
+    .home-btn {
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .icon-btn.active {
+      background: var(--btn-active);
+      border-color: var(--border-bright);
+      color: #fff;
+    }
+
+    /* Search */
+    .search-wrap {
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: calc(50% - 5px);
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 0.95em;
+      pointer-events: none;
+    }
+
+    #search-input {
+      width: 100%;
+      background: rgba(140, 180, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8em;
+      padding: 6px 28px 6px 28px;
+      outline: none;
+      caret-color: var(--text);
+      transition: border-color var(--transition);
+    }
+
+    #search-input::placeholder { color: var(--text-dim); }
+
+    #search-input:focus {
+      border-color: var(--border-bright);
+      box-shadow: 0 0 0 1px rgba(180, 210, 255, 0.15);
+    }
+
+    #search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(calc(-50% - 5px));
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1em;
+      cursor: pointer;
+      padding: 2px 5px;
+      line-height: 1;
+    }
+
+    #search-clear:hover { color: var(--text); }
+
+    /* Tag nav */
+    .tag-nav {
+      flex-shrink: 0;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .tag-nav::-webkit-scrollbar { width: 4px; }
+    .tag-nav::-webkit-scrollbar-track { background: transparent; }
+    .tag-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .tag-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75em;
+      padding: 5px 14px;
+      cursor: pointer;
+      text-align: left;
+      letter-spacing: 0.5px;
+      transition: color var(--transition), background var(--transition);
+    }
+
+    .tag-nav-item:hover {
+      color: var(--text);
+      background: rgba(140, 180, 255, 0.07);
+    }
+
+    .tag-nav-item.active {
+      color: var(--text);
+      background: rgba(140, 180, 255, 0.14);
+      font-weight: 600;
+    }
+
+    .tag-count {
+      font-size: 0.85em;
+      color: var(--text-dimmer);
+      background: rgba(140, 180, 255, 0.1);
+      border-radius: 8px;
+      padding: 1px 6px;
+    }
+
+    .tag-nav-sep {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.45em;
+      letter-spacing: 2px;
+      color: var(--text-dimmer);
+      padding: 6px 14px 3px;
+      text-transform: uppercase;
+    }
+
+    /* Note list */
+    .note-list-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 8px 80px;
+    }
+
+    .note-list-wrap::-webkit-scrollbar { width: 4px; }
+    .note-list-wrap::-webkit-scrollbar-track { background: transparent; }
+    .note-list-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .note-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .note-list.grid-view {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      align-items: start;
+    }
+
+    .note-list.grid-view .list-section-label {
+      grid-column: 1 / -1;
+    }
+
+    .note-list.grid-view .list-empty {
+      grid-column: 1 / -1;
+    }
+
+    /* Note card */
+    .note-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .note-card:hover {
+      border-color: rgba(180, 210, 255, 0.45);
+      background: rgba(10, 20, 45, 0.95);
+    }
+
+    .note-card.active {
+      border-color: var(--border-bright);
+      box-shadow: 0 0 0 1px rgba(180, 210, 255, 0.3), inset 0 0 0 1px rgba(180, 210, 255, 0.08);
+    }
+
+    .note-card.dragging {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+
+    .note-card.drag-over {
+      border-color: var(--border-bright);
+      background: rgba(100, 150, 255, 0.12);
+    }
+
+    .card-inner {
+      padding: 9px 10px 8px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 0.85em;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .note-card.archived .card-title {
+      color: var(--text-dim);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .card-pin-ind {
+      font-size: 0.8em;
+      line-height: 1;
+    }
+
+    .drag-handle {
+      color: var(--text-dimmer);
+      font-size: 1em;
+      cursor: grab;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
+
+    .card-preview {
+      font-size: 0.76em;
+      color: var(--text-dim);
+      line-height: 1.4;
+      max-height: 2.8em;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      margin-bottom: 6px;
+    }
+
+    .grid-view .card-preview {
+      -webkit-line-clamp: 3;
+      max-height: 4.2em;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .card-date {
+      font-size: 0.7em;
+      color: var(--text-dimmer);
+      white-space: nowrap;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+
+    .card-tag-chip {
+      font-size: 0.65em;
+      background: rgba(140, 180, 255, 0.12);
+      border: 1px solid rgba(140, 180, 255, 0.2);
+      border-radius: 8px;
+      padding: 1px 5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .list-section-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.45em;
+      letter-spacing: 2.5px;
+      color: var(--text-dimmer);
+      padding: 8px 4px 4px;
+      text-transform: uppercase;
+    }
+
+    .list-empty {
+      font-size: 0.78em;
+      color: var(--text-dimmer);
+      text-align: center;
+      padding: 24px 8px;
+      border: 1px dashed var(--border);
+      border-radius: var(--card-radius);
+    }
+
+    /* ── Editor panel ──────────────────────────────────────────── */
+    .editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+      min-width: 0;
+    }
+
+    /* Editor topbar */
+    .editor-topbar {
+      height: var(--topbar-h);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      gap: 8px;
+    }
+
+    .back-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72em;
+      padding: 4px 10px;
+      cursor: pointer;
+      display: none;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+
+    .back-btn:hover {
+      color: var(--text);
+      border-color: var(--border-bright);
+      background: var(--btn-bg);
+    }
+
+    .topbar-center {
+      flex: 1;
+      text-align: center;
+      font-size: 0.72em;
+      color: var(--text-dimmer);
+      letter-spacing: 1px;
+      font-family: 'Press Start 2P', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .topbar-actions .icon-btn {
+      font-size: 1em;
+      padding: 4px 6px;
+    }
+
+    /* Editor toolbar */
+    .editor-toolbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      flex-wrap: wrap;
+      min-height: var(--toolbar-h);
+      position: relative;
+    }
+
+    .toolbar-group {
+      display: flex;
+      gap: 2px;
+    }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      margin: 0 4px;
+      align-self: center;
+      flex-shrink: 0;
+    }
+
+    .tb-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--card-radius);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78em;
+      padding: 3px 7px;
+      cursor: pointer;
+      line-height: 1.4;
+      transition: color var(--transition), background var(--transition), border-color var(--transition);
+      white-space: nowrap;
+    }
+
+    .tb-btn:hover, .tb-btn:focus-visible {
+      color: var(--text);
+      background: var(--btn-bg);
+      border-color: var(--border);
+      outline: none;
+    }
+
+    .tb-btn.active {
+      color: var(--text);
+      background: var(--btn-active);
+      border-color: var(--border-bright);
+    }
+
+    .tb-btn b, .tb-btn i, .tb-btn u { font-family: inherit; }
+
+    /* Color picker popup */
+    .color-picker-popup {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--card-radius);
+      padding: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 196px;
+      z-index: 200;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), var(--glow);
+    }
+
+    .color-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    .color-swatch:hover, .color-swatch:focus-visible {
+      transform: scale(1.18);
+      box-shadow: 0 0 0 2px rgba(180, 210, 255, 0.5);
+    }
+
+    .color-swatch.selected {
+      box-shadow: 0 0 0 3px rgba(180, 210, 255, 0.8);
+    }
+
+    /* Editor content */
+    .editor-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background var(--transition);
+    }
+
+    .note-title-input {
+      flex-shrink: 0;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.15em;
+      font-weight: 600;
+      padding: 14px 20px 12px;
+      outline: none;
+      caret-color: var(--text);
+      text-shadow: var(--glow-sm);
+      transition: border-color var(--transition);
+    }
+
+    .note-title-input::placeholder { color: var(--text-dimmer); text-shadow: none; font-weight: 400; }
+
+    .note-title-input:focus { border-color: rgba(180, 210, 255, 0.4); }
+
+    .note-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      outline: none;
+      caret-color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.88em;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 80px;
+    }
+
+    .note-body::-webkit-scrollbar { width: 4px; }
+    .note-body::-webkit-scrollbar-track { background: transparent; }
+    .note-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .note-body:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-dimmer);
+      pointer-events: none;
+    }
+
+    /* Rich text content styles */
+    .note-body h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1em;
+      letter-spacing: 1px;
+      margin: 0.8em 0 0.4em;
+      color: var(--text);
+      text-shadow: var(--glow-sm);
+    }
+
+    .note-body h2 {
+      font-size: 1em;
+      font-weight: 600;
+      margin: 0.6em 0 0.3em;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 3px;
+    }
+
+    .note-body p { margin: 0.2em 0; }
+
+    .note-body ul, .note-body ol {
+      margin: 0.3em 0;
+      padding-left: 1.5em;
+    }
+
+    .note-body li { margin: 0.15em 0; }
+
+    .note-body .check-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .note-body .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 2px 0;
+    }
+
+    .note-body .check-list li input[type="checkbox"] {
+      margin-top: 3px;
+      flex-shrink: 0;
+      accent-color: #7ab0ff;
+      cursor: pointer;
+    }
+
+    .note-body .check-list li.checked > *:not(input) {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+
+    .note-body b, .note-body strong { color: #e8f2ff; }
+    .note-body i, .note-body em { color: #aacbff; }
+
+    /* Tag bar */
+    .tag-bar {
+      flex-shrink: 0;
+      padding: 8px 16px 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      background: rgba(8, 14, 28, 0.6);
+    }
+
+    .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(140, 180, 255, 0.12);
+      border: 1px solid rgba(140, 180, 255, 0.25);
+      border-radius: 10px;
+      padding: 2px 8px 2px 9px;
+      font-size: 0.73em;
+      color: var(--text-dim);
+    }
+
+    .tag-chip-remove {
+      background: transparent;
+      border: none;
+      color: var(--text-dimmer);
+      cursor: pointer;
+      font-size: 1em;
+      padding: 0;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .tag-chip-remove:hover { color: var(--text); }
+
+    #tag-input {
+      background: transparent;
+      border: 1px dashed rgba(140, 180, 255, 0.2);
+      border-radius: 10px;
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.73em;
+      padding: 2px 10px;
+      outline: none;
+      width: 110px;
+      caret-color: var(--text);
+      transition: border-color var(--transition), width var(--transition);
+    }
+
+    #tag-input::placeholder { color: var(--text-dimmer); }
+
+    #tag-input:focus {
+      border-color: rgba(140, 180, 255, 0.5);
+      color: var(--text);
+      width: 150px;
+    }
+
+    /* Editor empty state */
+    .editor-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .editor-empty-inner {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .editor-empty-icon {
+      font-size: 3em;
+      opacity: 0.3;
+    }
+
+    .editor-empty-text {
+      font-size: 0.8em;
+      color: var(--text-dimmer);
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+    }
+
+    .editor-empty-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8em;
+      padding: 8px 18px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background var(--transition), border-color var(--transition), color var(--transition);
+    }
+
+    .editor-empty-btn:hover {
+      background: var(--btn-hover);
+      border-color: var(--border-bright);
+      color: var(--text);
+    }
+
+    /* FAB */
+    .fab {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(100, 150, 255, 0.25);
+      border: 1px solid rgba(140, 180, 255, 0.5);
+      color: var(--text);
+      font-size: 1.6em;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), var(--glow-sm);
+      z-index: 100;
+      transition: background var(--transition), transform 0.15s;
+      line-height: 1;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fab:hover { background: rgba(120, 170, 255, 0.4); transform: scale(1.08); }
+    .fab:active { transform: scale(0.96); }
+
+    /* Auto-save indicator */
+    .save-indicator {
+      font-size: 0.65em;
+      color: var(--text-dimmer);
+      letter-spacing: 1px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      white-space: nowrap;
+    }
+
+    .save-indicator.visible { opacity: 1; }
+
+    /* ── Scrollbars ─────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+    /* ── Mobile (<= 699px) ──────────────────────────────────────── */
+    @media (max-width: 699px) {
+      .sidebar {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        z-index: 10;
+        transform: translateX(0);
+      }
+
+      .editor-panel {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        transform: translateX(100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .app.editor-open .editor-panel {
+        transform: translateX(0);
+      }
+
+      .back-btn { display: block; }
+
+      .fab { display: flex; }
+
+      .topbar-center { display: none; }
+
+      .note-list-wrap { padding-bottom: 100px; }
+    }
+
+    /* ── Desktop (>= 700px) ─────────────────────────────────────── */
+    @media (min-width: 700px) {
+      .back-btn { display: none !important; }
+      .fab { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-header">
+          <a href="/" class="icon-btn home-btn" title="Back to home" aria-label="Back to home">&#8592; HOME</a>
+          <h1 class="app-title">NOTES</h1>
+          <div class="sidebar-actions">
+            <button class="icon-btn" id="btn-view-list" title="List view" aria-label="List view">&#9776;</button>
+            <button class="icon-btn" id="btn-view-grid" title="Grid view" aria-label="Grid view">&#8862;</button>
+            <button class="icon-btn" id="btn-new-note" title="New note (Ctrl+N)" aria-label="New note">&#xFF0B;</button>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon">&#9906;</span>
+          <input type="search" id="search-input" placeholder="Search notes&#8230;" autocomplete="off" spellcheck="false" aria-label="Search notes">
+          <button id="search-clear" aria-label="Clear search" hidden>&#215;</button>
+        </div>
+      </div>
+
+      <nav class="tag-nav" id="tag-nav" aria-label="Filter notes"></nav>
+
+      <div class="note-list-wrap">
+        <div class="note-list" id="note-list"></div>
+      </div>
+    </aside>
+
+    <!-- ── Editor panel ────────────────────────────────────────── -->
+    <main class="editor-panel" id="editor-panel">
+
+      <div class="editor-topbar" id="editor-topbar">
+        <button class="back-btn" id="back-btn" aria-label="Back to notes">&#9668; NOTES</button>
+        <div class="topbar-center" id="topbar-save-status"></div>
+        <div class="topbar-actions" id="topbar-actions">
+          <button class="icon-btn" id="btn-pin" title="Pin note" aria-label="Pin note" hidden>&#128204;</button>
+          <button class="icon-btn" id="btn-archive" title="Archive note" aria-label="Archive note" hidden>&#8861;</button>
+          <button class="icon-btn" id="btn-delete-note" title="Delete note" aria-label="Delete note" hidden>&#128465;</button>
+        </div>
+      </div>
+
+      <div class="editor-toolbar" id="editor-toolbar" hidden>
+        <div class="toolbar-group">
+          <button class="tb-btn" id="tb-bold" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+          <button class="tb-btn" id="tb-italic" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+          <button class="tb-btn" id="tb-underline" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group">
+          <button class="tb-btn" id="tb-h1" title="Heading 1">H1</button>
+          <button class="tb-btn" id="tb-h2" title="Heading 2">H2</button>
+          <button class="tb-btn" id="tb-p" title="Paragraph">&#182;</button>
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group">
+          <button class="tb-btn" id="tb-ul" title="Bullet list">&#8226;&#8801;</button>
+          <button class="tb-btn" id="tb-ol" title="Numbered list">1&#8801;</button>
+          <button class="tb-btn" id="tb-check" title="Insert checklist">&#10003;&#8801;</button>
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group">
+          <button class="tb-btn" id="tb-clear" title="Clear formatting">T&#215;</button>
+          <button class="tb-btn" id="tb-color" title="Note color">&#127912;</button>
+        </div>
+
+        <div class="color-picker-popup" id="color-picker" hidden></div>
+      </div>
+
+      <div class="editor-content" id="editor-content" hidden>
+        <input type="text" id="note-title" class="note-title-input" placeholder="Title" autocomplete="off" spellcheck="true" aria-label="Note title">
+        <div id="note-body" class="note-body" contenteditable="true" spellcheck="true" data-placeholder="Start writing&#8230;" aria-label="Note body" role="textbox" aria-multiline="true"></div>
+        <div class="tag-bar" id="tag-bar">
+          <div class="tag-chips" id="tag-chips"></div>
+          <input type="text" id="tag-input" placeholder="+ add tag" autocomplete="off" spellcheck="false" aria-label="Add tag">
+        </div>
+      </div>
+
+      <div class="editor-empty" id="editor-empty">
+        <div class="editor-empty-inner">
+          <div class="editor-empty-icon">&#128221;</div>
+          <div class="editor-empty-text">Select a note or create a new one</div>
+          <button class="editor-empty-btn" id="editor-empty-btn">&#xFF0B; NEW NOTE</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <button class="fab" id="fab" aria-label="New note" title="New note">&#xFF0B;</button>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ── Constants ────────────────────────────────────────────────────────
+      var STORAGE_KEY    = 'naimean-notes-v1';
+      var VIEW_KEY       = 'naimean-notes-viewmode';
+      var SAVE_DELAY     = 500;
+      var SERVER_DELAY   = 1500;
+      var SWIPE_THRESHOLD = 80;
+      var MAX_TAG_LENGTH  = 32;
+      var NOTE_TEXT_MAX   = 2000;
+
+      var NOTE_COLORS = [
+        { id: 'default', label: 'Default', bg: null,       swatch: 'rgba(140,180,255,0.15)' },
+        { id: 'yellow',  label: 'Yellow',  bg: '#181500',  swatch: '#b89a00' },
+        { id: 'green',   label: 'Green',   bg: '#031a06',  swatch: '#00a830' },
+        { id: 'blue',    label: 'Blue',    bg: '#020d1e',  swatch: '#0070c0' },
+        { id: 'pink',    label: 'Pink',    bg: '#1e0310',  swatch: '#c0006a' },
+        { id: 'purple',  label: 'Purple',  bg: '#0e0318',  swatch: '#7030a8' },
+        { id: 'grey',    label: 'Grey',    bg: '#111118',  swatch: '#707080' },
+        { id: 'teal',    label: 'Teal',    bg: '#021a14',  swatch: '#009080' },
+      ];
+
+      // ── State ────────────────────────────────────────────────────────────
+      var _notes       = [];
+      var _viewMode    = 'list';
+      var _selTag      = 'ALL';
+      var _selId       = null;
+      var _query       = '';
+      var _isAuth      = false;
+      var _saveTimer   = null;
+      var _srvTimer    = null;
+      var _colorOpen   = false;
+      var _dragId      = null;
+
+      // ── Migration helpers ────────────────────────────────────────────────
+      function migrateNote(n, archived) {
+        var rawText = n.text || '';
+        var lines   = rawText.split('\n');
+        var title   = n.title || (lines.length > 0 && lines[0] ? lines[0].slice(0, 60) : 'Untitled');
+        var rest    = lines.length > 1 ? lines.slice(1).join('\n') : '';
+        var body    = n.body || (rest ? rest.split('\n').map(function (line) {
+          return line ? '<p>' + escHtml(line) + '</p>' : '<p><br></p>';
+        }).join('') : '');
+        return {
+          id:          n.id,
+          title:       title,
+          body:        body,
+          text:        rawText,
+          color:       n.color || null,
+          tags:        Array.isArray(n.tags) ? n.tags : [],
+          created:     n.created || Date.now(),
+          pinned:      !!n.pinned,
+          completedAt: archived ? (n.completedAt || Date.now()) : null,
+        };
+      }
+
+      function mergeServerState(raw) {
+        if (!raw) return;
+        // Old format: { active: [...], completed: [...] }
+        if (Array.isArray(raw.active)) {
+          _notes = [];
+          (raw.active || []).forEach(function (n) { _notes.push(migrateNote(n, false)); });
+          (raw.completed || []).forEach(function (n) { _notes.push(migrateNote(n, true)); });
+          if (raw.viewMode) _viewMode = raw.viewMode;
+          return;
+        }
+        // New format: { notes: [...] }
+        if (Array.isArray(raw.notes)) {
+          _notes = raw.notes;
+          if (raw.viewMode) _viewMode = raw.viewMode;
+        }
+      }
+
+      function loadLocalState() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          var parsed = JSON.parse(raw);
+          mergeServerState(parsed);
+        } catch (_) {}
+        try {
+          var vm = localStorage.getItem(VIEW_KEY);
+          if (vm === 'grid' || vm === 'list') _viewMode = vm;
+        } catch (_) {}
+      }
+
+      function serializeState() {
+        return { notes: _notes, viewMode: _viewMode, version: 2 };
+      }
+
+      function persist() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState())); } catch (_) {}
+        scheduleServerSave();
+      }
+
+      function scheduleServerSave() {
+        if (!_isAuth) return;
+        if (_srvTimer) clearTimeout(_srvTimer);
+        _srvTimer = setTimeout(function () {
+          NaimeanAPI.saveNotes(serializeState()).catch(function () {});
+        }, SERVER_DELAY);
+      }
+
+      // ── Helpers ──────────────────────────────────────────────────────────
+      function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      }
+
+      function escHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function formatDate(ts) {
+        if (!ts) return '';
+        var d   = new Date(ts);
+        var now = new Date();
+        var diff = now - d;
+        if (diff < 0) {
+          // Future timestamp — show absolute date
+          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        if (diff < 60000)    return 'Just now';
+        if (diff < 3600000)  return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        if (d.getFullYear() === now.getFullYear()) {
+          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      function stripHtml(html) {
+        var d = document.createElement('div');
+        d.innerHTML = html;
+        return d.textContent || '';
+      }
+
+      function getPreview(note) {
+        return stripHtml(note.body || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+      }
+
+      function getAllTags() {
+        var seen = Object.create(null);
+        _notes.forEach(function (n) {
+          if (Array.isArray(n.tags)) {
+            n.tags.forEach(function (t) { seen[t] = true; });
+          }
+        });
+        return Object.keys(seen).sort();
+      }
+
+      function noteVisible(note) {
+        var tag = _selTag;
+        if (tag === 'ALL') {
+          if (note.completedAt) return false;
+        } else if (tag === 'PINNED') {
+          if (!note.pinned || note.completedAt) return false;
+        } else if (tag === 'ARCHIVED') {
+          if (!note.completedAt) return false;
+        } else {
+          if (note.completedAt) return false;
+          if (!Array.isArray(note.tags) || note.tags.indexOf(tag) === -1) return false;
+        }
+        if (_query) {
+          var q = _query.toLowerCase();
+          var inTitle = (note.title || '').toLowerCase().indexOf(q) !== -1;
+          var inBody  = stripHtml(note.body || '').toLowerCase().indexOf(q) !== -1;
+          if (!inTitle && !inBody) return false;
+        }
+        return true;
+      }
+
+      function visibleNotes() {
+        return _notes.filter(noteVisible);
+      }
+
+      function partitionNotes(arr) {
+        var pinned   = [];
+        var active   = [];
+        var archived = [];
+        arr.forEach(function (n) {
+          if (n.completedAt) { archived.push(n); }
+          else if (n.pinned) { pinned.push(n); }
+          else               { active.push(n); }
+        });
+        pinned.sort(function (a, b)   { return b.created - a.created; });
+        active.sort(function (a, b)   { return b.created - a.created; });
+        archived.sort(function (a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+        return { pinned: pinned, active: active, archived: archived };
+      }
+
+      function findNote(id) {
+        for (var i = 0; i < _notes.length; i++) {
+          if (_notes[i].id === id) return _notes[i];
+        }
+        return null;
+      }
+
+      // ── DOM refs ─────────────────────────────────────────────────────────
+      var appEl         = document.getElementById('app');
+      var tagNavEl      = document.getElementById('tag-nav');
+      var noteListEl    = document.getElementById('note-list');
+      var searchInput   = document.getElementById('search-input');
+      var searchClear   = document.getElementById('search-clear');
+      var editorToolbar = document.getElementById('editor-toolbar');
+      var editorContent = document.getElementById('editor-content');
+      var editorEmpty   = document.getElementById('editor-empty');
+      var titleInput    = document.getElementById('note-title');
+      var bodyEl        = document.getElementById('note-body');
+      var tagChipsEl    = document.getElementById('tag-chips');
+      var tagInputEl    = document.getElementById('tag-input');
+      var colorPickerEl = document.getElementById('color-picker');
+      var btnPin        = document.getElementById('btn-pin');
+      var btnArchive    = document.getElementById('btn-archive');
+      var btnDelete     = document.getElementById('btn-delete-note');
+      var btnViewList   = document.getElementById('btn-view-list');
+      var btnViewGrid   = document.getElementById('btn-view-grid');
+      var btnNewNote    = document.getElementById('btn-new-note');
+      var backBtn       = document.getElementById('back-btn');
+      var fabEl         = document.getElementById('fab');
+      var saveStatus    = document.getElementById('topbar-save-status');
+
+      // ── Note operations ──────────────────────────────────────────────────
+      function createNote() {
+        var inheritTag = (_selTag !== 'ALL' && _selTag !== 'PINNED' && _selTag !== 'ARCHIVED')
+          ? _selTag : null;
+        var note = {
+          id:          uid(),
+          title:       '',
+          body:        '',
+          text:        '',
+          color:       null,
+          tags:        inheritTag ? [inheritTag] : [],
+          created:     Date.now(),
+          pinned:      _selTag === 'PINNED',
+          completedAt: null,
+        };
+        _notes.unshift(note);
+        persist();
+        selectNote(note.id);
+        renderTagNav();
+        renderNoteList();
+        if (window.innerWidth < 700) appEl.classList.add('editor-open');
+        setTimeout(function () { titleInput.focus(); }, 60);
+        return note;
+      }
+
+      function selectNote(id) {
+        flushCurrentNote();
+        _selId = id;
+        renderEditor();
+        // Highlight active card without full re-render
+        var cards = noteListEl.querySelectorAll('.note-card');
+        cards.forEach(function (c) {
+          c.classList.toggle('active', c.dataset.id === id);
+        });
+      }
+
+      function deleteNote(id) {
+        var idx = _notes.findIndex(function (n) { return n.id === id; });
+        if (idx === -1) return;
+        _notes.splice(idx, 1);
+        persist();
+        if (_selId === id) {
+          _selId = null;
+          renderEditor();
+          if (window.innerWidth < 700) appEl.classList.remove('editor-open');
+        }
+        renderNoteList();
+        renderTagNav();
+      }
+
+      function archiveNote(id) {
+        var note = findNote(id);
+        if (!note) return;
+        note.completedAt = note.completedAt ? null : Date.now();
+        persist();
+        if (note.completedAt && _selId === id && _selTag !== 'ARCHIVED') {
+          _selId = null;
+          renderEditor();
+          if (window.innerWidth < 700) appEl.classList.remove('editor-open');
+        }
+        updateTopbarButtons();
+        renderNoteList();
+        renderTagNav();
+      }
+
+      function togglePin(id) {
+        var note = findNote(id);
+        if (!note) return;
+        note.pinned = !note.pinned;
+        persist();
+        updateTopbarButtons();
+        renderNoteList();
+        renderTagNav();
+      }
+
+      function setNoteColor(id, colorBg) {
+        var note = findNote(id);
+        if (!note) return;
+        note.color = colorBg;
+        persist();
+        updateEditorBg(note);
+        renderNoteList();
+        buildColorPickerSwatches();
+      }
+
+      function addTag(id, tag) {
+        var note = findNote(id);
+        if (!note || !tag) return;
+        if (!Array.isArray(note.tags)) note.tags = [];
+        if (note.tags.indexOf(tag) === -1) {
+          note.tags.push(tag);
+          persist();
+          renderTagChips(note);
+          renderTagNav();
+          renderNoteList();
+        }
+      }
+
+      function removeTag(id, tag) {
+        var note = findNote(id);
+        if (!note || !Array.isArray(note.tags)) return;
+        note.tags = note.tags.filter(function (t) { return t !== tag; });
+        persist();
+        renderTagChips(note);
+        renderTagNav();
+        renderNoteList();
+      }
+
+      // ── Auto-save ────────────────────────────────────────────────────────
+      function scheduleAutoSave() {
+        if (_saveTimer) clearTimeout(_saveTimer);
+        _saveTimer = setTimeout(flushCurrentNote, SAVE_DELAY);
+      }
+
+      function flushCurrentNote() {
+        if (!_selId) return;
+        var note = findNote(_selId);
+        if (!note) return;
+        var newTitle = titleInput.value;
+        var newBody  = bodyEl.innerHTML;
+        if (note.title === newTitle && note.body === newBody) return;
+        note.title = newTitle;
+        note.body  = newBody;
+        var rawText = (newTitle + '\n' + stripHtml(newBody)).trim();
+        var truncated = rawText.length > NOTE_TEXT_MAX;
+        note.text  = truncated ? rawText.slice(0, NOTE_TEXT_MAX) : rawText;
+        persist();
+        updateCardPreview(_selId);
+        if (truncated) { flashTruncated(); } else { flashSaved(); }
+      }
+
+      function flashSaved() {
+        saveStatus.textContent = 'SAVED';
+        saveStatus.classList.add('save-indicator', 'visible');
+        clearTimeout(flashSaved._t);
+        flashSaved._t = setTimeout(function () {
+          saveStatus.classList.remove('visible');
+        }, 1200);
+      }
+
+      function flashTruncated() {
+        saveStatus.textContent = 'NOTE TRUNCATED (2000 char limit)';
+        saveStatus.classList.add('save-indicator', 'visible');
+        clearTimeout(flashTruncated._t);
+        flashTruncated._t = setTimeout(function () {
+          saveStatus.classList.remove('visible');
+        }, 3000);
+      }
+
+      function updateCardPreview(id) {
+        var card = noteListEl.querySelector('[data-id="' + id + '"]');
+        if (!card) return;
+        var note = findNote(id);
+        if (!note) return;
+        var el;
+        el = card.querySelector('.card-title');
+        if (el) el.textContent = note.title || 'Untitled';
+        el = card.querySelector('.card-preview');
+        if (el) el.textContent = getPreview(note);
+      }
+
+      // ── Render: Tag Nav ──────────────────────────────────────────────────
+      function renderTagNav() {
+        var tags = getAllTags();
+        tagNavEl.innerHTML = '';
+
+        var allCnt    = _notes.filter(function (n) { return !n.completedAt; }).length;
+        var pinnedCnt = _notes.filter(function (n) { return n.pinned && !n.completedAt; }).length;
+        var archCnt   = _notes.filter(function (n) { return !!n.completedAt; }).length;
+
+        tagNavEl.appendChild(makeTagBtn('ALL NOTES', 'ALL', allCnt));
+        if (pinnedCnt > 0) tagNavEl.appendChild(makeTagBtn('PINNED', 'PINNED', pinnedCnt));
+
+        if (tags.length > 0) {
+          tagNavEl.appendChild(makeNavSep('TAGS'));
+          tags.forEach(function (t) {
+            var cnt = _notes.filter(function (n) {
+              return !n.completedAt && Array.isArray(n.tags) && n.tags.indexOf(t) !== -1;
+            }).length;
+            tagNavEl.appendChild(makeTagBtn(t, t, cnt));
+          });
+        }
+
+        if (archCnt > 0) {
+          tagNavEl.appendChild(makeNavSep(''));
+          tagNavEl.appendChild(makeTagBtn('ARCHIVED', 'ARCHIVED', archCnt));
+        }
+      }
+
+      function makeTagBtn(label, value, count) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tag-nav-item' + (_selTag === value ? ' active' : '');
+        btn.dataset.tag = value;
+
+        var lbl = document.createElement('span');
+        lbl.textContent = label;
+        btn.appendChild(lbl);
+
+        if (count !== undefined && count !== null) {
+          var cnt = document.createElement('span');
+          cnt.className = 'tag-count';
+          cnt.textContent = String(count);
+          btn.appendChild(cnt);
+        }
+
+        btn.addEventListener('click', function () {
+          _selTag = value;
+          renderTagNav();
+          renderNoteList();
+        });
+        return btn;
+      }
+
+      function makeNavSep(text) {
+        var el = document.createElement('div');
+        el.className = 'tag-nav-sep';
+        el.textContent = text;
+        return el;
+      }
+
+      // ── Render: Note Card ────────────────────────────────────────────────
+      function renderNoteCard(note) {
+        var card = document.createElement('div');
+        card.className = 'note-card';
+        if (_viewMode === 'grid') card.classList.add('grid-card');
+        if (note.completedAt)    card.classList.add('archived');
+        if (note.id === _selId)  card.classList.add('active');
+        card.dataset.id = note.id;
+        card.setAttribute('draggable', _query ? 'false' : 'true');
+
+        if (note.color) {
+          card.style.background = note.color;
+          card.style.borderColor = 'rgba(180,210,255,0.18)';
+        }
+
+        var inner = document.createElement('div');
+        inner.className = 'card-inner';
+
+        // Header
+        var header = document.createElement('div');
+        header.className = 'card-header';
+
+        var titleEl = document.createElement('div');
+        titleEl.className = 'card-title';
+        titleEl.textContent = note.title || 'Untitled';
+        header.appendChild(titleEl);
+
+        var acts = document.createElement('div');
+        acts.className = 'card-actions';
+
+        if (note.pinned && !note.completedAt) {
+          var pinMark = document.createElement('span');
+          pinMark.className = 'card-pin-ind';
+          pinMark.textContent = '\uD83D\uDCCC';
+          acts.appendChild(pinMark);
+        }
+
+        var dh = document.createElement('span');
+        dh.className = 'drag-handle';
+        dh.innerHTML = '&#8942;';
+        dh.setAttribute('aria-hidden', 'true');
+        acts.appendChild(dh);
+
+        header.appendChild(acts);
+        inner.appendChild(header);
+
+        // Preview
+        var prev = document.createElement('div');
+        prev.className = 'card-preview';
+        prev.textContent = getPreview(note);
+        inner.appendChild(prev);
+
+        // Footer
+        var footer = document.createElement('div');
+        footer.className = 'card-footer';
+
+        var dateEl = document.createElement('span');
+        dateEl.className = 'card-date';
+        dateEl.textContent = formatDate(note.created);
+        footer.appendChild(dateEl);
+
+        if (note.tags && note.tags.length > 0) {
+          var tagsWrap = document.createElement('div');
+          tagsWrap.className = 'card-tags';
+          note.tags.slice(0, 3).forEach(function (t) {
+            var chip = document.createElement('span');
+            chip.className = 'card-tag-chip';
+            chip.textContent = t;
+            tagsWrap.appendChild(chip);
+          });
+          footer.appendChild(tagsWrap);
+        }
+
+        inner.appendChild(footer);
+        card.appendChild(inner);
+
+        // Click
+        card.addEventListener('click', function (e) {
+          if (e.target.closest('.drag-handle')) return;
+          selectNote(note.id);
+          if (window.innerWidth < 700) appEl.classList.add('editor-open');
+        });
+
+        // Drag & drop
+        attachDragHandlers(card, note);
+
+        // Swipe (mobile)
+        attachSwipeHandlers(card, note);
+
+        return card;
+      }
+
+      function attachDragHandlers(card, note) {
+        card.addEventListener('dragstart', function (e) {
+          _dragId = note.id;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', note.id);
+        });
+
+        card.addEventListener('dragend', function () {
+          card.classList.remove('dragging');
+          _dragId = null;
+          noteListEl.querySelectorAll('.note-card').forEach(function (c) {
+            c.classList.remove('drag-over');
+          });
+        });
+
+        card.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          if (!_dragId || _dragId === note.id) return;
+          noteListEl.querySelectorAll('.note-card').forEach(function (c) {
+            c.classList.remove('drag-over');
+          });
+          card.classList.add('drag-over');
+        });
+
+        card.addEventListener('drop', function (e) {
+          e.preventDefault();
+          if (!_dragId || _dragId === note.id) return;
+          var fromIdx = _notes.findIndex(function (n) { return n.id === _dragId; });
+          var toIdx   = _notes.findIndex(function (n) { return n.id === note.id; });
+          if (fromIdx === -1 || toIdx === -1) return;
+          var moved = _notes.splice(fromIdx, 1)[0];
+          var insertAt = _notes.findIndex(function (n) { return n.id === note.id; });
+          _notes.splice(insertAt, 0, moved);
+          persist();
+          renderNoteList();
+        });
+      }
+
+      function attachSwipeHandlers(card, note) {
+        var sx = 0, sy = 0, swiping = false;
+
+        card.addEventListener('touchstart', function (e) {
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+          swiping = false;
+        }, { passive: true });
+
+        card.addEventListener('touchmove', function (e) {
+          var dx = e.touches[0].clientX - sx;
+          var dy = e.touches[0].clientY - sy;
+          if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) swiping = true;
+        }, { passive: true });
+
+        card.addEventListener('touchend', function (e) {
+          if (!swiping) return;
+          var dx = e.changedTouches[0].clientX - sx;
+          if (dx < -SWIPE_THRESHOLD) {
+            if (confirm('Delete this note?')) deleteNote(note.id);
+          } else if (dx > SWIPE_THRESHOLD) {
+            archiveNote(note.id);
+          }
+        });
+      }
+
+      // ── Render: Note List ────────────────────────────────────────────────
+      function renderNoteList() {
+        noteListEl.innerHTML = '';
+        noteListEl.className = 'note-list' + (_viewMode === 'grid' ? ' grid-view' : '');
+
+        btnViewGrid.classList.toggle('active', _viewMode === 'grid');
+        btnViewList.classList.toggle('active', _viewMode === 'list');
+
+        var vis = visibleNotes();
+
+        // Archived-only view
+        if (_selTag === 'ARCHIVED') {
+          if (vis.length === 0) {
+            noteListEl.appendChild(emptyMsg('No archived notes'));
+            return;
+          }
+          vis.sort(function (a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+          vis.forEach(function (n) { noteListEl.appendChild(renderNoteCard(n)); });
+          return;
+        }
+
+        var parts = partitionNotes(vis);
+
+        if (parts.pinned.length > 0) {
+          noteListEl.appendChild(sectionLabel('PINNED'));
+          parts.pinned.forEach(function (n) { noteListEl.appendChild(renderNoteCard(n)); });
+        }
+
+        if (parts.active.length > 0) {
+          if (parts.pinned.length > 0) noteListEl.appendChild(sectionLabel('NOTES'));
+          parts.active.forEach(function (n) { noteListEl.appendChild(renderNoteCard(n)); });
+        }
+
+        if (parts.pinned.length === 0 && parts.active.length === 0) {
+          noteListEl.appendChild(emptyMsg(_query ? 'No results' : 'No notes \u2014 create one!'));
+        }
+      }
+
+      function sectionLabel(text) {
+        var el = document.createElement('div');
+        el.className = 'list-section-label';
+        el.textContent = text;
+        return el;
+      }
+
+      function emptyMsg(text) {
+        var el = document.createElement('div');
+        el.className = 'list-empty';
+        el.textContent = text;
+        return el;
+      }
+
+      // ── Render: Editor ───────────────────────────────────────────────────
+      function renderEditor() {
+        if (!_selId) {
+          showEditorEmpty();
+          return;
+        }
+        var note = findNote(_selId);
+        if (!note) { _selId = null; showEditorEmpty(); return; }
+
+        editorEmpty.hidden   = true;
+        editorContent.hidden = false;
+        editorToolbar.hidden = false;
+        btnPin.hidden        = false;
+        btnArchive.hidden    = false;
+        btnDelete.hidden     = false;
+
+        // Populate fields only if different to avoid caret jumps
+        if (titleInput.value !== note.title) titleInput.value = note.title || '';
+        if (bodyEl.innerHTML !== note.body)  bodyEl.innerHTML  = note.body  || '';
+
+        renderTagChips(note);
+        updateTopbarButtons();
+        updateEditorBg(note);
+        buildColorPickerSwatches();
+      }
+
+      function showEditorEmpty() {
+        editorEmpty.hidden   = false;
+        editorContent.hidden = true;
+        editorToolbar.hidden = true;
+        btnPin.hidden        = true;
+        btnArchive.hidden    = true;
+        btnDelete.hidden     = true;
+      }
+
+      function updateTopbarButtons() {
+        if (!_selId) return;
+        var note = findNote(_selId);
+        if (!note) return;
+        btnPin.textContent     = note.pinned      ? '\uD83D\uDCCC' : '\uD83D\uDCCD';
+        btnPin.title           = note.pinned      ? 'Unpin note'   : 'Pin note';
+        btnArchive.textContent = note.completedAt ? '\u21A9'       : '\u2861';
+        btnArchive.title       = note.completedAt ? 'Restore note' : 'Archive note';
+      }
+
+      function updateEditorBg(note) {
+        editorContent.style.background = (note && note.color) ? note.color : '';
+      }
+
+      function renderTagChips(note) {
+        tagChipsEl.innerHTML = '';
+        if (!note || !Array.isArray(note.tags)) return;
+        note.tags.forEach(function (t) {
+          var chip = document.createElement('span');
+          chip.className = 'tag-chip';
+
+          var lbl = document.createElement('span');
+          lbl.textContent = t;
+          chip.appendChild(lbl);
+
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'tag-chip-remove';
+          rm.innerHTML = '&#215;';
+          rm.setAttribute('aria-label', 'Remove tag ' + t);
+          (function (tag) {
+            rm.addEventListener('click', function () { removeTag(note.id, tag); });
+          }(t));
+          chip.appendChild(rm);
+
+          tagChipsEl.appendChild(chip);
+        });
+      }
+
+      // ── Color Picker ─────────────────────────────────────────────────────
+      function buildColorPickerSwatches() {
+        colorPickerEl.innerHTML = '';
+        var selNote = _selId ? findNote(_selId) : null;
+        NOTE_COLORS.forEach(function (c) {
+          var sw = document.createElement('button');
+          sw.type = 'button';
+          sw.className = 'color-swatch';
+          sw.title = c.label;
+          sw.dataset.colorId = c.id;
+          sw.style.background   = c.bg || 'var(--panel)';
+          sw.style.borderColor  = c.swatch;
+          if (selNote && selNote.color === c.bg) sw.classList.add('selected');
+          (function (bg) {
+            sw.addEventListener('click', function () {
+              if (_selId) setNoteColor(_selId, bg);
+              closeColorPicker();
+            });
+          }(c.bg));
+          colorPickerEl.appendChild(sw);
+        });
+      }
+
+      function openColorPicker(e) {
+        e.stopPropagation();
+        buildColorPickerSwatches();
+        _colorOpen = true;
+        colorPickerEl.hidden = false;
+      }
+
+      function closeColorPicker() {
+        _colorOpen = false;
+        colorPickerEl.hidden = true;
+      }
+
+      // ── execCommand wrappers ─────────────────────────────────────────────
+      // Note: execCommand is deprecated per the HTML spec but remains the most
+      // practical approach for contenteditable rich text without a library.
+      // Future migration path: Selection/Range API + custom formatting state.
+      function execCmd(cmd, val) {
+        bodyEl.focus();
+        document.execCommand(cmd, false, val !== undefined ? val : null);
+      }
+
+      function insertChecklist() {
+        bodyEl.focus();
+        var html = '<ul class="check-list"><li><input type="checkbox">&nbsp;</li></ul>';
+        document.execCommand('insertHTML', false, html);
+      }
+
+      // ── Toolbar state ────────────────────────────────────────────────────
+      function updateToolbarState() {
+        if (!_selId) return;
+        ['bold', 'italic', 'underline'].forEach(function (cmd) {
+          var btn = document.querySelector('[data-cmd="' + cmd + '"]');
+          if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+        });
+      }
+
+      // ── Events: search ───────────────────────────────────────────────────
+      searchInput.addEventListener('input', function () {
+        _query = searchInput.value;
+        searchClear.hidden = _query.length === 0;
+        renderNoteList();
+      });
+
+      searchClear.addEventListener('click', function () {
+        searchInput.value = '';
+        _query = '';
+        searchClear.hidden = true;
+        renderNoteList();
+        searchInput.focus();
+      });
+
+      // ── Events: editor ───────────────────────────────────────────────────
+      titleInput.addEventListener('input', scheduleAutoSave);
+      bodyEl.addEventListener('input', scheduleAutoSave);
+
+      titleInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault();
+          bodyEl.focus();
+          // Use textContent check to avoid false-positive on whitespace-only nodes
+          if (bodyEl.textContent.trim().length === 0) {
+            document.execCommand('insertParagraph', false, null);
+          }
+        }
+      });
+
+      bodyEl.addEventListener('keydown', function (e) {
+        var mod = e.ctrlKey || e.metaKey;
+        if (!mod) return;
+        if (e.key === 'b' || e.key === 'B') { e.preventDefault(); execCmd('bold'); }
+        if (e.key === 'i' || e.key === 'I') { e.preventDefault(); execCmd('italic'); }
+        if (e.key === 'u' || e.key === 'U') { e.preventDefault(); execCmd('underline'); }
+      });
+
+      bodyEl.addEventListener('click', function (e) {
+        if (e.target.type === 'checkbox') scheduleAutoSave();
+      });
+
+      document.addEventListener('selectionchange', updateToolbarState);
+
+      // ── Events: toolbar buttons ──────────────────────────────────────────
+      document.getElementById('tb-bold').addEventListener('click',      function () { execCmd('bold'); });
+      document.getElementById('tb-italic').addEventListener('click',    function () { execCmd('italic'); });
+      document.getElementById('tb-underline').addEventListener('click', function () { execCmd('underline'); });
+      document.getElementById('tb-h1').addEventListener('click',        function () { execCmd('formatBlock', 'h1'); });
+      document.getElementById('tb-h2').addEventListener('click',        function () { execCmd('formatBlock', 'h2'); });
+      document.getElementById('tb-p').addEventListener('click',         function () { execCmd('formatBlock', 'p'); });
+      document.getElementById('tb-ul').addEventListener('click',        function () { execCmd('insertUnorderedList'); });
+      document.getElementById('tb-ol').addEventListener('click',        function () { execCmd('insertOrderedList'); });
+      document.getElementById('tb-check').addEventListener('click',     insertChecklist);
+      document.getElementById('tb-clear').addEventListener('click',     function () { execCmd('removeFormat'); });
+      document.getElementById('tb-color').addEventListener('click',     openColorPicker);
+
+      document.addEventListener('click', function (e) {
+        if (_colorOpen && !e.target.closest('#color-picker') && !e.target.closest('#tb-color')) {
+          closeColorPicker();
+        }
+      });
+
+      // ── Events: topbar actions ───────────────────────────────────────────
+      backBtn.addEventListener('click', function () {
+        flushCurrentNote();
+        appEl.classList.remove('editor-open');
+        _selId = null;
+        renderEditor();
+        renderNoteList();
+      });
+
+      btnPin.addEventListener('click', function () {
+        if (_selId) togglePin(_selId);
+      });
+
+      btnArchive.addEventListener('click', function () {
+        if (_selId) archiveNote(_selId);
+      });
+
+      btnDelete.addEventListener('click', function () {
+        if (_selId && confirm('Delete this note?')) deleteNote(_selId);
+      });
+
+      // ── Events: view toggle ──────────────────────────────────────────────
+      btnViewGrid.addEventListener('click', function () {
+        _viewMode = 'grid';
+        try { localStorage.setItem(VIEW_KEY, 'grid'); } catch (_) {}
+        renderNoteList();
+      });
+
+      btnViewList.addEventListener('click', function () {
+        _viewMode = 'list';
+        try { localStorage.setItem(VIEW_KEY, 'list'); } catch (_) {}
+        renderNoteList();
+      });
+
+      // ── Events: new note ─────────────────────────────────────────────────
+      btnNewNote.addEventListener('click', createNote);
+      fabEl.addEventListener('click', createNote);
+      document.getElementById('editor-empty-btn').addEventListener('click', createNote);
+
+      // Ctrl/Cmd+N global shortcut
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+          var tag = document.activeElement;
+          if (tag && (tag.tagName === 'INPUT' || tag.tagName === 'TEXTAREA' || tag.isContentEditable)) return;
+          e.preventDefault();
+          createNote();
+        }
+      });
+
+      // ── Events: tag input ────────────────────────────────────────────────
+      tagInputEl.addEventListener('keydown', function (e) {
+        if ((e.key === 'Enter' || e.key === ',') && tagInputEl.value.trim()) {
+          e.preventDefault();
+          var tag = tagInputEl.value.trim().replace(/,/g, '').toLowerCase().slice(0, MAX_TAG_LENGTH);
+          if (tag && _selId) {
+            addTag(_selId, tag);
+            tagInputEl.value = '';
+          }
+        }
+      });
+
+      // ── Init ─────────────────────────────────────────────────────────────
+      (function init() {
+        tagInputEl.maxLength = MAX_TAG_LENGTH;
+        loadLocalState();
+        buildColorPickerSwatches();
+        renderTagNav();
+        renderNoteList();
+        renderEditor();
+
+        if (typeof NaimeanAPI !== 'undefined') {
+          NaimeanAPI.getAuthSession()
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (!data || !data.authenticated) return;
+              _isAuth = true;
+              return NaimeanAPI.getNotes()
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (serverState) {
+                  if (!serverState) return;
+                  mergeServerState(serverState);
+                  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState())); } catch (_) {}
+                  renderTagNav();
+                  renderNoteList();
+                });
+            })
+            .catch(function () {});
+        }
+      }());
+
+    }());
+  </script>
+</body>
+</html>
+
+
