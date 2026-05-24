@@ -749,16 +749,24 @@
       ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const DISCORD_OVERLAY_ID = 'overlay-big-tv';
+      const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
       const CLOCK_URL_IOS = 'clock://';
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
-      const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map([
-        [DISCORD_OVERLAY_CONTROL_ID, 'overlay-big-tv'],
-        [FLIP_CLOCK_OVERLAY_CONTROL_ID, 'overlay-flip-clock']
-      ]);
+      const OVERLAY_CONTROL_BINDINGS = [
+        { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
+      ];
+      const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
+        OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [controlId, overlayId])
+      );
+      const OVERLAY_ID_TO_CONTROL_ID = new Map(
+        OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [overlayId, controlId])
+      );
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -790,14 +798,14 @@
 
       // Overlay placeholders over transparent screen cutouts.
       const overlayDefaults = [
-        { id: 'overlay-big-tv', x: 1468, y: 329, w: 1002, h: 574 },
+        { id: DISCORD_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
-        { id: 'overlay-flip-clock', x: 945, y: 1720, w: 450, h: 195 }
+        { id: FLIP_CLOCK_OVERLAY_ID, x: 945, y: 1720, w: 450, h: 195 }
       ].map((overlay) => {
         const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
-        if (overlay.id === 'overlay-big-tv') {
+        if (overlay.id === DISCORD_OVERLAY_ID) {
           adjustedOverlay.x += 1;
           adjustedOverlay.y += 1;
           adjustedOverlay.w = Math.max(0, adjustedOverlay.w - 2);
@@ -934,29 +942,27 @@
         return hotspots.find((spot) => spot.id === id) || null;
       }
 
+      function rectFromBounds(bounds) {
+        return {
+          x: bounds.x,
+          y: bounds.y,
+          w: bounds.w,
+          h: bounds.h
+        };
+      }
+
       function getOverlayRect(overlayId) {
-        const controlEntry = Array.from(OVERLAY_CONTROL_TO_OVERLAY_ID.entries())
-          .find(([, targetOverlayId]) => targetOverlayId === overlayId);
-        if (controlEntry) {
-          const controlledSpot = getRuntimeHotspotById(controlEntry[0]);
+        const controlHotspotId = OVERLAY_ID_TO_CONTROL_ID.get(overlayId);
+        if (controlHotspotId) {
+          const controlledSpot = getRuntimeHotspotById(controlHotspotId);
           if (controlledSpot) {
-            return {
-              x: controlledSpot.x,
-              y: controlledSpot.y,
-              w: controlledSpot.w,
-              h: controlledSpot.h
-            };
+            return rectFromBounds(controlledSpot);
           }
         }
 
         const fallback = overlayDefaults.find((overlay) => overlay.id === overlayId);
         if (!fallback) return null;
-        return {
-          x: fallback.x,
-          y: fallback.y,
-          w: fallback.w,
-          h: fallback.h
-        };
+        return rectFromBounds(fallback);
       }
 
       function syncControlledOverlaysFromHotspots() {
@@ -964,7 +970,6 @@
           const hotspotEl = document.getElementById(controlHotspotId);
           const overlayEl = overlayElementsById.get(overlayId);
           if (!hotspotEl || !overlayEl) return;
-
           overlayEl.style.left = hotspotEl.style.left;
           overlayEl.style.top = hotspotEl.style.top;
           overlayEl.style.width = hotspotEl.style.width;
@@ -1431,7 +1436,7 @@
           el.style.width = `${rect.w}px`;
           el.style.height = `${rect.h}px`;
 
-          if (overlay.id === 'overlay-big-tv') {
+          if (overlay.id === DISCORD_OVERLAY_ID) {
             el.classList.add('discord-widget-overlay');
             const iframe = document.createElement('iframe');
             iframe.className = 'discord-widget-frame';
@@ -1443,7 +1448,7 @@
             el.appendChild(iframe);
           }
 
-          if (overlay.id === 'overlay-flip-clock') {
+          if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
             el.classList.add('flip-clock-overlay');
 
             // Helper to build a clickable half
