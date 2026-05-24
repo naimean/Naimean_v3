@@ -1269,7 +1269,8 @@
 
       async function initializeScene() {
         const serverHotspots = await loadHotspotsFromServer();
-        hotspots = serverHotspots || sourceHotspotsToRuntime(defaultHotspots);
+        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
+        hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
 
         createTiles();
         createHotspots(hotspots);
@@ -1284,7 +1285,7 @@
         if (saveResultFlash) {
           debugStatus.textContent = saveResultFlash;
         } else {
-          debugStatus.textContent = serverHotspots
+          debugStatus.textContent = hasServerHotspots
             ? 'Hotspots loaded from the server.'
             : 'Server hotspots unavailable; loaded bundled default hotspots.';
         }
