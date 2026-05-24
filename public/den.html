@@ -2288,9 +2288,11 @@
               activeTunePointerId = event.pointerId;
               lastPointerClientX = event.clientX;
               selectorDot.setPointerCapture(event.pointerId);
-              updateTuningFromClientX(event.clientX, { playAudio: false, timestampMs: event.timeStamp });
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
-              ensureRadioTuningLoopPlayback(tuningAudio);
+              const didUpdateTuning = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
+              if (!didUpdateTuning) {
+                applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
             });
 
             selectorDot.addEventListener('pointermove', (event) => {
