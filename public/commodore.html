@@ -155,7 +155,7 @@
       const DESIGN_WIDTH = 444;
       const DESIGN_HEIGHT = 557;
       const MIN_SIZE = 12;
-      const STORAGE_KEY = 'naimean.v3.commodore.layout';
+      const STORAGE_KEY = 'commodore.editor.layout.v1';
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -250,7 +250,7 @@
         const id = editableEl.dataset.id;
         const rect = layout[id];
         const scale = overlayLayer.clientWidth / DESIGN_WIDTH;
-        if (!rect || !scale) return;
+        if (!rect || scale <= 0) return;
         editState = {
           id,
           type,
