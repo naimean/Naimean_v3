@@ -209,7 +209,8 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: fill;
+      object-fit: contain;
+      object-position: center;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -1231,7 +1232,7 @@
       const TOUCH_MOMENTUM_DECAY = 0.004;
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const NOAHS_ARCADE_URL = '/noahs-arcade.html';
-      const COMMODORE_URL = '/commodore.html';
+      const COMMODORE_URL = '/commodore';
       const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
       const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
