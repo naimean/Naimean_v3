@@ -145,7 +145,7 @@
     }
 
     .screen-overlay.commodore-desk-overlay {
-      overflow: visible;
+      overflow: hidden;
       pointer-events: none;
       z-index: 1;
     }
@@ -157,12 +157,11 @@
     }
 
     .commodore-desk-image {
-      --commodore-scale: 0.58;
       position: absolute;
-      width: calc(1536px * var(--commodore-scale));
-      height: auto;
-      left: calc(-448px * var(--commodore-scale));
-      top: calc(-131px * var(--commodore-scale));
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -936,7 +935,7 @@
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
-      const COMMODORE_DESK_IMAGE_URL = 'https://github.com/user-attachments/assets/eaa20b05-012a-477e-81c7-1681cccbc10a';
+      const COMMODORE_DESK_IMAGE_URL = 'https://github.com/user-attachments/assets/75a5d6c0-7f26-45c9-adb2-5b1dc185515e';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -946,9 +945,11 @@
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
       const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
@@ -981,6 +982,7 @@
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
+        { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 }
       ];
 
