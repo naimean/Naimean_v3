@@ -498,6 +498,8 @@
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
+      const STOPWATCH_URL = 'https://www.google.com/search?q=stopwatch';
+      const STOPWATCH_HOTSPOT_ID = 'stopwatch';
       const STARSHRIMP_YOUTUBE_URL = 'https://www.youtube.com/@starshrimp';
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
@@ -523,6 +525,7 @@
         { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+        { id: 'stopwatch', x: 656, y: 1741, w: 317, h: 112 },
         { id: 'date-tracker', x: 983, y: 1741, w: 317, h: 112 },
         { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
       ];
@@ -951,6 +954,10 @@
             console.log(`[hotspot] ${spot.id}`);
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
               window.location.assign(MICROSOFT_WHITEBOARD_URL);
+              return;
+            }
+            if (spot.id === STOPWATCH_HOTSPOT_ID) {
+              window.open(STOPWATCH_URL, '_blank', 'noopener');
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
