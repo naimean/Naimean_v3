@@ -782,6 +782,7 @@
       let saveButtonResetTimeoutId = null;
       let hotspotApiMode = 'primary';
       let flipClockIntervalId = null;
+      let flipClockAlignTimeoutId = null;
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -1199,6 +1200,17 @@
         const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
                              'Jul','Aug','Sep','Oct','Nov','Dec'];
 
+        // Cache card references once to avoid repeated DOM queries
+        const cards = {
+          h1: container.querySelector('[data-key="h1"]'),
+          h2: container.querySelector('[data-key="h2"]'),
+          m1: container.querySelector('[data-key="m1"]'),
+          m2: container.querySelector('[data-key="m2"]'),
+          d1: container.querySelector('[data-key="d1"]'),
+          d2: container.querySelector('[data-key="d2"]'),
+          mon: container.querySelector('[data-key="mon"]')
+        };
+
         function tick(animate) {
           const now = new Date();
           const hh = String(now.getHours()).padStart(2, '0');
@@ -1206,17 +1218,25 @@
           const dd = String(now.getDate()).padStart(2, '0');
           const mon = MONTH_NAMES[now.getMonth()];
 
-          setFlipCard(container.querySelector('[data-key="h1"]'), hh[0], animate);
-          setFlipCard(container.querySelector('[data-key="h2"]'), hh[1], animate);
-          setFlipCard(container.querySelector('[data-key="m1"]'), mm[0], animate);
-          setFlipCard(container.querySelector('[data-key="m2"]'), mm[1], animate);
-          setFlipCard(container.querySelector('[data-key="d1"]'), dd[0], animate);
-          setFlipCard(container.querySelector('[data-key="d2"]'), dd[1], animate);
-          setFlipCard(container.querySelector('[data-key="mon"]'), mon, animate);
+          setFlipCard(cards.h1, hh[0], animate);
+          setFlipCard(cards.h2, hh[1], animate);
+          setFlipCard(cards.m1, mm[0], animate);
+          setFlipCard(cards.m2, mm[1], animate);
+          setFlipCard(cards.d1, dd[0], animate);
+          setFlipCard(cards.d2, dd[1], animate);
+          setFlipCard(cards.mon, mon, animate);
         }
 
         tick(false); // Initial render without animation
-        flipClockIntervalId = setInterval(() => tick(true), 1000);
+
+        // Align the first animated tick to the next full second boundary,
+        // then switch to a regular 1 s interval for subsequent ticks.
+        const msUntilNextSecond = 1000 - new Date().getMilliseconds();
+        flipClockAlignTimeoutId = setTimeout(() => {
+          flipClockAlignTimeoutId = null;
+          tick(true);
+          flipClockIntervalId = setInterval(() => tick(true), 1000);
+        }, msUntilNextSecond);
       }
 
       // ─────────────────────────────────────────────────────
@@ -1684,6 +1704,10 @@
         if (cameraAnimationFrameId !== null) {
           window.cancelAnimationFrame(cameraAnimationFrameId);
           cameraAnimationFrameId = null;
+        }
+        if (flipClockAlignTimeoutId !== null) {
+          clearTimeout(flipClockAlignTimeoutId);
+          flipClockAlignTimeoutId = null;
         }
         if (flipClockIntervalId !== null) {
           clearInterval(flipClockIntervalId);
