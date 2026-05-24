@@ -177,6 +177,24 @@
       opacity: 0.86;
     }
 
+    .screen-overlay.aquarium-video-overlay {
+      overflow: hidden;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      visibility: hidden;
+      background: #040506;
+      transition: opacity 120ms ease, visibility 0s linear 120ms;
+    }
+
+    .screen-overlay.aquarium-video-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition-delay: 0s;
+    }
+
     .screen-overlay.commodore-desk-overlay {
       overflow: hidden;
       pointer-events: none;
@@ -1281,6 +1299,7 @@
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
+      const AQUARIUM_OVERLAY_ID = 'overlay-aquarium-video';
       const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
       const CLOCK_URL_IOS = 'clock://';
@@ -1329,13 +1348,14 @@
       // Overlay placeholders over transparent screen cutouts.
       const overlayDefaults = [
         { id: DISCORD_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
+        { id: AQUARIUM_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
         { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
       ].map((overlay) => {
         const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
-        if (overlay.id === DISCORD_OVERLAY_ID) {
+        if (overlay.id === DISCORD_OVERLAY_ID || overlay.id === AQUARIUM_OVERLAY_ID) {
           adjustedOverlay.x += 1;
           adjustedOverlay.y += 1;
           adjustedOverlay.w = Math.max(0, adjustedOverlay.w - 2);
@@ -1391,6 +1411,7 @@
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
+      let aquariumOverlayEl = null;
       let aquariumClipIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
@@ -1429,9 +1450,6 @@
       }
 
       function syncBigTvContentVisibility() {
-        if (!discordWidgetIframeEl) {
-          return;
-        }
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
@@ -1439,7 +1457,14 @@
           aquariumClipIframeEl &&
           aquariumClipIframeEl.style.display !== 'none'
         );
-        discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive || promptActive || aquariumEmbedActive ? 'hidden' : 'visible';
+        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive || aquariumEmbedActive;
+        if (discordWidgetIframeEl) {
+          discordWidgetIframeEl.style.visibility =
+            shouldShowBigTvVideoOverlay || promptActive ? 'hidden' : 'visible';
+        }
+        if (aquariumOverlayEl) {
+          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvVideoOverlay);
+        }
       }
 
       function clearAquariumClipPlaybackTimeout() {
@@ -2454,6 +2479,7 @@
       function createOverlays() {
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
+        aquariumOverlayEl = null;
         aquariumClipIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
@@ -2493,6 +2519,11 @@
             iframe.loading = 'lazy';
             discordWidgetIframeEl = iframe;
             el.appendChild(iframe);
+          }
+
+          if (overlay.id === AQUARIUM_OVERLAY_ID) {
+            aquariumOverlayEl = el;
+            el.classList.add('aquarium-video-overlay');
 
             aquariumClipIframeEl = document.createElement('iframe');
             aquariumClipIframeEl.className = 'aquarium-embed-video';
