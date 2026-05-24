@@ -738,6 +738,9 @@
       const SAVE_RETRY_DELAY_MS = 350;
       const TOUCH_MOMENTUM_DECAY = 0.004;
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
+      const NOAHS_ARCADE_URL = '/noahs-arcade.html';
+      const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
+      const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
       const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
@@ -784,6 +787,7 @@
       // Fixed pixel hotspots in design-space coordinates.
       // Edit x/y/w/h values as artwork alignment is refined.
       const defaultHotspots = [
+        { id: NOAHS_ARCADE_HOTSPOT_ID, x: 880, y: 320, w: 2050, h: 1280 },
         { id: 'big-tv', x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
@@ -875,7 +879,15 @@
       let debugEditStartY = 0;
       let debugEditOrigRect = null; // { left, top, w, h } in design-space px
 
-      let hotspots = defaultHotspots.map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));
+      let hotspots = sourceHotspotsToRuntime(defaultHotspots);
+
+      function sourceHotspotXToRuntime(id, x) {
+        return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x + SCENE_OFFSET_X;
+      }
+
+      function runtimeHotspotXToSource(id, x) {
+        return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
+      }
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -888,14 +900,14 @@
       function sourceHotspotsToRuntime(sourceHotspots) {
         return sourceHotspots.map((spot) => ({
           ...spot,
-          x: spot.x + SCENE_OFFSET_X
+          x: sourceHotspotXToRuntime(spot.id, spot.x)
         }));
       }
 
       function runtimeHotspotsToSource(runtimeHotspots) {
         return runtimeHotspots.map((spot) => ({
           id: spot.id,
-          x: spot.x - SCENE_OFFSET_X,
+          x: runtimeHotspotXToSource(spot.id, spot.x),
           y: spot.y,
           w: spot.w,
           h: spot.h
@@ -1395,6 +1407,10 @@
 
           el.addEventListener('click', () => {
             console.log(`[hotspot] ${spot.id}`);
+            if (spot.id === NOAHS_ARCADE_HOTSPOT_ID) {
+              window.location.assign(NOAHS_ARCADE_URL);
+              return;
+            }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
               window.location.assign(MICROSOFT_WHITEBOARD_URL);
               return;
