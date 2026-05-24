@@ -148,6 +148,21 @@
       z-index: 1;
     }
 
+    .screen-overlay.join-discord-overlay,
+    .screen-overlay.calendar-monitor-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      z-index: 1;
+      background:
+        radial-gradient(ellipse at 50% 38%, rgba(246, 251, 255, 0.98) 0%, rgba(194, 224, 255, 0.9) 42%, rgba(80, 129, 198, 0.92) 76%, rgba(18, 41, 90, 0.96) 100%),
+        linear-gradient(180deg, #cae5ff 0%, #4f79c1 65%, #1a3c7b 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(214, 234, 255, 0.42),
+        inset 0 -18px 30px rgba(4, 14, 40, 0.5);
+    }
+
     #overlay-left-monitor,
     #overlay-commodore-screen,
     #overlay-right-monitor {
@@ -163,6 +178,118 @@
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
+    }
+
+    .join-discord-button {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      border-radius: 20px;
+      background: transparent;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .join-discord-button:focus-visible {
+      outline: 4px solid rgba(255, 255, 255, 0.9);
+      outline-offset: 4px;
+    }
+
+    .join-discord-button-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .calendar-app-icon {
+      width: min(72%, calc(100% - 20px));
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 14%;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, #f9fbff 0%, #d9f0ff 100%);
+      box-shadow:
+        0 12px 28px rgba(2, 10, 22, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+      padding: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      cursor: pointer;
+    }
+
+    .calendar-app-icon:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 3px;
+    }
+
+    .calendar-app-icon-face {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 10% 10% 12%;
+      border-radius: inherit;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(226, 244, 255, 0.98));
+      color: #0a1930;
+      text-align: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .calendar-app-icon-top {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16%;
+      align-items: center;
+      padding-bottom: 8%;
+      border-bottom: 0.14em solid rgba(21, 69, 123, 0.12);
+      color: #ffffff;
+      background: linear-gradient(180deg, #ff6b6b 0%, #e54343 100%);
+      border-radius: 18% 18% 12% 12%;
+      margin: -2% -2% 10%;
+      padding-top: 8%;
+    }
+
+    .calendar-app-icon-ring {
+      width: 26%;
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 0.16em rgba(120, 0, 0, 0.18);
+    }
+
+    .calendar-app-icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8%;
+      align-content: center;
+      justify-items: center;
+      padding: 0 8%;
+    }
+
+    .calendar-app-icon-grid span {
+      width: 58%;
+      aspect-ratio: 1;
+      border-radius: 0.32em;
+      background: rgba(36, 108, 192, 0.18);
+    }
+
+    .calendar-app-icon-label {
+      align-self: end;
+      font-weight: 700;
+      font-size: clamp(10px, 13%, 32px);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #133968;
+      padding-top: 10%;
     }
 
     .discord-widget-frame {
@@ -230,6 +357,30 @@
       background: #040506;
     }
 
+    .nedry-gate-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .nedry-gate-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nedry-gate-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
+    }
+
     /* Effects always on top. */
     #effects-layer {
       z-index: 50;
@@ -249,14 +400,14 @@
       gap: calc(6px * var(--fc-scale));
       padding: calc(8px * var(--fc-scale)) calc(9px * var(--fc-scale)) calc(9px * var(--fc-scale));
       background:
-        linear-gradient(180deg, rgba(255, 226, 193, 0.2) 0%, rgba(255, 226, 193, 0) 22%),
-        linear-gradient(180deg, #be9772 0%, #9f7650 42%, #7c573a 100%);
+        linear-gradient(180deg, rgba(222, 171, 124, 0.16) 0%, rgba(222, 171, 124, 0) 22%),
+        linear-gradient(180deg, #8d6542 0%, #6f4b31 42%, #4f3423 100%);
       border-radius: calc(11px * var(--fc-scale));
-      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 229, 197, 0.24);
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(228, 182, 140, 0.24);
       box-shadow:
         0 calc(10px * var(--fc-scale)) calc(18px * var(--fc-scale)) rgba(0, 0, 0, 0.5),
-        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 247, 236, 0.26),
-        inset 0 calc(-3px * var(--fc-scale)) 0 rgba(64, 42, 28, 0.55);
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(240, 216, 191, 0.2),
+        inset 0 calc(-3px * var(--fc-scale)) 0 rgba(47, 28, 17, 0.62);
       pointer-events: auto;
       overflow: hidden;
     }
@@ -722,26 +873,6 @@
       box-shadow: none;
     }
 
-    #debug-hint {
-      position: fixed;
-      right: 16px;
-      bottom: 72px;
-      z-index: 999;
-      padding: 6px 9px;
-      border-radius: 6px;
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      background: rgba(0, 0, 0, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.9);
-      pointer-events: none;
-      transition: opacity 0.35s ease;
-    }
-
-    #debug-hint.hidden {
-      opacity: 0;
-    }
-
     #debug-toggle-btn {
       position: fixed;
       right: 12px;
@@ -968,7 +1099,6 @@
       </div>
     </div>
   </div>
-  <div id="debug-hint" role="status" aria-live="polite">Press ~ (or Ctrl/Cmd+Shift+D) to toggle debug hotspots</div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
   <script>
@@ -1003,11 +1133,32 @@
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
+      const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_EMBED_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
+      const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
+      const RADIO_TUNING_STATION_WIDTH = 0.06;
+      const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
+      const RADIO_TUNING_MOVEMENT_DECAY_IDLE = 0.8;
+      const RADIO_TUNING_MOVEMENT_GAIN = 18;
+      const RADIO_TUNING_MOVEMENT_FLOOR = 0.2;
+      const RADIO_TUNING_WOBBLE_SPEED = 0.015;
+      const RADIO_TUNING_WOBBLE_POSITION_FACTOR = 15;
+      const RADIO_TUNING_WOBBLE_DEPTH = 0.08;
+      const RADIO_TUNING_PLAYBACK_RATE_BASE = 0.84;
+      const RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN = 0.24;
+      const RADIO_TUNING_PLAYBACK_RATE_MIN = 0.72;
+      const RADIO_TUNING_PLAYBACK_RATE_MAX = 1.28;
+      const RADIO_TUNING_VOLUME_BASE = 0.14;
+      const RADIO_TUNING_VOLUME_STATION_GAIN = 0.74;
+      const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
+      const RADIO_TUNING_VOLUME_MIN = 0.08;
+      const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
+      const CALENDAR_PAGE_URL = '/calendar.html';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1019,7 +1170,9 @@
       const WORLD_WIDTH_SEGMENTS = 2;
       const SCENE_TILE_IMAGE_URLS = ['assets/images/den_arcade.PNG', 'assets/images/den_computer.png'];
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
+      const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         COMMODORE_OVERLAY_CONTROL_ID,
@@ -1028,7 +1181,9 @@
       ]);
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
+        { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
       const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
@@ -1050,7 +1205,9 @@
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
-        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 }
+        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, x: 1763, y: 1020, w: 278, h: 216 },
+        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
+        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, x: 1322, y: 1028, w: 298, h: 206 }
       ];
 
       // Overlay placeholders over transparent screen cutouts.
@@ -1122,6 +1279,8 @@
       let aquariumEmbeddedVideoHintEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
+      let nedryGateOverlayEl = null;
+      let nedryGateVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -1139,6 +1298,19 @@
 
       function runtimeHotspotXToSource(id, x) {
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
+      }
+
+      function syncBigTvContentVisibility() {
+        if (!discordWidgetIframeEl) {
+          return;
+        }
+        const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
+        const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
+        const aquariumEmbedActive = Boolean(
+          aquariumEmbeddedVideoEl &&
+          aquariumEmbeddedVideoEl.style.display !== 'none'
+        );
+        discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive || aquariumEmbedActive ? 'hidden' : 'visible';
       }
 
       function setAquariumEmbeddedVideoPlayback(shouldPlay) {
@@ -1171,15 +1343,9 @@
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
         if (showEmbeddedVideoAfter) {
-          if (discordWidgetIframeEl) {
-            discordWidgetIframeEl.style.visibility = 'hidden';
-          }
           setAquariumEmbeddedVideoPlayback(true);
         } else {
           setAquariumEmbeddedVideoPlayback(false);
-          if (discordWidgetIframeEl) {
-            discordWidgetIframeEl.style.visibility = 'visible';
-          }
         }
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
@@ -1187,6 +1353,7 @@
             aquariumStaticVideoEl.currentTime = 0;
           }
         }
+        syncBigTvContentVisibility();
       }
 
       async function playAquariumStaticOverlay() {
@@ -1194,18 +1361,48 @@
           return;
         }
 
+        hideNedryGateOverlay();
         setAquariumEmbeddedVideoPlayback(false);
-        if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility = 'hidden';
-        }
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
 
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
           console.warn('Unable to play aquarium static overlay.', error);
           hideAquariumStaticOverlay();
+        }
+      }
+
+      function hideNedryGateOverlay({ resetPlayback = true } = {}) {
+        if (nedryGateOverlayEl) {
+          nedryGateOverlayEl.classList.remove('is-active');
+        }
+        if (nedryGateVideoEl) {
+          nedryGateVideoEl.pause();
+          if (resetPlayback) {
+            nedryGateVideoEl.currentTime = 0;
+          }
+        }
+        syncBigTvContentVisibility();
+      }
+
+      async function playNedryGateOverlay() {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        nedryGateOverlayEl.classList.add('is-active');
+        nedryGateVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+
+        try {
+          await nedryGateVideoEl.play();
+        } catch (error) {
+          console.warn('Unable to play Nedry gate overlay.', error);
+          hideNedryGateOverlay();
         }
       }
 
@@ -1642,6 +1839,54 @@
         return clamped;
       }
 
+      function getRadioStationStrength(position) {
+        const clampedPosition = clamp(position, 0, 1);
+        const strongestStationDistance = RADIO_TUNING_STATION_POSITIONS.reduce(
+          (closest, stationPosition) => Math.min(closest, Math.abs(clampedPosition - stationPosition)),
+          Number.POSITIVE_INFINITY
+        );
+        const ratio = strongestStationDistance / RADIO_TUNING_STATION_WIDTH;
+        return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
+      }
+
+      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs } = {}) {
+        const position = clamp(tuningPosition, 0, 1);
+        const effectiveTimestampMs = Number.isFinite(timestampMs) ? timestampMs : performance.now();
+        const state = audioEl.__radioTuningState || {
+          lastPosition: position,
+          movementEnergy: 0
+        };
+        const movementDelta = Math.abs(position - state.lastPosition);
+        state.lastPosition = position;
+        state.movementEnergy = isMoving
+          ? clamp(
+            state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_ACTIVE
+              + movementDelta * RADIO_TUNING_MOVEMENT_GAIN
+              + RADIO_TUNING_MOVEMENT_FLOOR,
+            0,
+            1
+          )
+          : state.movementEnergy * RADIO_TUNING_MOVEMENT_DECAY_IDLE;
+        audioEl.__radioTuningState = state;
+
+        const stationStrength = getRadioStationStrength(position);
+        const wobble = Math.sin((effectiveTimestampMs * RADIO_TUNING_WOBBLE_SPEED) + (position * RADIO_TUNING_WOBBLE_POSITION_FACTOR))
+          * state.movementEnergy
+          * RADIO_TUNING_WOBBLE_DEPTH;
+        audioEl.playbackRate = clamp(
+          RADIO_TUNING_PLAYBACK_RATE_BASE + (stationStrength * RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN) + wobble,
+          RADIO_TUNING_PLAYBACK_RATE_MIN,
+          RADIO_TUNING_PLAYBACK_RATE_MAX
+        );
+        audioEl.volume = clamp(
+          RADIO_TUNING_VOLUME_BASE
+            + (stationStrength * RADIO_TUNING_VOLUME_STATION_GAIN)
+            + (state.movementEnergy * RADIO_TUNING_VOLUME_MOVEMENT_GAIN),
+          RADIO_TUNING_VOLUME_MIN,
+          1
+        );
+      }
+
       function ensureRadioTuningLoopPlayback(audioEl) {
         if (!audioEl.paused) return;
         const playPromise = audioEl.play();
@@ -1652,6 +1897,11 @@
 
       function stopRadioTuningLoopPlayback(audioEl) {
         audioEl.pause();
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
+        if (audioEl.__radioTuningState) {
+          audioEl.__radioTuningState.movementEnergy = 0;
+        }
       }
 
       function startFlipClock(container) {
@@ -1725,7 +1975,9 @@
             .join(' ');
 
         hotspotList.forEach((spot) => {
-          const readableLabel = toTitleCase(spot.id);
+          const readableLabel = NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
+            ? 'Join our Discord'
+            : toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
@@ -1755,6 +2007,10 @@
               window.location.assign(NOAHS_ARCADE_URL);
               return;
             }
+            if (spot.id === 'left-monitor') {
+              window.location.assign(CALENDAR_PAGE_URL);
+              return;
+            }
             if (spot.id === 'commodore-screen' || spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
               window.location.assign(COMMODORE_URL);
               return;
@@ -1765,6 +2021,10 @@
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
               playAquariumStaticOverlay();
+              return;
+            }
+            if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
+              playNedryGateOverlay();
               return;
             }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
@@ -1791,6 +2051,8 @@
         aquariumEmbeddedVideoHintEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        nedryGateOverlayEl = null;
+        nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
           stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
         }
@@ -1855,6 +2117,56 @@
             aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
+
+            nedryGateOverlayEl = document.createElement('div');
+            nedryGateOverlayEl.className = 'nedry-gate-overlay';
+            nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
+
+            nedryGateVideoEl = document.createElement('video');
+            nedryGateVideoEl.className = 'nedry-gate-video';
+            nedryGateVideoEl.src = NEDRY_GATE_VIDEO_URL;
+            nedryGateVideoEl.preload = 'metadata';
+            nedryGateVideoEl.playsInline = true;
+            nedryGateVideoEl.setAttribute('playsinline', '');
+            nedryGateVideoEl.setAttribute('webkit-playsinline', '');
+            nedryGateVideoEl.addEventListener('ended', () => hideNedryGateOverlay());
+            nedryGateVideoEl.addEventListener('error', () => hideNedryGateOverlay());
+            nedryGateOverlayEl.appendChild(nedryGateVideoEl);
+            el.appendChild(nedryGateOverlayEl);
+          }
+
+          if (overlay.id === 'overlay-left-monitor') {
+            el.classList.add('calendar-monitor-overlay');
+            const icon = document.createElement('button');
+            icon.type = 'button';
+            icon.className = 'calendar-app-icon';
+            icon.setAttribute('aria-label', 'Open Calendar');
+            icon.addEventListener('pointerdown', (event) => event.stopPropagation());
+            icon.addEventListener('click', (event) => {
+              event.stopPropagation();
+              window.location.assign(CALENDAR_PAGE_URL);
+            });
+
+            const face = document.createElement('span');
+            face.className = 'calendar-app-icon-face';
+
+            const top = document.createElement('span');
+            top.className = 'calendar-app-icon-top';
+            top.innerHTML = '<span class=\"calendar-app-icon-ring\"></span><span class=\"calendar-app-icon-ring\"></span>';
+
+            const grid = document.createElement('span');
+            grid.className = 'calendar-app-icon-grid';
+            for (let i = 0; i < 9; i += 1) {
+              grid.appendChild(document.createElement('span'));
+            }
+
+            const label = document.createElement('span');
+            label.className = 'calendar-app-icon-label';
+            label.textContent = 'CAL';
+
+            face.append(top, grid, label);
+            icon.appendChild(face);
+            el.appendChild(icon);
           }
 
           if (overlay.id === 'overlay-commodore-screen') {
@@ -1866,6 +2178,29 @@
             img.loading = 'lazy';
             img.decoding = 'async';
             el.appendChild(img);
+          }
+
+          if (overlay.id === 'overlay-right-monitor') {
+            el.classList.add('join-discord-overlay');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'join-discord-button';
+            button.setAttribute('aria-label', 'Join our Discord');
+            button.title = 'Join our Discord';
+            button.addEventListener('pointerdown', (event) => event.stopPropagation());
+            button.addEventListener('click', (event) => {
+              event.stopPropagation();
+              playNedryGateOverlay();
+            });
+
+            const img = document.createElement('img');
+            img.className = 'join-discord-button-image';
+            img.src = DISCORD_BUTTON_IMAGE_URL;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            button.appendChild(img);
+            el.appendChild(button);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
@@ -1944,6 +2279,7 @@
             tuningAudio.preload = 'auto';
             tuningAudio.loop = true;
             flipClockRadioTuningAudioEl = tuningAudio;
+            applyRadioTuningWarp(tuningAudio, tuningPosition);
             const TUNING_DRAG_THRESHOLD_PX = 1;
             const KEYBOARD_TUNING_STEP = 0.02;
             const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
@@ -1960,13 +2296,14 @@
             selectorDot.setAttribute('aria-valuemax', '100');
             selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
 
-            function updateTuningFromClientX(clientX, { playAudio } = { playAudio: true }) {
+            function updateTuningFromClientX(clientX, { playAudio = true, timestampMs } = {}) {
               const rect = scaleBlock.getBoundingClientRect();
               if (!rect.width) return false;
               const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs });
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -1994,7 +2331,7 @@
               if (event.pointerId !== activeTunePointerId) return;
               event.preventDefault();
               event.stopPropagation();
-              const didMove = updateTuningFromClientX(event.clientX);
+              const didMove = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didMove && Math.abs(event.clientX - lastPointerClientX) > TUNING_DRAG_THRESHOLD_PX) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2026,6 +2363,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
@@ -2481,8 +2819,6 @@
           hideSaveModal();
         }
       });
-
-      setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
       initializeScene();
     })();
