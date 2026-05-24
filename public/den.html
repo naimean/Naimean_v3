@@ -1291,7 +1291,18 @@
       const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
       const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
-      const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
+      const WHITEBOARD_HOTSPOT_URLS = Object.freeze({
+        whiteboard: 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a',
+        'rca-board': 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a',
+        'cap-ex': 'https://app.smartsheet.com/b/form/70b07591b76a4289bc6f5d5e1aabac91?',
+        'snow-tickets':
+          'https://recoverycoa.service-now.com/now/nav/ui/classic/params/target/incident_list.do?sysparm_query=stateNOT%20IN6%2C7%2C8%5Eassigned_to%3D7fc866ea1b1d7110153886a7624bcbc0&sysparm_first_row=1&sysparm_view=',
+        'ntst-cases':
+          'https://support.netsmartconnect.com/solutionsupport?id=ntst_csm_cases&table=sn_customerservice_case&view=app_support&fixed_query=active%3Dtrue%5Econtact%3Djavascript%3Ags.getUserID()&o=sys_updated_on&d=desc',
+        'jira-board': 'https://teamrca.atlassian.net/jira/software/projects/CA/boards/77?jql=assignee%20%3D%206228f47414cd2400690bf259',
+        'change-mgmt':
+          'https://recoverycoa.service-now.com/now/nav/ui/classic/params/target/incident_list.do?sysparm_query=stateNOT%20IN6%2C7%2C8%5Eassigned_to%3D7fc866ea1b1d7110153886a7624bcbc0&sysparm_first_row=1&sysparm_view='
+      });
       const WHITEBOARD_TASK_HOTSPOTS = [
         { id: 'cap-ex', label: 'Cap-Ex', x: 772, y: 462, w: 402, h: 120 },
         { id: 'snow-tickets', label: 'SNOW Tickets', x: 772, y: 614, w: 402, h: 120 },
@@ -2704,7 +2715,8 @@
               return;
             }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
-              window.location.assign(MICROSOFT_WHITEBOARD_URL);
+              const whiteboardUrl = WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
+              window.location.assign(whiteboardUrl);
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
