@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recombobulator — Naimean</title>
+  <meta name="description" content="Re-encode audio or video at any volume percentage. A Commodore 64-themed tool on naimean.com.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Naimean">
+  <meta property="og:url" content="https://naimean.com/recombobulator.html">
+  <meta property="og:title" content="Recombobulator">
+  <meta property="og:description" content="Re-encode audio or video at any volume percentage.">
+  <meta property="og:image" content="https://naimean.com/assets/images/commodore64.v20260424.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Recombobulator">
+  <meta name="twitter:description" content="Re-encode audio or video at any volume percentage.">
+  <meta name="twitter:image" content="https://naimean.com/assets/images/commodore64.v20260424.jpg">
+  <link rel="icon" type="image/jpeg" href="assets/images/commodore64.v20260424.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050810;
+      --panel: #080e1c;
+      --panel2: #0a1020;
+      --border: rgba(180, 210, 255, 0.25);
+      --border-bright: rgba(180, 210, 255, 0.65);
+      --text: #c8deff;
+      --text-dim: rgba(180, 210, 255, 0.5);
+      --text-dimmer: rgba(180, 210, 255, 0.3);
+      --glow: 0 0 6px #b0d0ff, 0 0 14px #4060a0;
+      --glow-sm: 0 0 4px #b0d0ff, 0 0 8px #4060a0;
+      --btn-bg: rgba(140, 180, 255, 0.1);
+      --btn-hover: rgba(160, 200, 255, 0.22);
+      --btn-active: rgba(160, 200, 255, 0.35);
+      --green: #4dff91;
+      --amber: #ffcc44;
+      --red: #ff5555;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0, 0, 0, 0.07) 3px,
+        rgba(0, 0, 0, 0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .topbar a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      transition: color 0.15s;
+    }
+
+    .topbar a:hover { color: var(--text); }
+
+
+
+    .topbar-sep { color: var(--text-dimmer); }
+
+    .topbar-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      color: var(--text);
+      text-shadow: var(--glow-sm);
+      letter-spacing: 0.06em;
+    }
+
+    .container {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px;
+      color: var(--text);
+      text-shadow: var(--glow);
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+    }
+
+    /* ── Panel card ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* ── Mode buttons ── */
+    .mode-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 13px;
+      padding: 7px 16px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .mode-btn:hover {
+      background: var(--btn-hover);
+      color: var(--text);
+    }
+
+    .mode-btn.active {
+      background: var(--btn-active);
+      border-color: var(--border-bright);
+      color: var(--text);
+      text-shadow: var(--glow-sm);
+    }
+
+    /* ── Naimean browser ── */
+    .asset-browser {
+      display: none;
+      margin-top: 14px;
+    }
+
+    .asset-browser.visible { display: block; }
+
+    .asset-group-header {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .asset-group-header:hover { color: var(--text); }
+
+    .asset-group-list {
+      list-style: none;
+      padding-left: 14px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+    }
+
+    .asset-group-list li {
+      padding: 3px 0;
+    }
+
+    .asset-item {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      transition: color 0.15s;
+    }
+
+    .asset-item:hover { color: var(--green); }
+
+    .asset-item.selected {
+      color: var(--green);
+      text-shadow: 0 0 6px var(--green);
+    }
+
+    /* ── Browse mode ── */
+    .browse-drop {
+      display: none;
+      margin-top: 14px;
+    }
+
+    .browse-drop.visible { display: block; }
+
+    /* ── URL mode ── */
+    .url-drop {
+      display: none;
+      margin-top: 14px;
+    }
+
+    .url-drop.visible { display: block; }
+
+    .url-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .url-input {
+      flex: 1;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 2px;
+      min-width: 0;
+    }
+
+    .url-input::placeholder { color: var(--text-dimmer); }
+
+    .url-input:focus {
+      outline: none;
+      border-color: var(--border-bright);
+      box-shadow: var(--glow-sm);
+    }
+
+    .url-fetch-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 13px;
+      padding: 7px 14px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .url-fetch-btn:hover { background: var(--btn-hover); color: var(--text); }
+    .url-fetch-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--btn-bg);
+      border: 1px dashed var(--border-bright);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 13px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s;
+    }
+
+    .file-label:hover { background: var(--btn-hover); }
+
+    #file-input { display: none; }
+
+    .file-name {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    /* ── Volume ── */
+    .vol-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .vol-label {
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .vol-input {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 16px;
+      padding: 6px 10px;
+      width: 90px;
+      border-radius: 2px;
+      text-align: center;
+    }
+
+    .vol-input:focus {
+      outline: none;
+      border-color: var(--border-bright);
+      box-shadow: var(--glow-sm);
+    }
+
+    .vol-hint {
+      font-size: 11px;
+      color: var(--text-dimmer);
+    }
+
+    /* ── Status + Convert ── */
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .convert-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 14px;
+      padding: 9px 24px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .convert-btn:not(:disabled):hover {
+      background: var(--btn-hover);
+      color: var(--text);
+    }
+
+    .convert-btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .convert-btn.ready:not(:disabled) {
+      border-color: var(--green);
+      color: var(--green);
+      text-shadow: 0 0 6px var(--green);
+    }
+
+    .status-badge {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 2px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text-dim);
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .status-badge.loading { color: var(--amber); border-color: var(--amber); }
+    .status-badge.ready   { color: var(--green); border-color: var(--green); text-shadow: 0 0 5px var(--green); }
+    .status-badge.error   { color: var(--red);   border-color: var(--red); }
+    .status-badge.working { color: var(--amber); border-color: var(--amber); }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      display: none;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .progress-wrap.visible { display: block; }
+
+    .progress-bar-track {
+      display: flex;
+      gap: 2px;
+      margin-top: 6px;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 15px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    /* ── Download link ── */
+    .download-wrap {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .download-wrap.visible { display: block; }
+
+    .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(77, 255, 145, 0.08);
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      font-size: 13px;
+      padding: 8px 18px;
+      text-decoration: none;
+      border-radius: 2px;
+      text-shadow: 0 0 5px var(--green);
+      transition: background 0.15s;
+    }
+
+    .download-link:hover { background: rgba(77, 255, 145, 0.18); }
+
+    .download-dest-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .download-note {
+      font-size: 11px;
+      color: var(--text-dimmer);
+      margin-top: 6px;
+    }
+
+    /* ── Log / info box ── */
+    .log-box {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+      min-height: 36px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── Caveat note ── */
+    .caveat {
+      font-size: 11px;
+      color: var(--text-dimmer);
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    .caveat strong { color: var(--amber); }
+
+    /* ── Device image frame ── */
+    .device-frame {
+      position: relative;
+      max-width: 420px;
+      margin: 0 auto 32px;
+    }
+
+    .device-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border: 1px solid var(--border-bright);
+      border-radius: 4px;
+      box-shadow: var(--glow), 0 0 32px rgba(80, 120, 200, 0.15);
+    }
+
+    .device-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(to top, rgba(5,8,16,0.92) 0%, rgba(5,8,16,0.55) 60%, transparent 100%);
+      padding: 20px 16px 16px;
+      border-radius: 0 0 4px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .device-mode-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .device-vol-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .device-vol-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .device-convert-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    @media (max-width: 520px) {
+      h1 { font-size: 13px; }
+      .action-row { flex-direction: column; align-items: flex-start; }
+      .device-frame { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/">&#8592; HOME</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-title">RECOMBOBULATOR</span>
+</div>
+
+<div class="container">
+  <h1>RECOMBOBULATOR</h1>
+  <p class="subtitle">Re-encode audio or video at ___% of its original volume.</p>
+
+  <!-- ── Device image with overlaid controls ── -->
+  <div class="device-frame">
+    <img src="assets/images/audio_recombobulator.png" alt="Recombobulator — audio re-encoder device" class="device-img" />
+    <div class="device-overlay">
+      <!-- Mode buttons -->
+      <div class="device-mode-row">
+        <button class="mode-btn" id="mode-naimean" type="button">[NAIMEAN]</button>
+        <button class="mode-btn" id="mode-browse"  type="button">[BROWSE]</button>
+        <button class="mode-btn" id="mode-url"     type="button">[URL]</button>
+      </div>
+      <!-- Volume -->
+      <div class="device-vol-row">
+        <span class="device-vol-label">VOL %</span>
+        <input type="number" class="vol-input" id="vol-input" value="100" min="1" max="400" style="width:72px;">
+        <span class="device-vol-label">1–400</span>
+      </div>
+      <!-- Convert + status -->
+      <div class="device-convert-row">
+        <button class="convert-btn" id="convert-btn" type="button" disabled>[CONVERT]</button>
+        <span class="status-badge" id="status-badge">WAITING...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 1: Source (detail panels) ── -->
+  <div class="panel">
+    <div class="panel-label">1. SELECT SOURCE</div>
+
+    <!-- Naimean asset browser -->
+    <div class="asset-browser" id="asset-browser">
+      <div class="asset-group-header" id="audio-group-toggle">
+        <span id="audio-arrow">▶</span> AUDIO
+      </div>
+      <ul class="asset-group-list" id="audio-group-list"></ul>
+
+      <div class="asset-group-header" id="video-group-toggle">
+        <span id="video-arrow">▶</span> VIDEO
+      </div>
+      <ul class="asset-group-list" id="video-group-list"></ul>
+    </div>
+
+    <!-- Browse upload -->
+    <div class="browse-drop" id="browse-drop">
+      <label class="file-label" for="file-input">
+        &#128193; CHOOSE FILE
+      </label>
+      <input type="file" id="file-input" accept="audio/*,video/*">
+      <p class="file-name" id="file-name-display"></p>
+    </div>
+
+    <!-- URL fetch -->
+    <div class="url-drop" id="url-drop">
+      <div class="url-input-row">
+        <input type="url" class="url-input" id="url-input" placeholder="https://example.com/audio.mp3 or video.mp4">
+        <button class="url-fetch-btn" id="url-fetch-btn" type="button">[FETCH]</button>
+      </div>
+      <p class="file-name" id="url-file-display"></p>
+    </div>
+  </div>
+
+  <!-- ── Output ── -->
+  <div class="panel">
+    <div class="panel-label">OUTPUT</div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div id="progress-text">Processing...</div>
+      <div class="progress-bar-track" id="progress-bar" aria-label="progress"></div>
+    </div>
+
+    <div class="download-wrap" id="download-wrap">
+      <!-- Single-destination (naimean / browse modes) -->
+      <a class="download-link" id="download-link" href="#" download>&#11015; DOWNLOAD</a>
+      <!-- Dual-destination (url mode) -->
+      <div class="download-dest-row" id="download-dest-row" style="display:none;">
+        <a class="download-link" id="download-naimean" href="#" download>&#8594; NAIMEAN ASSETS</a>
+        <a class="download-link" id="download-device"  href="#" download>&#11015; FOR DEVICE</a>
+      </div>
+      <p class="download-note" id="download-note"></p>
+    </div>
+
+    <div class="log-box" id="log-box"></div>
+
+    <p class="caveat">
+      <strong>VIDEO NOTE:</strong> Output format depends on your browser's
+      <code>MediaRecorder</code> support. Chromium browsers produce
+      <code>.webm</code>; the output filename keeps the original name. On
+      some browsers the audio/video codec may differ from the source.
+      <strong>AUDIO NOTE:</strong> Audio files are always saved as
+      <code>.wav</code> (PCM); the base name is preserved.
+    </p>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Hardcoded site asset manifest ──────────────────────────────────────────
+  const NAIMEAN_AUDIO = [
+    'assets/audio/congregation.v20260424.mp3',
+    'assets/audio/crusty/krusty_laugh.v20260424.mp3',
+    'assets/audio/goose/goose_honk.v20260424.mp3',
+    'assets/audio/morty/morty_aw_jeez.v20260424.mp3',
+    'assets/audio/rick/rick_nope.v20260424.mp3',
+    'assets/audio/rick_death.mp3',
+    'assets/audio/wrong.v20260424.mp3',
+    'assets/audio/zelda-secret.v20260424.mp3',
+  ];
+
+  const NAIMEAN_VIDEO = [
+    'assets/video/joinourdiscord.v20260424.mp4',
+    'assets/video/notarickroll-piece-1.v20260424.mp4',
+    'assets/video/notarickroll-piece-2.v20260424.mp4',
+    'assets/video/power-off.v20260424.mp4',
+    'assets/video/static.v20260424.mp4',
+  ];
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentMode = null;      // 'naimean' | 'browse' | 'url'
+  let loadedFile = null;       // { name, type, buffer: ArrayBuffer | null, objectUrl: string | null }
+  let prevDownloadUrl = null;
+  let audioGroupOpen = false;
+  let videoGroupOpen = false;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const modeNaimean     = document.getElementById('mode-naimean');
+  const modeBrowse      = document.getElementById('mode-browse');
+  const modeUrl         = document.getElementById('mode-url');
+  const assetBrowser    = document.getElementById('asset-browser');
+  const browseDrop      = document.getElementById('browse-drop');
+  const urlDrop         = document.getElementById('url-drop');
+  const urlInput        = document.getElementById('url-input');
+  const urlFetchBtn     = document.getElementById('url-fetch-btn');
+  const urlFileDisplay  = document.getElementById('url-file-display');
+  const fileInput       = document.getElementById('file-input');
+  const fileNameDisplay = document.getElementById('file-name-display');
+  const audioGroupToggle = document.getElementById('audio-group-toggle');
+  const videoGroupToggle = document.getElementById('video-group-toggle');
+  const audioGroupList  = document.getElementById('audio-group-list');
+  const videoGroupList  = document.getElementById('video-group-list');
+  const audioArrow      = document.getElementById('audio-arrow');
+  const videoArrow      = document.getElementById('video-arrow');
+  const volInput        = document.getElementById('vol-input');
+  const convertBtn      = document.getElementById('convert-btn');
+  const statusBadge     = document.getElementById('status-badge');
+  const progressWrap    = document.getElementById('progress-wrap');
+  const progressText    = document.getElementById('progress-text');
+  const progressBar     = document.getElementById('progress-bar');
+  const downloadWrap    = document.getElementById('download-wrap');
+  const downloadLink    = document.getElementById('download-link');
+  const downloadDestRow = document.getElementById('download-dest-row');
+  const downloadNaimean = document.getElementById('download-naimean');
+  const downloadDevice  = document.getElementById('download-device');
+  const downloadNote    = document.getElementById('download-note');
+  const logBox          = document.getElementById('log-box');
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function log(msg) {
+    logBox.textContent = msg;
+  }
+
+  function setStatus(label, cls) {
+    statusBadge.textContent = label;
+    statusBadge.className = 'status-badge' + (cls ? ' ' + cls : '');
+  }
+
+  function setReady() {
+    setStatus('READY', 'ready');
+    convertBtn.disabled = false;
+    convertBtn.classList.add('ready');
+  }
+
+  function setWaiting() {
+    setStatus('WAITING...', '');
+    convertBtn.disabled = true;
+    convertBtn.classList.remove('ready');
+    downloadWrap.classList.remove('visible');
+    progressWrap.classList.remove('visible');
+    loadedFile = null;
+  }
+
+  function renderProgressBar(pct) {
+    const total = 20;
+    const filled = Math.round((pct / 100) * total);
+    const empty  = total - filled;
+    progressBar.textContent = '█'.repeat(filled) + '░'.repeat(empty) + ' ' + pct + '%';
+  }
+
+  function shortName(path) {
+    return path.split('/').pop();
+  }
+
+  function isAudioType(name) {
+    return /\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i.test(name);
+  }
+
+  function isVideoType(name) {
+    return /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(name);
+  }
+
+  function revokePrev() {
+    if (prevDownloadUrl) {
+      URL.revokeObjectURL(prevDownloadUrl);
+      prevDownloadUrl = null;
+    }
+  }
+
+  // ── Asset browser population ───────────────────────────────────────────────
+  function populateAssetList(listEl, paths) {
+    listEl.innerHTML = '';
+    paths.forEach(function (path) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.className = 'asset-item';
+      btn.type = 'button';
+      btn.textContent = shortName(path);
+      btn.dataset.path = path;
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.asset-item.selected').forEach(function (el) {
+          el.classList.remove('selected');
+        });
+        btn.classList.add('selected');
+        loadNaimeanAsset(path);
+      });
+      li.appendChild(btn);
+      listEl.appendChild(li);
+    });
+  }
+
+  populateAssetList(audioGroupList, NAIMEAN_AUDIO);
+  populateAssetList(videoGroupList, NAIMEAN_VIDEO);
+
+  // ── Mode selection ─────────────────────────────────────────────────────────
+  function activateMode(mode) {
+    currentMode = mode;
+    modeNaimean.classList.toggle('active', mode === 'naimean');
+    modeBrowse.classList.toggle('active',  mode === 'browse');
+    modeUrl.classList.toggle('active',     mode === 'url');
+    assetBrowser.classList.toggle('visible', mode === 'naimean');
+    browseDrop.classList.toggle('visible',   mode === 'browse');
+    urlDrop.classList.toggle('visible',      mode === 'url');
+    setWaiting();
+    log('');
+    revokePrev();
+    downloadWrap.classList.remove('visible');
+  }
+
+  modeNaimean.addEventListener('click', function () { activateMode('naimean'); });
+  modeBrowse.addEventListener('click',  function () { activateMode('browse'); });
+  modeUrl.addEventListener('click',     function () { activateMode('url'); });
+
+  // ── Asset group toggles ────────────────────────────────────────────────────
+  audioGroupToggle.addEventListener('click', function () {
+    audioGroupOpen = !audioGroupOpen;
+    audioGroupList.style.display = audioGroupOpen ? 'block' : 'none';
+    audioArrow.textContent = audioGroupOpen ? '▼' : '▶';
+  });
+  videoGroupToggle.addEventListener('click', function () {
+    videoGroupOpen = !videoGroupOpen;
+    videoGroupList.style.display = videoGroupOpen ? 'block' : 'none';
+    videoArrow.textContent = videoGroupOpen ? '▼' : '▶';
+  });
+  // Start collapsed
+  audioGroupList.style.display = 'none';
+  videoGroupList.style.display = 'none';
+
+  // ── Load Naimean asset ─────────────────────────────────────────────────────
+  async function loadNaimeanAsset(path) {
+    setStatus('LOADING...', 'loading');
+    convertBtn.disabled = true;
+    convertBtn.classList.remove('ready');
+    downloadWrap.classList.remove('visible');
+    log('Fetching ' + shortName(path) + '...');
+    try {
+      const resp = await fetch(path);
+      if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+      const buffer = await resp.arrayBuffer();
+      loadedFile = { name: shortName(path), buffer, objectUrl: null };
+      setReady();
+      log('Loaded: ' + loadedFile.name + ' (' + (buffer.byteLength / 1024).toFixed(1) + ' KB)');
+    } catch (err) {
+      setStatus('ERROR', 'error');
+      log('Failed to load asset: ' + err.message);
+    }
+  }
+
+  // ── Load browse file ───────────────────────────────────────────────────────
+  fileInput.addEventListener('change', function () {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) { return; }
+    fileNameDisplay.textContent = file.name;
+    setStatus('LOADING...', 'loading');
+    convertBtn.disabled = true;
+    convertBtn.classList.remove('ready');
+    downloadWrap.classList.remove('visible');
+    log('Reading ' + file.name + '...');
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      loadedFile = { name: file.name, buffer: e.target.result, objectUrl: null };
+      setReady();
+      log('Loaded: ' + file.name + ' (' + (e.target.result.byteLength / 1024).toFixed(1) + ' KB)');
+    };
+    reader.onerror = function () {
+      setStatus('ERROR', 'error');
+      log('Failed to read file.');
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  // ── Load URL file ──────────────────────────────────────────────────────────
+  async function fetchUrlFile() {
+    const raw = urlInput.value.trim();
+    if (!raw) { log('Enter a URL first.'); return; }
+
+    let url;
+    try { url = new URL(raw); } catch (_) { log('Invalid URL.'); return; }
+
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      log('Only http/https URLs are supported.');
+      return;
+    }
+
+    const rawFileName = url.pathname.split('/').pop();
+    // If the pathname has no recognisable media extension, try deriving one from
+    // the Content-Type after fetching, so we don't reject valid URLs early.
+    const preCheckName = rawFileName || '';
+    const hasMediaExt = isAudioType(preCheckName) || isVideoType(preCheckName);
+    if (preCheckName && !hasMediaExt) {
+      log('URL does not appear to point to an audio or video file.');
+      return;
+    }
+
+    urlFetchBtn.disabled = true;
+    setStatus('FETCHING...', 'loading');
+    convertBtn.disabled = true;
+    convertBtn.classList.remove('ready');
+    downloadWrap.classList.remove('visible');
+    urlFileDisplay.textContent = '';
+    log('Fetching ' + (preCheckName || 'file') + '...');
+
+    try {
+      const resp = await fetch(raw);
+      if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+
+      // Determine a usable filename, falling back to Content-Type sniffing
+      let fileName = preCheckName;
+      if (!fileName || !hasMediaExt) {
+        const ct = (resp.headers.get('content-type') || '').split(';')[0].trim();
+        const extMap = {
+          'audio/mpeg': 'file.mp3', 'audio/wav': 'file.wav', 'audio/ogg': 'file.ogg',
+          'audio/flac': 'file.flac', 'audio/aac': 'file.aac', 'audio/mp4': 'file.m4a',
+          'video/mp4': 'file.mp4', 'video/webm': 'file.webm', 'video/quicktime': 'file.mov',
+        };
+        fileName = extMap[ct] || 'file.mp3';
+      }
+
+      const buffer = await resp.arrayBuffer();
+      loadedFile = { name: fileName, buffer, objectUrl: null };
+      urlFileDisplay.textContent = fileName + ' (' + (buffer.byteLength / 1024).toFixed(1) + ' KB)';
+      setReady();
+      log('Fetched: ' + fileName + ' (' + (buffer.byteLength / 1024).toFixed(1) + ' KB)');
+    } catch (err) {
+      setStatus('ERROR', 'error');
+      const isCors = err instanceof TypeError;
+      log('Fetch failed: ' + err.message + (isCors ? ' (server may be blocking cross-origin requests)' : ''));
+    } finally {
+      urlFetchBtn.disabled = false;
+    }
+  }
+
+  urlFetchBtn.addEventListener('click', fetchUrlFile);
+  urlInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { fetchUrlFile(); }
+  });
+
+  // ── WAV encoder ────────────────────────────────────────────────────────────
+  function audioBufferToWav(audioBuffer) {
+    const numChannels = audioBuffer.numberOfChannels;
+    const sampleRate  = audioBuffer.sampleRate;
+    const numFrames   = audioBuffer.length;
+    const bytesPerSample = 2; // 16-bit PCM
+    const dataLen = numFrames * numChannels * bytesPerSample;
+    const buf = new ArrayBuffer(44 + dataLen);
+    const view = new DataView(buf);
+
+    function writeStr(offset, str) {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    }
+
+    writeStr(0, 'RIFF');
+    view.setUint32(4,  36 + dataLen, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);             // chunk size
+    view.setUint16(20, 1, true);              // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * bytesPerSample, true); // byte rate
+    view.setUint16(32, numChannels * bytesPerSample, true);              // block align
+    view.setUint16(34, 16, true);             // bits per sample
+    writeStr(36, 'data');
+    view.setUint32(40, dataLen, true);
+
+    // Interleave channels
+    let offset = 44;
+    for (let i = 0; i < numFrames; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        let sample = audioBuffer.getChannelData(ch)[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+
+    return buf;
+  }
+
+  // ── Audio re-encode ────────────────────────────────────────────────────────
+  async function processAudio(buffer, gainValue) {
+    log('Decoding audio...');
+    renderProgressBar(10);
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const decodeCtx = new AudioCtx();
+    let sourceBuffer;
+    try {
+      sourceBuffer = await decodeCtx.decodeAudioData(buffer.slice(0));
+    } finally {
+      decodeCtx.close();
+    }
+
+    log('Rendering at ' + Math.round(gainValue * 100) + '% volume...');
+    renderProgressBar(40);
+
+    const offlineCtx = new OfflineAudioContext(
+      sourceBuffer.numberOfChannels,
+      sourceBuffer.length,
+      sourceBuffer.sampleRate
+    );
+    const src  = offlineCtx.createBufferSource();
+    src.buffer = sourceBuffer;
+    const gain = offlineCtx.createGain();
+    gain.gain.value = gainValue;
+    src.connect(gain);
+    gain.connect(offlineCtx.destination);
+    src.start(0);
+
+    renderProgressBar(60);
+    const rendered = await offlineCtx.startRendering();
+    renderProgressBar(85);
+
+    log('Encoding WAV...');
+    const wavBuffer = audioBufferToWav(rendered);
+    renderProgressBar(100);
+    return new Blob([wavBuffer], { type: 'audio/wav' });
+  }
+
+  // ── Video re-encode ────────────────────────────────────────────────────────
+  function processVideo(buffer, gainValue, originalName) {
+    return new Promise(function (resolve, reject) {
+      log('Preparing video element...');
+      renderProgressBar(5);
+
+      const blob = new Blob([buffer]);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const video = document.createElement('video');
+      video.src = objectUrl;
+      video.muted = true; // muted on the page; video track captured via captureStream()
+      video.preload = 'auto';
+
+      video.addEventListener('error', function () {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Video decode error'));
+      });
+
+      video.addEventListener('loadedmetadata', function () {
+        log('Starting MediaRecorder pipeline...');
+        renderProgressBar(15);
+
+        // Set up Web Audio gain chain for the real (unmuted) audio
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioCtx();
+
+        // Create a second, unmuted video element for audio capture only
+        const audioVideo = document.createElement('video');
+        audioVideo.src = objectUrl;
+        audioVideo.muted = false;
+        audioVideo.volume = 1;
+
+        const src  = audioCtx.createMediaElementSource(audioVideo);
+        const gain = audioCtx.createGain();
+        gain.gain.value = gainValue;
+        const dest = audioCtx.createMediaStreamDestination();
+        src.connect(gain);
+        gain.connect(dest);
+
+        // Capture stream from the silent video (for video track)
+        let videoStream;
+        try {
+          videoStream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+        } catch (e) {
+          URL.revokeObjectURL(objectUrl);
+          audioCtx.close();
+          reject(new Error('captureStream() not supported in this browser.'));
+          return;
+        }
+
+        const videoTracks = videoStream.getVideoTracks();
+        const audioTracks = dest.stream.getAudioTracks();
+
+        const combined = new MediaStream([...videoTracks, ...audioTracks]);
+
+        // Pick best supported MIME type
+        const MIME_CANDIDATES = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm',
+          'video/mp4',
+        ];
+        let mimeType = '';
+        for (const m of MIME_CANDIDATES) {
+          if (MediaRecorder.isTypeSupported(m)) { mimeType = m; break; }
+        }
+
+        const recorder = new MediaRecorder(combined, mimeType ? { mimeType } : {});
+        const chunks = [];
+
+        recorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) { chunks.push(e.data); }
+        };
+
+        recorder.onstop = function () {
+          URL.revokeObjectURL(objectUrl);
+          audioCtx.close();
+          const outputBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
+          renderProgressBar(100);
+          resolve(outputBlob);
+        };
+
+        recorder.onerror = function (e) {
+          URL.revokeObjectURL(objectUrl);
+          audioCtx.close();
+          reject(new Error('MediaRecorder error: ' + (e.error || e)));
+        };
+
+        recorder.start(100);
+        renderProgressBar(20);
+
+        // Play both in sync
+        const playPromise = Promise.all([
+          video.play(),
+          audioVideo.play(),
+        ]);
+
+        playPromise.then(function () {
+          // Update progress as the video plays
+          function onTimeUpdate() {
+            const pct = video.duration > 0
+              ? Math.round(15 + (video.currentTime / video.duration) * 80)
+              : 15;
+            renderProgressBar(Math.min(pct, 95));
+          }
+          video.addEventListener('timeupdate', onTimeUpdate);
+
+          video.addEventListener('ended', function () {
+            video.removeEventListener('timeupdate', onTimeUpdate);
+            audioVideo.pause();
+            // Small delay so MediaRecorder can flush the last chunk
+            setTimeout(function () { recorder.stop(); }, 300);
+          }, { once: true });
+        }).catch(function (err) {
+          URL.revokeObjectURL(objectUrl);
+          audioCtx.close();
+          reject(err);
+        });
+      });
+
+      // Kick off load
+      video.load();
+    });
+  }
+
+  // ── Convert button ─────────────────────────────────────────────────────────
+  convertBtn.addEventListener('click', async function () {
+    if (!loadedFile || !loadedFile.buffer) {
+      log('No file loaded.');
+      return;
+    }
+
+    const vol = parseInt(volInput.value, 10);
+    if (isNaN(vol) || vol < 1 || vol > 400) {
+      log('Volume must be between 1 and 400.');
+      return;
+    }
+
+    const gainValue = vol / 100;
+    const name = loadedFile.name;
+
+    convertBtn.disabled = true;
+    convertBtn.classList.remove('ready');
+    downloadWrap.classList.remove('visible');
+    revokePrev();
+
+    setStatus('WORKING...', 'working');
+    progressWrap.classList.add('visible');
+    renderProgressBar(0);
+
+    try {
+      let blob;
+
+      if (isVideoType(name)) {
+        blob = await processVideo(loadedFile.buffer, gainValue, name);
+      } else {
+        blob = await processAudio(loadedFile.buffer, gainValue);
+      }
+
+      prevDownloadUrl = URL.createObjectURL(blob);
+
+      // Output filename: same base name, but .wav for audio, original ext for video
+      let outName = name;
+      if (!isVideoType(name)) {
+        outName = name.replace(/\.[^.]+$/, '') + '.wav';
+      }
+
+      if (currentMode === 'url') {
+        // Dual destination: NAIMEAN ASSETS or FOR DEVICE
+        downloadLink.style.display = 'none';
+        downloadDestRow.style.display = 'flex';
+
+        downloadNaimean.href = prevDownloadUrl;
+        downloadNaimean.setAttribute('download', outName);
+        downloadNaimean.textContent = '\u2192 NAIMEAN ASSETS: ' + outName;
+
+        downloadDevice.href = prevDownloadUrl;
+        downloadDevice.setAttribute('download', outName);
+        downloadDevice.textContent = '\u2B15 FOR DEVICE: ' + outName;
+
+        downloadNote.textContent =
+          'NAIMEAN ASSETS: download then drop into the site asset repo. ' +
+          'FOR DEVICE: save to your local machine.';
+      } else {
+        downloadLink.style.display = '';
+        downloadDestRow.style.display = 'none';
+        downloadLink.href = prevDownloadUrl;
+        downloadLink.setAttribute('download', outName);
+        downloadLink.textContent = '\u2B15 DOWNLOAD: ' + outName;
+
+        if (currentMode === 'browse') {
+          downloadNote.textContent =
+            'Tip: save over your original file to replace it.';
+        } else {
+          downloadNote.textContent =
+            'Re-upload this file to the site asset repo to replace the original.';
+        }
+      }
+
+      setStatus('DONE', 'ready');
+      log('Done! File ready: ' + outName);
+      downloadWrap.classList.add('visible');
+
+    } catch (err) {
+      setStatus('ERROR', 'error');
+      log('Error: ' + err.message);
+      progressWrap.classList.remove('visible');
+    } finally {
+      // Re-enable convert only if a file is still loaded
+      if (loadedFile && loadedFile.buffer) {
+        convertBtn.disabled = false;
+        convertBtn.classList.add('ready');
+      }
+    }
+  });
+
+});
+</script>
+</body>
+</html>
