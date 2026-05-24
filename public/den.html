@@ -181,8 +181,8 @@
     }
 
     .join-discord-button {
-      width: min(100%, 216px);
-      height: min(100%, 216px);
+      width: 100%;
+      height: 100%;
       padding: 0;
       border: 0;
       border-radius: 20px;
@@ -1155,6 +1155,7 @@
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
+      const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         COMMODORE_OVERLAY_CONTROL_ID,
@@ -1165,6 +1166,7 @@
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
         { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
+        { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
       const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
@@ -1186,6 +1188,7 @@
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
+        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, x: 1763, y: 1020, w: 278, h: 216 },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
         { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, x: 1322, y: 1028, w: 298, h: 206 }
       ];
