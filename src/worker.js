@@ -7,7 +7,8 @@ const DEFAULT_HOTSPOTS = [
   { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
   { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
   { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
-  { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 }
+  { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 },
+  { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 }
 ];
 
 const HOTSPOT_LIMITS = {
