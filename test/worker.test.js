@@ -40,6 +40,7 @@ test('HotspotStore GET returns default hotspots when storage is empty', async ()
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'left-monitor', x: 1278, y: 1002, w: 386, h: 258 });
   assert.deepEqual(body.hotspots[5], { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 });
+  assert.deepEqual(body.hotspots[7], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
   assert.deepEqual(body.hotspots[8], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
 });
 
@@ -87,6 +88,7 @@ test('HotspotStore POST sanitizes, clamps and stores hotspot payloads', async ()
   assert.deepEqual(body.hotspots[1], { id: 'left-monitor', x: 1501, y: 1072, w: 292, h: 206 });
   assert.deepEqual(body.hotspots[2], { id: 'commodore-screen', x: 1703, y: 994, w: 372, h: 246 });
   assert.deepEqual(body.hotspots[3], { id: 'right-monitor', x: 1763, y: 1020, w: 278, h: 216 });
+  assert.deepEqual(body.hotspots[7], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
   assert.deepEqual(body.hotspots[8], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
 
   assert.equal(calls.put.length, 1);
