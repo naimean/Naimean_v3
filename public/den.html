@@ -2079,9 +2079,9 @@
           flipClockRadioTuningAudioCycle = [...RADIO_TUNING_AUDIO_URLS];
           for (let i = flipClockRadioTuningAudioCycle.length - 1; i > 0; i -= 1) {
             const j = Math.floor(Math.random() * (i + 1));
-            const tmp = flipClockRadioTuningAudioCycle[i];
+            const swapValue = flipClockRadioTuningAudioCycle[i];
             flipClockRadioTuningAudioCycle[i] = flipClockRadioTuningAudioCycle[j];
-            flipClockRadioTuningAudioCycle[j] = tmp;
+            flipClockRadioTuningAudioCycle[j] = swapValue;
           }
         }
         return flipClockRadioTuningAudioCycle.pop();
