@@ -1760,7 +1760,9 @@
             .join(' ');
 
         hotspotList.forEach((spot) => {
-          const readableLabel = toTitleCase(spot.id);
+          const readableLabel = NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
+            ? 'Join our Discord'
+            : toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
