@@ -1494,6 +1494,7 @@
       let aquariumClipPlaybackTimeoutId = null;
       let aquariumClipPlaybackResolve = null;
       let aquariumPlaybackSequenceToken = 0;
+      let pendingAquariumSequenceOnLoad = false;
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
@@ -1758,6 +1759,22 @@
         }
 
         hideAquariumStaticOverlay();
+      }
+
+      function playAquariumHotspotSequenceWhenReady() {
+        if (document.readyState === 'complete') {
+          pendingAquariumSequenceOnLoad = false;
+          playAquariumHotspotSequence();
+          return;
+        }
+        if (pendingAquariumSequenceOnLoad) {
+          return;
+        }
+        pendingAquariumSequenceOnLoad = true;
+        window.addEventListener('load', () => {
+          pendingAquariumSequenceOnLoad = false;
+          playAquariumHotspotSequence();
+        }, { once: true });
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
@@ -2724,7 +2741,7 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              playAquariumHotspotSequence();
+              playAquariumHotspotSequenceWhenReady();
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
@@ -2805,7 +2822,7 @@
             aquariumClipIframeEl.loading = 'lazy';
             aquariumClipIframeEl.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
             aquariumClipIframeEl.referrerPolicy = 'strict-origin-when-cross-origin';
-            aquariumClipIframeEl.sandbox = 'allow-scripts allow-presentation';
+            aquariumClipIframeEl.sandbox = 'allow-same-origin allow-scripts allow-presentation';
             aquariumClipIframeEl.src = 'about:blank';
             el.appendChild(aquariumClipIframeEl);
 
