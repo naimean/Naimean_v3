@@ -1250,10 +1250,10 @@
           window.location.reload();
         } catch (error) {
           setSaveButtonText('Save failed');
-          debugStatus.textContent = 'Server save failed; hotspots were not saved locally.';
+          debugStatus.textContent = 'Server save failed; hotspots were not persisted (server-only mode).';
           showSaveFallbackModal(
             savedSourceHotspots,
-            `Unable to save to the server (${error.message}) — hotspots were not saved locally; copy the code below to update source manually`
+            `Unable to save to the server (${error.message}) — hotspots were not persisted (server-only mode); copy the code below to update source manually`
           );
           resetSaveButtonSoon();
         }
