@@ -500,7 +500,11 @@
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const STOPWATCH_URL = 'https://www.google.com/search?q=stopwatch';
       const STOPWATCH_HOTSPOT_ID = 'stopwatch';
-      const STARSHRIMP_YOUTUBE_URL = 'https://www.youtube.com/@starshrimp';
+      const STARSHRIMP_YOUTUBE_VIDEO_URLS = [
+        'https://www.youtube.com/watch?v=GZ7jsIR_TnY',
+        'https://www.youtube.com/watch?v=dgAz1qEG2uo',
+        'https://www.youtube.com/watch?v=sFwo1mwrbxw'
+      ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
 
@@ -961,7 +965,8 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              window.location.assign(STARSHRIMP_YOUTUBE_URL);
+              const randomIndex = Math.floor(Math.random() * STARSHRIMP_YOUTUBE_VIDEO_URLS.length);
+              window.location.assign(STARSHRIMP_YOUTUBE_VIDEO_URLS[randomIndex]);
               return;
             }
           });
