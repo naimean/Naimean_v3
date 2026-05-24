@@ -1642,6 +1642,10 @@
 
       function waitForAquariumClipWindow(sequenceToken, clipStartSeconds = 0) {
         return new Promise((resolve) => {
+          if (!aquariumClipVideoEl) {
+            resolve(false);
+            return;
+          }
           clearAquariumClipPlaybackTimeout();
           let clipWindowTimeoutId = null;
           let clipEndSeconds = AQUARIUM_CLIP_DURATION_SECONDS;
@@ -1710,7 +1714,7 @@
             clipEndSeconds = duration > 0
               ? Math.min(duration, safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS)
               : safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS;
-            if (clipEndSeconds <= safeStartSeconds && aquariumClipPlaybackResolve) {
+            if (clipEndSeconds <= safeStartSeconds) {
               aquariumClipPlaybackResolve(true);
               return;
             }
@@ -1732,20 +1736,18 @@
           const onClipLoad = () => {
             startClipPlayback();
           };
-          if (aquariumClipVideoEl) {
-            aquariumClipVideoEl.addEventListener('loadedmetadata', onClipLoad);
-            aquariumClipVideoEl.addEventListener('timeupdate', onClipTimeUpdate);
-            aquariumClipVideoEl.addEventListener('ended', onClipEnded);
-            aquariumClipVideoEl.addEventListener('error', onClipError);
-            if (aquariumClipVideoEl.readyState >= 1) {
-              startClipPlayback();
-            }
-          }
           aquariumClipPlaybackResolve = (didFinish) => {
             aquariumClipPlaybackResolve = null;
             cleanup();
             resolve(didFinish && sequenceToken === aquariumPlaybackSequenceToken);
           };
+          aquariumClipVideoEl.addEventListener('loadedmetadata', onClipLoad);
+          aquariumClipVideoEl.addEventListener('timeupdate', onClipTimeUpdate);
+          aquariumClipVideoEl.addEventListener('ended', onClipEnded);
+          aquariumClipVideoEl.addEventListener('error', onClipError);
+          if (aquariumClipVideoEl.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            startClipPlayback();
+          }
         });
       }
 
