@@ -166,6 +166,22 @@
       pointer-events: none;
     }
 
+    .screen-overlay.discord-widget-overlay {
+      overflow: hidden;
+      border-radius: 6px;
+      pointer-events: auto;
+      background: #11141d;
+    }
+
+    .discord-widget-frame {
+      width: 100%;
+      height: calc(100% + 72px);
+      border: 0;
+      background: #11141d;
+      display: block;
+      pointer-events: auto;
+    }
+
     /* Effects always on top. */
     #effects-layer {
       z-index: 50;
@@ -484,6 +500,9 @@
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const STOPWATCH_URL = 'https://www.google.com/search?q=stopwatch';
       const STOPWATCH_HOTSPOT_ID = 'stopwatch';
+      const STARSHRIMP_YOUTUBE_URL = 'https://www.youtube.com/@starshrimp';
+      const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
+      const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -926,8 +945,15 @@
             console.log(`[hotspot] ${spot.id}`);
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
               window.location.assign(MICROSOFT_WHITEBOARD_URL);
-            } else if (spot.id === STOPWATCH_HOTSPOT_ID) {
+              return;
+            }
+            if (spot.id === STOPWATCH_HOTSPOT_ID) {
               window.open(STOPWATCH_URL, '_blank', 'noopener');
+              return;
+            }
+            if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
+              window.location.assign(STARSHRIMP_YOUTUBE_URL);
+              return;
             }
           });
 
@@ -951,6 +977,19 @@
           el.style.top = `${overlay.y}px`;
           el.style.width = `${overlay.w}px`;
           el.style.height = `${overlay.h}px`;
+
+          if (overlay.id === 'overlay-big-tv') {
+            el.classList.add('discord-widget-overlay');
+            const iframe = document.createElement('iframe');
+            iframe.className = 'discord-widget-frame';
+            iframe.src = DISCORD_WIDGET_URL;
+            iframe.title = 'Naimean Discord Widget';
+            iframe.setAttribute('allowtransparency', 'true');
+            iframe.sandbox = 'allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts';
+            iframe.loading = 'lazy';
+            el.appendChild(iframe);
+          }
+
           screenOverlayLayer.appendChild(el);
         });
       }
