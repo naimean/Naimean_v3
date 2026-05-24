@@ -242,3 +242,457 @@ test('functions/api/hotspots onRequest returns 500 when HOTSPOT_STORE binding is
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
 });
+
+// --- src/worker.js HotspotStore additional coverage ---
+
+test('HotspotStore GET returns saved hotspots when storage has data', async () => {
+  const saved = [
+    { id: 'noahs-arcade', x: 100, y: 200, w: 300, h: 400 },
+    { id: 'left-monitor', x: 500, y: 600, w: 200, h: 150 },
+    { id: 'commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
+    { id: 'right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
+    { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
+    { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+    { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+    { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
+    { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 },
+    { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 }
+  ];
+  const { state } = makeState(saved);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 100, y: 200, w: 300, h: 400 });
+  assert.deepEqual(body.hotspots[1], { id: 'left-monitor', x: 500, y: 600, w: 200, h: 150 });
+});
+
+test('HotspotStore GET returns 500 when storage.get throws', async () => {
+  const state = {
+    storage: {
+      async get() { throw new Error('disk failure'); },
+      async put() {}
+    }
+  };
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.match(body.error, /Failed to load hotspots/);
+  assert.match(body.error, /disk failure/);
+});
+
+test('HotspotStore POST returns 500 when storage.put throws', async () => {
+  const state = {
+    storage: {
+      async get() { return undefined; },
+      async put() { throw new Error('quota exceeded'); }
+    }
+  };
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: [] })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.match(body.error, /Failed to save hotspots/);
+  assert.match(body.error, /quota exceeded/);
+});
+
+// --- sanitizeHotspots edge cases (exercised through HotspotStore) ---
+
+test('HotspotStore POST uses defaults when hotspots payload is null', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: null })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.hotspots.length, 10);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+});
+
+test('HotspotStore POST uses defaults when hotspots payload is a non-array', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: 'oops' })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+});
+
+test('HotspotStore POST skips non-object and null entries in hotspots array', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          null,
+          42,
+          'string-entry',
+          { id: 123, x: 1, y: 2, w: 3, h: 4 },
+          { id: 'noahs-arcade', x: 100, y: 200, w: 300, h: 400 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 100, y: 200, w: 300, h: 400 });
+  assert.deepEqual(body.hotspots[1], { id: 'left-monitor', x: 1278, y: 1002, w: 386, h: 258 });
+});
+
+test('HotspotStore POST uses last entry when hotspot id is duplicated', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: 10, y: 20, w: 100, h: 200 },
+          { id: 'noahs-arcade', x: 50, y: 60, w: 500, h: 600 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 50, y: 60, w: 500, h: 600 });
+});
+
+test('HotspotStore POST clamps coordinates to boundary min values', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: -999, y: -999, w: 1, h: 1 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 0, y: 0, w: 20, h: 20 });
+});
+
+test('HotspotStore POST clamps coordinates to boundary max values', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: 99999, y: 99999, w: 99999, h: 99999 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 3840, y: 2160, w: 3840, h: 2160 });
+});
+
+test('HotspotStore POST falls back to default for NaN coordinate values', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: NaN, y: NaN, w: NaN, h: NaN }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+});
+
+test('HotspotStore POST rounds fractional coordinate values', async () => {
+  const { state } = makeState(undefined);
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: 100.4, y: 200.5, w: 300.6, h: 400.9 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 100, y: 201, w: 301, h: 401 });
+});
+
+// --- worker router additional coverage ---
+
+test('worker serves non-hotspot /api/* requests through ASSETS binding', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() { throw new Error('HOTSPOT_STORE should not be called'); },
+      get() { throw new Error('HOTSPOT_STORE should not be called'); }
+    },
+    ASSETS: {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('other api', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/other'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'other api');
+  assert.deepEqual(calls.assetsFetch, ['/api/other']);
+});
+
+test('worker serves root path through ASSETS binding', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('index', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'index');
+  assert.deepEqual(calls.assetsFetch, ['/']);
+});
+
+// --- functions/api/hotspots.js HotspotStore class coverage ---
+
+import { HotspotStore as FunctionsHotspotStore } from '../functions/api/hotspots.js';
+
+function makeFunctionsState(initialHotspots) {
+  let stored = initialHotspots;
+  const calls = { get: 0, put: [] };
+
+  return {
+    state: {
+      storage: {
+        async get(key) {
+          calls.get += 1;
+          if (key === 'hotspots') return stored;
+          return undefined;
+        },
+        async put(key, value) {
+          calls.put.push({ key, value });
+          if (key === 'hotspots') stored = value;
+        }
+      }
+    },
+    calls,
+    getStored: () => stored
+  };
+}
+
+test('functions HotspotStore GET returns default hotspots when storage is empty', async () => {
+  const { state } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.hotspots.length, 9);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+});
+
+test('functions HotspotStore GET returns saved hotspots when storage has data', async () => {
+  const saved = [
+    { id: 'noahs-arcade', x: 10, y: 20, w: 100, h: 200 },
+    { id: 'left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
+    { id: 'commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
+    { id: 'right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
+    { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
+    { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+    { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+    { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
+    { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 }
+  ];
+  const { state } = makeFunctionsState(saved);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 10, y: 20, w: 100, h: 200 });
+});
+
+test('functions HotspotStore POST rejects invalid JSON', async () => {
+  const { state } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{bad json'
+    })
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid JSON body.' });
+});
+
+test('functions HotspotStore POST sanitizes and stores hotspot payloads', async () => {
+  const { state, calls, getStored } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          { id: 'noahs-arcade', x: 50, y: 60, w: 500, h: 600 }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.equal(body.hotspots.length, 9);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 50, y: 60, w: 500, h: 600 });
+  assert.equal(calls.put.length, 1);
+  assert.equal(calls.put[0].key, 'hotspots');
+  assert.deepEqual(getStored(), body.hotspots);
+});
+
+test('functions HotspotStore returns 405 for unsupported methods', async () => {
+  const { state } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'DELETE' }));
+
+  assert.equal(response.status, 405);
+  assert.deepEqual(await response.json(), { error: 'Method not allowed.' });
+});
+
+// --- functions/api/hotspots.js onRequest additional coverage ---
+
+test('functions/api/hotspots onRequest handles OPTIONS preflight', async () => {
+  const response = await onRequest({
+    request: new Request('https://example.com/api/hotspots', { method: 'OPTIONS' }),
+    env: {}
+  });
+
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('access-control-allow-methods'), 'GET, POST, OPTIONS');
+  assert.equal(response.headers.get('access-control-allow-headers'), 'content-type');
+});
+
+test('functions/api/hotspots onRequest returns 500 when stub.fetch throws', async () => {
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() { return 'id:den-hotspots'; },
+      get() {
+        return {
+          async fetch() { throw new Error('connection refused'); }
+        };
+      }
+    }
+  };
+
+  const response = await onRequest({
+    request: new Request('https://example.com/api/hotspots', { method: 'GET' }),
+    env
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.match(body.error, /Hotspot store request failed/);
+  assert.match(body.error, /connection refused/);
+});
+
+test('functions/api/hotspots onRequest delegates POST requests', async () => {
+  const calls = { fetch: 0 };
+  const expected = new Response(JSON.stringify({ ok: true }), { status: 200 });
+
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() { return 'id:den-hotspots'; },
+      get() {
+        return {
+          async fetch(request) {
+            calls.fetch += 1;
+            assert.equal(request.method, 'POST');
+            return expected;
+          }
+        };
+      }
+    }
+  };
+
+  const response = await onRequest({
+    request: new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: [] })
+    }),
+    env
+  });
+
+  assert.equal(response, expected);
+  assert.equal(calls.fetch, 1);
+});
