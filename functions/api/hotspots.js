@@ -23,7 +23,10 @@ const HOTSPOT_LIMITS = {
 
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
-  'cache-control': 'no-store'
+  'cache-control': 'no-store',
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-headers': 'content-type'
 };
 
 function json(data, status = 200) {
@@ -89,7 +92,19 @@ export class HotspotStore {
 }
 
 export async function onRequest({ request, env }) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: JSON_HEADERS });
+  }
+
+  if (!env.HOTSPOT_STORE) {
+    return json({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
+  }
+
   const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
   const stub = env.HOTSPOT_STORE.get(id);
-  return stub.fetch(request);
+  try {
+    return await stub.fetch(request);
+  } catch (error) {
+    return json({ error: `Hotspot store request failed: ${error?.message || 'Unknown error'}` }, 500);
+  }
 }

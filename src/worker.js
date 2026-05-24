@@ -23,7 +23,10 @@ const HOTSPOT_LIMITS = {
 
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
-  'cache-control': 'no-store'
+  'cache-control': 'no-store',
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-headers': 'content-type'
 };
 
 function json(data, status = 200) {
@@ -66,9 +69,17 @@ export class HotspotStore {
   }
 
   async fetch(request) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: JSON_HEADERS });
+    }
+
     if (request.method === 'GET') {
-      const saved = await this.state.storage.get('hotspots');
-      return json({ hotspots: sanitizeHotspots(saved) });
+      try {
+        const saved = await this.state.storage.get('hotspots');
+        return json({ hotspots: sanitizeHotspots(saved) });
+      } catch (error) {
+        return json({ error: `Failed to load hotspots: ${error?.message || 'Unknown error'}` }, 500);
+      }
     }
 
     if (request.method === 'POST') {
@@ -79,9 +90,13 @@ export class HotspotStore {
         return json({ error: 'Invalid JSON body.' }, 400);
       }
 
-      const hotspots = sanitizeHotspots(body?.hotspots);
-      await this.state.storage.put('hotspots', hotspots);
-      return json({ ok: true, hotspots });
+      try {
+        const hotspots = sanitizeHotspots(body?.hotspots);
+        await this.state.storage.put('hotspots', hotspots);
+        return json({ ok: true, hotspots });
+      } catch (error) {
+        return json({ error: `Failed to save hotspots: ${error?.message || 'Unknown error'}` }, 500);
+      }
     }
 
     return json({ error: 'Method not allowed.' }, 405);
@@ -93,6 +108,9 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/hotspots') {
+      if (!env.HOTSPOT_STORE) {
+        return json({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
+      }
       const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
       return env.HOTSPOT_STORE.get(id).fetch(request);
     }
