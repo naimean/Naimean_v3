@@ -1308,7 +1308,10 @@
         WHITEBOARD_TASK_HOTSPOTS.map(({ id, label }) => [id, label])
       );
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
-      const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
+      const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set([
+        'overlay-big-tv-control',
+        'right-monitor'
+      ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
       const AQUARIUM_CLIP_LOAD_FALLBACK_MS = 1500;
