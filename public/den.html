@@ -2747,6 +2747,8 @@
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
             el.classList.add('flip-clock-overlay');
+            el.addEventListener('pointerdown', (event) => event.stopPropagation());
+            el.addEventListener('click', (event) => event.stopPropagation());
 
             function makeZone(className, ariaLabel, onActivate) {
               const zone = document.createElement('button');
