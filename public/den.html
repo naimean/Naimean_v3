@@ -467,8 +467,8 @@
       const CAMERA_SMOOTHING_FACTOR = 0.22;
       const CAMERA_SETTLE_EPSILON = 0.05;
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
-      const HOTSPOT_STORAGE_KEY = 'den_hotspot_overrides';
       const HOTSPOT_API_PATH = '/api/hotspots';
+      const SAVE_RESULT_FLASH_KEY = 'den_hotspot_save_result';
       const LEGACY_HOTSPOT_API_PATH = '/api/data';
       const LEGACY_HOTSPOT_RECORD_TITLE = 'den-hotspots-v3';
       const SAVE_BUTTON_RESET_MS = 2000;
@@ -643,22 +643,21 @@
         );
       }
 
-      function loadHotspotsFromLocalStorage() {
+      function persistSaveResultFlash(message) {
         try {
-          const stored = localStorage.getItem(HOTSPOT_STORAGE_KEY);
-          if (!stored) return null;
-          const parsed = JSON.parse(stored);
-          if (!Array.isArray(parsed)) return null;
-          return parsed;
-        } catch (_) {
-          return null;
-        }
+          sessionStorage.setItem(SAVE_RESULT_FLASH_KEY, message);
+        } catch (_) {}
       }
 
-      function persistHotspotsToLocalStorage(runtimeHotspots) {
+      function consumeSaveResultFlash() {
         try {
-          localStorage.setItem(HOTSPOT_STORAGE_KEY, JSON.stringify(runtimeHotspots));
-        } catch (_) {}
+          const flash = sessionStorage.getItem(SAVE_RESULT_FLASH_KEY);
+          if (!flash) return '';
+          sessionStorage.removeItem(SAVE_RESULT_FLASH_KEY);
+          return flash;
+        } catch (_) {
+          return '';
+        }
       }
 
       function shouldUseLegacyDataApi(status) {
@@ -1240,21 +1239,21 @@
       async function saveHotspots() {
         const savedRuntimeHotspots = getSavedHotspotsFromDom();
         const savedSourceHotspots = runtimeHotspotsToSource(savedRuntimeHotspots);
-        persistHotspotsToLocalStorage(savedRuntimeHotspots);
         hotspots = savedRuntimeHotspots;
         hideSaveModal();
 
         setSaveButtonText('Saving...', true);
         try {
           await postHotspotsToServer(savedSourceHotspots);
+          persistSaveResultFlash('Hotspots saved to the server.');
           setDebugMode(false);
           window.location.reload();
         } catch (error) {
           setSaveButtonText('Save failed');
-          debugStatus.textContent = 'Server save failed; showing manual copy fallback';
+          debugStatus.textContent = 'Server save failed; hotspots were not persisted (server-only mode).';
           showSaveFallbackModal(
             savedSourceHotspots,
-            `Unable to save to the server (${error.message}) — copy the code below to update source manually`
+            `Unable to save to the server (${error.message}) — hotspots were not persisted (server-only mode); copy the code below to update source manually`
           );
           resetSaveButtonSoon();
         }
@@ -1270,8 +1269,8 @@
 
       async function initializeScene() {
         const serverHotspots = await loadHotspotsFromServer();
-        const storedHotspots = loadHotspotsFromLocalStorage();
-        hotspots = serverHotspots || storedHotspots || sourceHotspotsToRuntime(defaultHotspots);
+        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
+        hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
 
         createTiles();
         createHotspots(hotspots);
@@ -1281,6 +1280,15 @@
         }
 
         resize();
+
+        const saveResultFlash = consumeSaveResultFlash();
+        if (saveResultFlash) {
+          debugStatus.textContent = saveResultFlash;
+        } else {
+          debugStatus.textContent = hasServerHotspots
+            ? 'Hotspots loaded from the server.'
+            : 'Server hotspots unavailable; loaded bundled default hotspots.';
+        }
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
