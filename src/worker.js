@@ -5,10 +5,7 @@ const DEFAULT_HOTSPOTS = [
   { id: 'right-monitor', x: 2292, y: 1036, w: 262, h: 198 },
   { id: 'aquarium', x: 2704, y: 720, w: 455, h: 420 },
   { id: 'rca-board', x: 3220, y: 260, w: 470, h: 1060 },
-  { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 },
-  { id: 'stopwatch', x: 656, y: 1741, w: 317, h: 112 },
-  { id: 'date-tracker', x: 2484, y: 912, w: 200, h: 130 },
-  { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
+  { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 }
 ];
 
 const HOTSPOT_LIMITS = {
