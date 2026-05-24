@@ -14,14 +14,14 @@
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
   <rect x="18" y="18" width="476" height="476" rx="78" fill="none" stroke="#aeb7ff" stroke-opacity="0.5" stroke-width="8"/>
   <rect x="54" y="54" width="404" height="180" rx="72" fill="url(#shine)"/>
-  <g fill="#ffffff">
+  <g transform="translate(256 220) scale(0.5) translate(-256 -220)" fill="#ffffff">
     <path d="M325 149c-18-10-37-17-57-20l-6 14a171 171 0 0 1 42 14 132 132 0 0 0-96 0 171 171 0 0 1 42-14l-6-14c-20 3-39 10-57 20-36 53-46 105-41 156 24 18 46 29 68 36l17-27a110 110 0 0 1-32-16 95 95 0 0 0 114 0 110 110 0 0 1-32 16l17 27c22-7 44-18 68-36 5-51-5-103-41-156Z"/>
     <circle cx="221" cy="223" r="16"/>
     <circle cx="291" cy="223" r="16"/>
     <path d="M216 270c12 12 26 18 40 18s28-6 40-18" fill="none" stroke="#5865f2" stroke-linecap="round" stroke-width="14"/>
   </g>
   <g fill="#ffffff" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
-    <text x="256" y="360" font-size="46" font-weight="700" letter-spacing="4">JOIN OUR</text>
-    <text x="256" y="415" font-size="58" font-weight="800" letter-spacing="2">DISCORD</text>
+    <text x="256" y="378" font-size="46" font-weight="700" letter-spacing="4">JOIN OUR</text>
+    <text x="256" y="433" font-size="58" font-weight="800" letter-spacing="2">DISCORD</text>
   </g>
 </svg>
