@@ -75,12 +75,16 @@
 
     .parallax-canvas {
       position: absolute;
-      left: 200px;
+      left: 400px;
       top: calc((var(--design-height) - var(--uw-canvas-height)) * 1px);
       width: calc(var(--uw-canvas-width) * 1px);
       height: calc(var(--uw-canvas-height) * 1px);
       object-fit: cover;
       pointer-events: none;
+    }
+
+    .parallax-canvas.parallax-canvas-secondary {
+      left: calc(var(--tile-width) * 1px);
     }
 
     #parallax-uw1 {
@@ -234,7 +238,6 @@
       will-change: auto;
     }
 
-    body.lite-rendering .parallax-layer,
     body.lite-rendering #effects-layer {
       display: none;
     }
@@ -413,15 +416,19 @@
       <div id="world">
         <div class="layer parallax-layer" id="parallax-uw1" aria-hidden="true">
           <img class="parallax-canvas" src="assets/images/uw1.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw1.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw2" aria-hidden="true">
           <img class="parallax-canvas" src="assets/images/uw2.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw2.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw3" aria-hidden="true">
           <img class="parallax-canvas" src="assets/images/uw3.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw3.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw4" aria-hidden="true">
           <img class="parallax-canvas" src="assets/images/uw4.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw4.png" alt="" />
         </div>
 
         <div class="layer" id="tile-layer" aria-hidden="true"></div>
