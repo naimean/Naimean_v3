@@ -254,13 +254,14 @@
 
     .resize-handle {
       position: absolute;
-      background: rgba(65, 229, 255, 0.9);
-      border: 1px solid rgba(0, 0, 0, 0.5);
-      border-radius: 2px;
+      background: rgba(65, 229, 255, 0.18);
+      border: 1px solid rgba(65, 229, 255, 0.65);
+      border-radius: 999px;
       opacity: 0;
       pointer-events: none;
       touch-action: none;
       z-index: 2;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
     }
 
     body.debug .resize-handle {
@@ -271,30 +272,30 @@
     .resize-n, .resize-s {
       left: 50%;
       transform: translateX(-50%);
-      width: 24px;
-      height: 10px;
+      width: 34px;
+      height: 18px;
     }
 
     .resize-e, .resize-w {
       top: 50%;
       transform: translateY(-50%);
-      width: 10px;
-      height: 24px;
+      width: 18px;
+      height: 34px;
     }
 
     .resize-ne, .resize-nw, .resize-se, .resize-sw {
-      width: 14px;
-      height: 14px;
+      width: 28px;
+      height: 28px;
     }
 
-    .resize-n  { top: -5px;    cursor: n-resize; }
-    .resize-s  { bottom: -5px; cursor: s-resize; }
-    .resize-e  { right: -5px;  cursor: e-resize; }
-    .resize-w  { left: -5px;   cursor: w-resize; }
-    .resize-ne { top: -7px;    right: -7px;  cursor: ne-resize; }
-    .resize-nw { top: -7px;    left: -7px;   cursor: nw-resize; }
-    .resize-se { bottom: -7px; right: -7px;  cursor: se-resize; }
-    .resize-sw { bottom: -7px; left: -7px;   cursor: sw-resize; }
+    .resize-n  { top: -9px;    cursor: n-resize; }
+    .resize-s  { bottom: -9px; cursor: s-resize; }
+    .resize-e  { right: -9px;  cursor: e-resize; }
+    .resize-w  { left: -9px;   cursor: w-resize; }
+    .resize-ne { top: -14px;   right: -14px; cursor: ne-resize; }
+    .resize-nw { top: -14px;   left: -14px;  cursor: nw-resize; }
+    .resize-se { bottom: -14px; right: -14px; cursor: se-resize; }
+    .resize-sw { bottom: -14px; left: -14px; cursor: sw-resize; }
 
     /* Save button (sits to the right of Debug button) */
     #save-hotspots-btn {
@@ -316,6 +317,11 @@
     #save-hotspots-btn:focus-visible {
       outline: 2px solid rgba(65, 229, 255, 0.95);
       outline-offset: 2px;
+    }
+
+    #save-hotspots-btn:disabled {
+      cursor: progress;
+      opacity: 0.75;
     }
 
     /* Save output modal */
@@ -417,7 +423,7 @@
   <button id="save-hotspots-btn" type="button" aria-label="Save hotspot positions">Save</button>
   <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
     <div id="save-modal-inner">
-      <p id="save-modal-title">Hotspot positions saved — copy the code below to update source</p>
+      <p id="save-modal-title">Unable to save to the server — copy the code below to update source manually</p>
       <textarea id="save-modal-textarea" readonly spellcheck="false"></textarea>
       <div id="save-modal-actions">
         <button type="button" class="save-modal-btn primary" id="save-modal-copy-btn">Copy to clipboard</button>
@@ -443,6 +449,10 @@
       const CAMERA_SETTLE_EPSILON = 0.05;
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
       const HOTSPOT_STORAGE_KEY = 'den_hotspot_overrides';
+      const HOTSPOT_API_PATH = '/api/hotspots';
+      const SAVE_BUTTON_RESET_MS = 2000;
+      const TOUCH_MOMENTUM_DECAY = 0.004;
+      const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
 
@@ -459,7 +469,7 @@
 
       // Fixed pixel hotspots in design-space coordinates.
       // Edit x/y/w/h values as artwork alignment is refined.
-      const hotspots = [
+      const defaultHotspots = [
         { id: 'big-tv', x: 1140, y: 560, w: 940, h: 520 },
         { id: 'left-monitor', x: 1478, y: 1064, w: 310, h: 220 },
         { id: 'commodore-screen', x: 1840, y: 1040, w: 372, h: 246 },
@@ -469,7 +479,7 @@
         { id: 'pencil-sharpener', x: 1682, y: 1338, w: 135, h: 150 },
         { id: 'date-tracker', x: 2484, y: 912, w: 200, h: 130 },
         { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
-      ].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));
+      ];
 
       // Overlay placeholders over transparent screen cutouts.
       const overlays = [
@@ -487,6 +497,10 @@
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
+      const saveBtn = document.getElementById('save-hotspots-btn');
+      const saveModal = document.getElementById('save-modal');
+      const saveModalTitle = document.getElementById('save-modal-title');
+      const saveModalTextarea = document.getElementById('save-modal-textarea');
       const isIOSDevice =
         /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
         (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
@@ -517,6 +531,13 @@
       let dragStartedOnHotspot = false;
       let suppressHotspotClickUntil = 0;
       let cameraAnimationFrameId = null;
+      let activePointerType = '';
+      let lastPointerMoveTime = 0;
+      let dragVelocityX = 0;
+      let momentumAnimationFrameId = null;
+      let momentumVelocityX = 0;
+      let lastMomentumTimestamp = 0;
+      let saveButtonResetTimeoutId = null;
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -526,19 +547,144 @@
       let debugEditStartY = 0;
       let debugEditOrigRect = null; // { left, top, w, h } in design-space px
 
-      // Load any previously saved hotspot overrides from localStorage.
-      // Saved values are full design-space coordinates (including SCENE_OFFSET_X).
-      let hotspotOverrides = {};
-      try {
-        const stored = localStorage.getItem(HOTSPOT_STORAGE_KEY);
-        if (stored) {
-          const arr = JSON.parse(stored);
-          if (Array.isArray(arr)) arr.forEach((o) => { hotspotOverrides[o.id] = o; });
-        }
-      } catch (_) {}
+      let hotspots = defaultHotspots.map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
+      }
+
+      function isFiniteNumber(value) {
+        return typeof value === 'number' && Number.isFinite(value);
+      }
+
+      function sourceHotspotsToRuntime(sourceHotspots) {
+        return sourceHotspots.map((spot) => ({
+          ...spot,
+          x: spot.x + SCENE_OFFSET_X
+        }));
+      }
+
+      function runtimeHotspotsToSource(runtimeHotspots) {
+        return runtimeHotspots.map((spot) => ({
+          id: spot.id,
+          x: spot.x - SCENE_OFFSET_X,
+          y: spot.y,
+          w: spot.w,
+          h: spot.h
+        }));
+      }
+
+      function sanitizeSourceHotspots(input) {
+        if (!Array.isArray(input)) return null;
+        const entriesById = new Map();
+        input.forEach((entry) => {
+          if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string') return;
+          entriesById.set(entry.id, entry);
+        });
+
+        return defaultHotspots.map((fallback) => {
+          const entry = entriesById.get(fallback.id);
+          if (!entry) return { ...fallback };
+          return {
+            id: fallback.id,
+            x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
+            y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
+            w: isFiniteNumber(entry.w) ? Math.max(20, Math.round(entry.w)) : fallback.w,
+            h: isFiniteNumber(entry.h) ? Math.max(20, Math.round(entry.h)) : fallback.h
+          };
+        });
+      }
+
+      function getSavedHotspotsFromDom() {
+        const saved = [];
+        hotspotLayer.querySelectorAll('.hotspot').forEach((el) => {
+          saved.push({
+            id: el.id,
+            x: Math.round(parseFloat(el.style.left)),
+            y: Math.round(parseFloat(el.style.top)),
+            w: Math.round(parseFloat(el.style.width)),
+            h: Math.round(parseFloat(el.style.height))
+          });
+        });
+        return saved;
+      }
+
+      function getSourceOutput(sourceHotspots) {
+        const lines = sourceHotspots.map((spot) =>
+          `  { id: ${JSON.stringify(spot.id)}, x: ${spot.x}, y: ${spot.y}, w: ${spot.w}, h: ${spot.h} },`
+        );
+        return (
+          `const hotspots = [\n${lines.join('\n')}\n` +
+          `].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));`
+        );
+      }
+
+      function loadHotspotsFromLocalStorage() {
+        try {
+          const stored = localStorage.getItem(HOTSPOT_STORAGE_KEY);
+          if (!stored) return null;
+          const parsed = JSON.parse(stored);
+          if (!Array.isArray(parsed)) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function persistHotspotsToLocalStorage(runtimeHotspots) {
+        try {
+          localStorage.setItem(HOTSPOT_STORAGE_KEY, JSON.stringify(runtimeHotspots));
+        } catch (_) {}
+      }
+
+      async function loadHotspotsFromServer() {
+        try {
+          const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store' });
+          if (!response.ok) return null;
+          const payload = await response.json();
+          const sanitized = sanitizeSourceHotspots(payload?.hotspots);
+          return sanitized ? sourceHotspotsToRuntime(sanitized) : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function setSaveButtonText(text, disabled = false) {
+        saveBtn.textContent = text;
+        saveBtn.disabled = disabled;
+      }
+
+      function resetSaveButtonSoon() {
+        if (saveButtonResetTimeoutId !== null) {
+          window.clearTimeout(saveButtonResetTimeoutId);
+        }
+        saveButtonResetTimeoutId = window.setTimeout(() => {
+          setSaveButtonText('Save');
+          saveButtonResetTimeoutId = null;
+        }, SAVE_BUTTON_RESET_MS);
+      }
+
+      function hideSaveModal() {
+        saveModal.classList.add('hidden');
+      }
+
+      function showSaveFallbackModal(sourceHotspots, message) {
+        saveModalTitle.textContent = message;
+        saveModalTextarea.value = getSourceOutput(sourceHotspots);
+        saveModal.classList.remove('hidden');
+      }
+
+      function stopMomentum() {
+        if (momentumAnimationFrameId !== null) {
+          window.cancelAnimationFrame(momentumAnimationFrameId);
+          momentumAnimationFrameId = null;
+        }
+        momentumVelocityX = 0;
+        lastMomentumTimestamp = 0;
+      }
+
+      function shouldUseMomentum(pointerType) {
+        return pointerType === 'touch' || (pointerType === 'pen' && hasCoarsePointer);
       }
 
       function createTiles() {
@@ -575,34 +721,29 @@
         label.textContent = `${el.id} (${x}, ${y}) ${w}×${h}`;
       }
 
-      function createHotspots() {
+      function createHotspots(hotspotList) {
+        hotspotLayer.textContent = '';
         const toTitleCase = (value) =>
           value
             .split('-')
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
 
-        hotspots.forEach((spot) => {
-          const override = hotspotOverrides[spot.id];
-          const x = override ? override.x : spot.x;
-          const y = override ? override.y : spot.y;
-          const w = override ? override.w : spot.w;
-          const h = override ? override.h : spot.h;
-
+        hotspotList.forEach((spot) => {
           const readableLabel = toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
           el.id = spot.id;
-          el.style.left = `${x}px`;
-          el.style.top = `${y}px`;
-          el.style.width = `${w}px`;
-          el.style.height = `${h}px`;
+          el.style.left = `${spot.x}px`;
+          el.style.top = `${spot.y}px`;
+          el.style.width = `${spot.w}px`;
+          el.style.height = `${spot.h}px`;
           el.setAttribute('aria-label', readableLabel);
 
           const label = document.createElement('span');
           label.className = 'hotspot-label';
-          label.textContent = `${spot.id} (${x}, ${y}) ${w}×${h}`;
+          label.textContent = `${spot.id} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
           el.appendChild(label);
 
           addResizeHandles(el);
@@ -676,6 +817,42 @@
         startCameraAnimation();
       }
 
+      function startMomentum(initialVelocityX) {
+        stopMomentum();
+        if (!shouldUseMomentum(activePointerType) || Math.abs(initialVelocityX) < TOUCH_MOMENTUM_MIN_VELOCITY) {
+          return;
+        }
+
+        setCameraX(targetCameraX);
+        targetCameraX = cameraX;
+        momentumVelocityX = initialVelocityX;
+        momentumAnimationFrameId = window.requestAnimationFrame(function tickMomentum(timestamp) {
+          if (lastMomentumTimestamp === 0) {
+            lastMomentumTimestamp = timestamp;
+          }
+
+          const elapsed = Math.max(1, timestamp - lastMomentumTimestamp);
+          lastMomentumTimestamp = timestamp;
+          momentumVelocityX *= Math.exp(-TOUCH_MOMENTUM_DECAY * elapsed);
+
+          if (Math.abs(momentumVelocityX) < TOUCH_MOMENTUM_MIN_VELOCITY) {
+            stopMomentum();
+            return;
+          }
+
+          const previousCameraX = cameraX;
+          setCameraX(cameraX + momentumVelocityX * elapsed);
+          targetCameraX = cameraX;
+
+          if (cameraX === previousCameraX) {
+            stopMomentum();
+            return;
+          }
+
+          momentumAnimationFrameId = window.requestAnimationFrame(tickMomentum);
+        });
+      }
+
       function resize() {
         scale = window.innerHeight / DESIGN_HEIGHT;
         visibleWidth = window.innerWidth / scale;
@@ -699,6 +876,7 @@
 
       function onWheel(event) {
         event.preventDefault();
+        stopMomentum();
         let unitScale = 1;
         if (event.deltaMode === DOM_DELTA_LINE) {
           unitScale = LINE_SCROLL_PIXELS;
@@ -768,6 +946,7 @@
 
       function onPointerDown(event) {
         if (activePointerId !== null) return;
+        stopMomentum();
 
         // In debug mode, intercept drags on hotspots and resize handles.
         if (document.body.classList.contains('debug')) {
@@ -788,8 +967,11 @@
 
         isPointerDown = true;
         activePointerId = event.pointerId;
+        activePointerType = event.pointerType || '';
         pointerStartX = event.clientX;
         lastPointerX = event.clientX;
+        lastPointerMoveTime = event.timeStamp;
+        dragVelocityX = 0;
         dragStartedOnHotspot = Boolean(event.target.closest('.hotspot'));
         suppressHotspotClickUntil = 0;
       }
@@ -820,10 +1002,14 @@
 
         event.preventDefault();
         const dx = event.clientX - lastPointerX;
+        const elapsed = Math.max(1, event.timeStamp - lastPointerMoveTime);
         lastPointerX = event.clientX;
+        lastPointerMoveTime = event.timeStamp;
 
         // Convert screen drag delta to design-space world delta.
-        setTargetCameraX(targetCameraX - dx / scale);
+        const worldDelta = -dx / scale;
+        dragVelocityX = dragVelocityX * 0.75 + (worldDelta / elapsed) * 0.25;
+        setTargetCameraX(targetCameraX + worldDelta);
       }
 
       function onPointerUp(event) {
@@ -837,19 +1023,27 @@
           debugEditDir = null;
           debugEditOrigRect = null;
           activePointerId = null;
+          activePointerType = '';
           if (viewport.hasPointerCapture(event.pointerId)) {
             viewport.releasePointerCapture(event.pointerId);
           }
           return;
         }
 
+        const shouldStartMomentum = isDragging && shouldUseMomentum(activePointerType);
+        const releasedVelocityX = dragVelocityX;
         isPointerDown = false;
         activePointerId = null;
+        activePointerType = '';
         dragStartedOnHotspot = false;
         isDragging = false;
+        dragVelocityX = 0;
         viewport.classList.remove('dragging');
         if (viewport.hasPointerCapture(event.pointerId)) {
           viewport.releasePointerCapture(event.pointerId);
+        }
+        if (shouldStartMomentum) {
+          startMomentum(releasedVelocityX);
         }
       }
 
@@ -871,33 +1065,35 @@
           : 'Debug mode disabled';
       }
 
-      function saveHotspots() {
-        const saved = [];
-        hotspotLayer.querySelectorAll('.hotspot').forEach((el) => {
-          saved.push({
-            id: el.id,
-            x: Math.round(parseFloat(el.style.left)),
-            y: Math.round(parseFloat(el.style.top)),
-            w: Math.round(parseFloat(el.style.width)),
-            h: Math.round(parseFloat(el.style.height))
-          });
-        });
+      async function saveHotspots() {
+        const savedRuntimeHotspots = getSavedHotspotsFromDom();
+        const savedSourceHotspots = runtimeHotspotsToSource(savedRuntimeHotspots);
+        persistHotspotsToLocalStorage(savedRuntimeHotspots);
+        hotspots = savedRuntimeHotspots;
+        hideSaveModal();
 
+        setSaveButtonText('Saving...', true);
         try {
-          localStorage.setItem(HOTSPOT_STORAGE_KEY, JSON.stringify(saved));
-        } catch (_) {}
-
-        // Display values with SCENE_OFFSET_X subtracted so they can be pasted
-        // directly back into the hotspots array in the source.
-        const lines = saved.map((s) =>
-          `  { id: ${JSON.stringify(s.id)}, x: ${s.x - SCENE_OFFSET_X}, y: ${s.y}, w: ${s.w}, h: ${s.h} },`
-        );
-        const output =
-          `const hotspots = [\n${lines.join('\n')}\n` +
-          `].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));`;
-
-        document.getElementById('save-modal-textarea').value = output;
-        document.getElementById('save-modal').classList.remove('hidden');
+          const response = await fetch(HOTSPOT_API_PATH, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ hotspots: savedSourceHotspots })
+          });
+          if (!response.ok) {
+            throw new Error(`Server save failed (${response.status})`);
+          }
+          setSaveButtonText('Saved');
+          debugStatus.textContent = 'Hotspot positions saved to the server';
+          resetSaveButtonSoon();
+        } catch (error) {
+          setSaveButtonText('Save failed');
+          debugStatus.textContent = 'Server save failed; showing manual copy fallback';
+          showSaveFallbackModal(
+            savedSourceHotspots,
+            `Unable to save to the server (${error.message}) — copy the code below to update source manually`
+          );
+          resetSaveButtonSoon();
+        }
       }
 
       function cleanup() {
@@ -905,13 +1101,22 @@
           window.cancelAnimationFrame(cameraAnimationFrameId);
           cameraAnimationFrameId = null;
         }
+        stopMomentum();
       }
 
-      createTiles();
-      createHotspots();
-      createOverlays();
-      if (useLiteRendering) {
-        document.body.classList.add('lite-rendering');
+      async function initializeScene() {
+        const serverHotspots = await loadHotspotsFromServer();
+        const storedHotspots = loadHotspotsFromLocalStorage();
+        hotspots = serverHotspots || storedHotspots || sourceHotspotsToRuntime(defaultHotspots);
+
+        createTiles();
+        createHotspots(hotspots);
+        createOverlays();
+        if (useLiteRendering) {
+          document.body.classList.add('lite-rendering');
+        }
+
+        resize();
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
@@ -931,41 +1136,37 @@
       window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
 
-      const saveBtn = document.getElementById('save-hotspots-btn');
       saveBtn.addEventListener('click', saveHotspots);
 
-      document.getElementById('save-modal-close-btn').addEventListener('click', () => {
-        document.getElementById('save-modal').classList.add('hidden');
-      });
+      document.getElementById('save-modal-close-btn').addEventListener('click', hideSaveModal);
 
       document.getElementById('save-modal-copy-btn').addEventListener('click', (e) => {
-        const textarea = document.getElementById('save-modal-textarea');
         const btn = e.currentTarget;
         const copy = () => {
           btn.textContent = 'Copied!';
           setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(textarea.value).then(copy).catch(() => {
-            textarea.select();
+          navigator.clipboard.writeText(saveModalTextarea.value).then(copy).catch(() => {
+            saveModalTextarea.select();
             if (document.execCommand('copy')) copy();
           });
         } else {
-          textarea.select();
+          saveModalTextarea.select();
           if (document.execCommand('copy')) copy();
         }
       });
 
       // Close save modal on backdrop click
-      document.getElementById('save-modal').addEventListener('click', (event) => {
+      saveModal.addEventListener('click', (event) => {
         if (event.target === event.currentTarget) {
-          event.currentTarget.classList.add('hidden');
+          hideSaveModal();
         }
       });
 
       setTimeout(() => document.getElementById('debug-hint').classList.add('hidden'), 5500);
 
-      resize();
+      initializeScene();
     })();
   </script>
 </body>
