@@ -192,6 +192,197 @@
       mix-blend-mode: normal;
     }
 
+    /* ── Flip Clock / Calendar Overlay ────────────────────── */
+    .flip-clock-overlay {
+      display: flex;
+      align-items: stretch;
+      background: #0e0e0e;
+      border-radius: 6px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.06);
+      pointer-events: auto;
+      overflow: hidden;
+    }
+
+    .fc-half {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 10px 8px;
+      gap: 6px;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .fc-half:hover { background: rgba(255,255,255,0.05); }
+    .fc-half:active { background: rgba(255,255,255,0.09); }
+
+    .fc-digits {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .fc-colon {
+      font-size: 52px;
+      font-weight: 900;
+      font-family: 'Courier New', Courier, monospace;
+      color: rgba(245, 210, 90, 0.8);
+      line-height: 1;
+      margin: 0 1px;
+      padding-bottom: 8px;
+      text-shadow: 0 0 10px rgba(255,200,60,0.35);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-label {
+      font-size: 10px;
+      font-family: Inter, system-ui, sans-serif;
+      font-weight: 600;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-vdivider {
+      width: 2px;
+      background: rgba(255,255,255,0.07);
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+
+    /* Digit and month cards */
+    .fc-digit, .fc-month {
+      position: relative;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #1c1c1c;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+
+    .fc-digit { width: 58px; height: 84px; }
+    .fc-month { width: 96px; height: 84px; }
+
+    .fc-digit .fc-top, .fc-digit .fc-bot,
+    .fc-month .fc-top, .fc-month .fc-bot {
+      position: absolute;
+      left: 0; right: 0;
+      height: 50%;
+      overflow: hidden;
+    }
+
+    .fc-digit .fc-top, .fc-month .fc-top {
+      top: 0;
+      background: #262626;
+      border-bottom: 1px solid #000;
+    }
+
+    .fc-digit .fc-bot, .fc-month .fc-bot {
+      bottom: 0;
+      background: #1c1c1c;
+    }
+
+    /* Number span positioned so each half clips the correct half of the glyph */
+    .fc-digit .fc-num {
+      position: absolute;
+      left: 0; right: 0;
+      height: 84px;
+      line-height: 84px;
+      text-align: center;
+      font-size: 70px;
+      font-weight: 900;
+      font-family: 'Courier New', Courier, monospace;
+      color: #f0d870;
+      text-shadow: 0 0 8px rgba(240,210,80,0.2);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-month .fc-num {
+      position: absolute;
+      left: 0; right: 0;
+      height: 84px;
+      line-height: 84px;
+      text-align: center;
+      font-size: 27px;
+      font-weight: 700;
+      font-family: Inter, system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      color: #f0d870;
+      text-shadow: 0 0 8px rgba(240,210,80,0.18);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Top half clips glyph from top; bottom half clips from bottom */
+    .fc-digit .fc-top .fc-num,
+    .fc-month .fc-top .fc-num { top: 0; }
+
+    .fc-digit .fc-bot .fc-num,
+    .fc-month .fc-bot .fc-num { bottom: 0; }
+
+    /* Animated flap element */
+    .fc-flap {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      overflow: hidden;
+      z-index: 4;
+      transform-origin: bottom center;
+      background: #262626;
+      border-bottom: 1px solid #000;
+      pointer-events: none;
+    }
+
+    .fc-flap .fc-num {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 84px;
+      line-height: 84px;
+      text-align: center;
+      font-size: 70px;
+      font-weight: 900;
+      font-family: 'Courier New', Courier, monospace;
+      color: #f0d870;
+      text-shadow: 0 0 8px rgba(240,210,80,0.2);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-month .fc-flap .fc-num {
+      font-size: 27px;
+      font-family: Inter, system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .fc-flap-p1 {
+      animation: fc-fold 0.18s ease-in forwards;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .fc-flap-p2 {
+      transform: perspective(100px) rotateX(90deg);
+      animation: fc-unfold 0.18s ease-out forwards;
+    }
+
+    @keyframes fc-fold {
+      from { transform: perspective(100px) rotateX(0deg); }
+      to   { transform: perspective(100px) rotateX(-90deg); }
+    }
+
+    @keyframes fc-unfold {
+      from { transform: perspective(100px) rotateX(90deg); }
+      to   { transform: perspective(100px) rotateX(0deg); }
+    }
+
     /* Debug mode (toggle with `~`). */
     body.debug .hotspot {
       border-color: rgba(65, 229, 255, 0.95);
@@ -508,6 +699,10 @@
       ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const CLOCK_URL_WINDOWS = 'ms-clock://';
+      const CLOCK_URL_IOS = 'clock://';
+      const CALENDAR_URL_DESKTOP = 'outlookcal://';
+      const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -540,7 +735,8 @@
         { id: 'overlay-big-tv', x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
-        { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 }
+        { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
+        { id: 'overlay-flip-clock', x: 945, y: 1720, w: 450, h: 195 }
       ].map((overlay) => {
         const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
         if (overlay.id === 'overlay-big-tv') {
@@ -602,6 +798,8 @@
       let lastMomentumTimestamp = 0;
       let saveButtonResetTimeoutId = null;
       let hotspotApiMode = 'primary';
+      let flipClockIntervalId = null;
+      let flipClockAlignTimeoutId = null;
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -928,6 +1126,138 @@
         label.textContent = `${el.id} (${x}, ${y}) ${w}×${h}`;
       }
 
+      // ── Flip Clock helpers ────────────────────────────────
+
+      function openClockApp() {
+        const ua = navigator.userAgent;
+        if (/Windows/i.test(ua)) {
+          window.location.href = CLOCK_URL_WINDOWS;
+        } else if (/iPhone|iPad|iPod/i.test(ua)) {
+          window.location.href = CLOCK_URL_IOS;
+        } else {
+          window.open('https://time.is', '_blank', 'noopener,noreferrer');
+        }
+      }
+
+      function openCalendarApp() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        window.location.href = isMobile ? CALENDAR_URL_MOBILE : CALENDAR_URL_DESKTOP;
+      }
+
+      function createFlipCard(isMonth) {
+        const el = document.createElement('div');
+        el.className = isMonth ? 'fc-month' : 'fc-digit';
+        el.dataset.val = '';
+
+        const top = document.createElement('div');
+        top.className = 'fc-top';
+        const topNum = document.createElement('span');
+        topNum.className = 'fc-num';
+        top.appendChild(topNum);
+
+        const bot = document.createElement('div');
+        bot.className = 'fc-bot';
+        const botNum = document.createElement('span');
+        botNum.className = 'fc-num';
+        bot.appendChild(botNum);
+
+        el.appendChild(top);
+        el.appendChild(bot);
+        return el;
+      }
+
+      function setFlipCard(el, newVal, animate) {
+        const oldVal = el.dataset.val;
+        if (oldVal === newVal) return;
+
+        const topNum = el.querySelector('.fc-top .fc-num');
+        const botNum = el.querySelector('.fc-bot .fc-num');
+
+        if (!animate || oldVal === '') {
+          topNum.textContent = newVal;
+          botNum.textContent = newVal;
+          el.dataset.val = newVal;
+          return;
+        }
+
+        // Show new bottom value immediately (hidden behind flap during phase 1)
+        botNum.textContent = newVal;
+
+        // Phase 1: old top folds away
+        const flap1 = document.createElement('div');
+        flap1.className = 'fc-flap fc-flap-p1';
+        const flap1Num = document.createElement('span');
+        flap1Num.className = 'fc-num';
+        flap1Num.textContent = oldVal;
+        flap1.appendChild(flap1Num);
+        el.appendChild(flap1);
+
+        flap1.addEventListener('animationend', () => {
+          flap1.remove();
+          topNum.textContent = newVal;
+
+          // Phase 2: new top unfolds in
+          const flap2 = document.createElement('div');
+          flap2.className = 'fc-flap fc-flap-p2';
+          const flap2Num = document.createElement('span');
+          flap2Num.className = 'fc-num';
+          flap2Num.textContent = newVal;
+          flap2.appendChild(flap2Num);
+          el.appendChild(flap2);
+
+          flap2.addEventListener('animationend', () => {
+            flap2.remove();
+          }, { once: true });
+        }, { once: true });
+
+        el.dataset.val = newVal;
+      }
+
+      function startFlipClock(container) {
+        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
+                             'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        // Cache card references once to avoid repeated DOM queries
+        const cards = {
+          h1: container.querySelector('[data-key="h1"]'),
+          h2: container.querySelector('[data-key="h2"]'),
+          m1: container.querySelector('[data-key="m1"]'),
+          m2: container.querySelector('[data-key="m2"]'),
+          d1: container.querySelector('[data-key="d1"]'),
+          d2: container.querySelector('[data-key="d2"]'),
+          mon: container.querySelector('[data-key="mon"]')
+        };
+
+        function tick(animate) {
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const mon = MONTH_NAMES[now.getMonth()];
+
+          setFlipCard(cards.h1, hh[0], animate);
+          setFlipCard(cards.h2, hh[1], animate);
+          setFlipCard(cards.m1, mm[0], animate);
+          setFlipCard(cards.m2, mm[1], animate);
+          setFlipCard(cards.d1, dd[0], animate);
+          setFlipCard(cards.d2, dd[1], animate);
+          setFlipCard(cards.mon, mon, animate);
+        }
+
+        tick(false); // Initial render without animation
+
+        // Align the first animated tick to the next full second boundary,
+        // then switch to a regular 1 s interval for subsequent ticks.
+        const msUntilNextSecond = 1000 - new Date().getMilliseconds();
+        flipClockAlignTimeoutId = setTimeout(() => {
+          flipClockAlignTimeoutId = null;
+          tick(true);
+          flipClockIntervalId = setInterval(() => tick(true), 1000);
+        }, msUntilNextSecond);
+      }
+
+      // ─────────────────────────────────────────────────────
+
       function createHotspots(hotspotList) {
         hotspotLayer.textContent = '';
         const toTitleCase = (value) =>
@@ -1003,6 +1333,67 @@
             iframe.sandbox = 'allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts';
             iframe.loading = 'lazy';
             el.appendChild(iframe);
+          }
+
+          if (overlay.id === 'overlay-flip-clock') {
+            el.classList.add('flip-clock-overlay');
+
+            // Helper to build a clickable half
+            function makeHalf(label, ariaLabel, onActivate) {
+              const half = document.createElement('div');
+              half.className = 'fc-half';
+              half.setAttribute('role', 'button');
+              half.setAttribute('tabindex', '0');
+              half.setAttribute('aria-label', ariaLabel);
+              half.addEventListener('pointerdown', (e) => e.stopPropagation());
+              half.addEventListener('click', (e) => { e.stopPropagation(); onActivate(); });
+              half.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onActivate();
+                }
+              });
+
+              const digits = document.createElement('div');
+              digits.className = 'fc-digits';
+              half.appendChild(digits);
+
+              const lbl = document.createElement('div');
+              lbl.className = 'fc-label';
+              lbl.textContent = label;
+              half.appendChild(lbl);
+
+              return { half, digits };
+            }
+
+            // Left half — clock
+            const { half: clockHalf, digits: clockDigits } = makeHalf('Time', 'Open Clock App', openClockApp);
+            const h1 = createFlipCard(false); h1.dataset.key = 'h1';
+            const h2 = createFlipCard(false); h2.dataset.key = 'h2';
+            const colon = document.createElement('span');
+            colon.className = 'fc-colon';
+            colon.textContent = ':';
+            colon.setAttribute('aria-hidden', 'true');
+            const m1 = createFlipCard(false); m1.dataset.key = 'm1';
+            const m2 = createFlipCard(false); m2.dataset.key = 'm2';
+            clockDigits.append(h1, h2, colon, m1, m2);
+
+            // Divider
+            const divider = document.createElement('div');
+            divider.className = 'fc-vdivider';
+            divider.setAttribute('aria-hidden', 'true');
+
+            // Right half — calendar
+            const { half: calHalf, digits: calDigits } = makeHalf('Date', 'Open Calendar App', openCalendarApp);
+            const d1 = createFlipCard(false); d1.dataset.key = 'd1';
+            const d2 = createFlipCard(false); d2.dataset.key = 'd2';
+            const mon = createFlipCard(true);  mon.dataset.key = 'mon';
+            calDigits.append(d1, d2, mon);
+
+            el.append(clockHalf, divider, calHalf);
+
+            // Start the live clock after the element is in the DOM
+            requestAnimationFrame(() => startFlipClock(el));
           }
 
           screenOverlayLayer.appendChild(el);
@@ -1335,6 +1726,14 @@
         if (cameraAnimationFrameId !== null) {
           window.cancelAnimationFrame(cameraAnimationFrameId);
           cameraAnimationFrameId = null;
+        }
+        if (flipClockAlignTimeoutId !== null) {
+          clearTimeout(flipClockAlignTimeoutId);
+          flipClockAlignTimeoutId = null;
+        }
+        if (flipClockIntervalId !== null) {
+          clearInterval(flipClockIntervalId);
+          flipClockIntervalId = null;
         }
         stopMomentum();
       }
