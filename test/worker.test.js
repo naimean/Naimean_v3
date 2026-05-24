@@ -237,6 +237,35 @@ test('worker augments frame-src CSP with YouTube aquarium sources', async () => 
   assert.ok(frameSources.has('https://www.youtube.com'));
 });
 
+test('worker augments frame-src CSP on extensionless den paths', async () => {
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      },
+      get() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      }
+    },
+    ASSETS: {
+      async fetch() {
+        return new Response('den page', {
+          status: 200,
+          headers: {
+            'content-security-policy': "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+          }
+        });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/den'), env);
+  const csp = response.headers.get('content-security-policy');
+
+  assert.match(csp, /frame-src[^;]*https:\/\/www\.youtube-nocookie\.com/);
+  assert.match(csp, /frame-src[^;]*https:\/\/www\.youtube\.com/);
+});
+
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], fetch: 0 };
   const expected = new Response('ok', { status: 200 });
