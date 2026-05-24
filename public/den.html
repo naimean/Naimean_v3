@@ -242,6 +242,10 @@
       display: none;
     }
 
+    body.lite-rendering .parallax-layer {
+      display: none;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -415,20 +419,20 @@
     <div id="stage">
       <div id="world">
         <div class="layer parallax-layer" id="parallax-uw1" aria-hidden="true">
-          <img class="parallax-canvas" src="assets/images/uw1.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw1.png" alt="" />
+          <img class="parallax-canvas" data-src="assets/images/uw1.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw1.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw2" aria-hidden="true">
-          <img class="parallax-canvas" src="assets/images/uw2.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw2.png" alt="" />
+          <img class="parallax-canvas" data-src="assets/images/uw2.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw2.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw3" aria-hidden="true">
-          <img class="parallax-canvas" src="assets/images/uw3.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw3.png" alt="" />
+          <img class="parallax-canvas" data-src="assets/images/uw3.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw3.png" alt="" />
         </div>
         <div class="layer parallax-layer" id="parallax-uw4" aria-hidden="true">
-          <img class="parallax-canvas" src="assets/images/uw4.png" alt="" />
-          <img class="parallax-canvas parallax-canvas-secondary" src="assets/images/uw4.png" alt="" />
+          <img class="parallax-canvas" data-src="assets/images/uw4.png" alt="" />
+          <img class="parallax-canvas parallax-canvas-secondary" data-src="assets/images/uw4.png" alt="" />
         </div>
 
         <div class="layer" id="tile-layer" aria-hidden="true"></div>
@@ -946,6 +950,14 @@
         });
       }
 
+      function hydrateParallaxCanvases() {
+        document.querySelectorAll('.parallax-canvas[data-src]').forEach((el) => {
+          const src = el.dataset.src;
+          if (!src) return;
+          el.src = src;
+        });
+      }
+
       function applyTransforms() {
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
 
@@ -1277,6 +1289,8 @@
         createOverlays();
         if (useLiteRendering) {
           document.body.classList.add('lite-rendering');
+        } else {
+          hydrateParallaxCanvases();
         }
 
         resize();
