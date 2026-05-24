@@ -281,6 +281,23 @@
       animation: titleVioletShimmer 4s ease-in-out infinite;
     }
 
+    #topbar-title {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      flex: 0 0 auto;
+    }
+    #topbar-title h1 {
+      margin: 0;
+    }
+    #back-to-den-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
     #nav-controls {
       display: flex;
       align-items: center;
@@ -2185,8 +2202,9 @@
 </nav>
 
 <div id="topbar">
-  <div style="flex:0 0 auto;">
+  <div id="topbar-title">
     <h1>FAMILY CALENDAR</h1>
+    <a class="btn btn-sm" id="back-to-den-btn" href="/den.html" aria-label="Back to the den">&#x2190; BACK TO DEN</a>
   </div>
   <button class="btn btn-sm btn-green" id="create-btn" aria-label="Create new event">+ CREATE</button>
   <div id="nav-controls">
