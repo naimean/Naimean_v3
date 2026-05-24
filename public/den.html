@@ -955,6 +955,7 @@
           const src = el.dataset.src;
           if (!src) return;
           el.src = src;
+          el.removeAttribute('data-src');
         });
       }
 
