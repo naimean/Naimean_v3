@@ -148,6 +148,7 @@
       z-index: 1;
     }
 
+    .screen-overlay.join-discord-overlay,
     .screen-overlay.calendar-monitor-overlay {
       display: flex;
       align-items: center;
@@ -168,6 +169,33 @@
       width: 100%;
       height: 100%;
       object-fit: fill;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .join-discord-button {
+      width: min(100%, 216px);
+      height: min(100%, 216px);
+      padding: 0;
+      border: 0;
+      border-radius: 20px;
+      background: transparent;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .join-discord-button:focus-visible {
+      outline: 4px solid rgba(255, 255, 255, 0.9);
+      outline-offset: 4px;
+    }
+
+    .join-discord-button-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -299,6 +327,30 @@
     }
 
     .discord-static-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
+    }
+
+    .nedry-gate-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .nedry-gate-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nedry-gate-video {
       width: 100%;
       height: 100%;
       display: block;
@@ -1079,6 +1131,7 @@
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
+      const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set(['right-monitor']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&rel=0';
       const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
@@ -1099,7 +1152,9 @@
       const RADIO_TUNING_VOLUME_STATION_GAIN = 0.74;
       const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
       const RADIO_TUNING_VOLUME_MIN = 0.08;
+      const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
+      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const CALENDAR_PAGE_URL = '/calendar.html';
       const NOTES_URL = 'notes.html';
@@ -1218,6 +1273,8 @@
       let aquariumYoutubeIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
+      let nedryGateOverlayEl = null;
+      let nedryGateVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -1235,6 +1292,20 @@
 
       function runtimeHotspotXToSource(id, x) {
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
+      }
+
+      function syncBigTvContentVisibility() {
+        if (!discordWidgetIframeEl) {
+          return;
+        }
+        const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
+        const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
+        const aquariumYoutubeActive = Boolean(
+          aquariumYoutubeIframeEl &&
+          aquariumYoutubeIframeEl.style.display !== 'none' &&
+          aquariumYoutubeIframeEl.src
+        );
+        discordWidgetIframeEl.style.visibility = aquariumActive || nedryGateActive || aquariumYoutubeActive ? 'hidden' : 'visible';
       }
 
       function setAquariumYoutubePlayback(shouldPlay) {
@@ -1259,15 +1330,9 @@
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
         if (showYoutubeAfter) {
-          if (discordWidgetIframeEl) {
-            discordWidgetIframeEl.style.visibility = 'hidden';
-          }
           setAquariumYoutubePlayback(true);
         } else {
           setAquariumYoutubePlayback(false);
-          if (discordWidgetIframeEl) {
-            discordWidgetIframeEl.style.visibility = 'visible';
-          }
         }
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
@@ -1275,6 +1340,7 @@
             aquariumStaticVideoEl.currentTime = 0;
           }
         }
+        syncBigTvContentVisibility();
       }
 
       async function playAquariumStaticOverlay() {
@@ -1282,18 +1348,48 @@
           return;
         }
 
+        hideNedryGateOverlay();
         setAquariumYoutubePlayback(false);
-        if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility = 'hidden';
-        }
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
 
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
           console.warn('Unable to play aquarium static overlay.', error);
           hideAquariumStaticOverlay();
+        }
+      }
+
+      function hideNedryGateOverlay({ resetPlayback = true } = {}) {
+        if (nedryGateOverlayEl) {
+          nedryGateOverlayEl.classList.remove('is-active');
+        }
+        if (nedryGateVideoEl) {
+          nedryGateVideoEl.pause();
+          if (resetPlayback) {
+            nedryGateVideoEl.currentTime = 0;
+          }
+        }
+        syncBigTvContentVisibility();
+      }
+
+      async function playNedryGateOverlay() {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        nedryGateOverlayEl.classList.add('is-active');
+        nedryGateVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+
+        try {
+          await nedryGateVideoEl.play();
+        } catch (error) {
+          console.warn('Unable to play Nedry gate overlay.', error);
+          hideNedryGateOverlay();
         }
       }
 
@@ -1866,7 +1962,9 @@
             .join(' ');
 
         hotspotList.forEach((spot) => {
-          const readableLabel = toTitleCase(spot.id);
+          const readableLabel = NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
+            ? 'Join our Discord'
+            : toTitleCase(spot.id);
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
@@ -1912,6 +2010,10 @@
               playAquariumStaticOverlay();
               return;
             }
+            if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
+              playNedryGateOverlay();
+              return;
+            }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
               window.location.assign(NOTES_URL);
               return;
@@ -1935,6 +2037,8 @@
         aquariumYoutubeIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        nedryGateOverlayEl = null;
+        nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
           stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
         }
@@ -1988,6 +2092,22 @@
             aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
+
+            nedryGateOverlayEl = document.createElement('div');
+            nedryGateOverlayEl.className = 'nedry-gate-overlay';
+            nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
+
+            nedryGateVideoEl = document.createElement('video');
+            nedryGateVideoEl.className = 'nedry-gate-video';
+            nedryGateVideoEl.src = NEDRY_GATE_VIDEO_URL;
+            nedryGateVideoEl.preload = 'metadata';
+            nedryGateVideoEl.playsInline = true;
+            nedryGateVideoEl.setAttribute('playsinline', '');
+            nedryGateVideoEl.setAttribute('webkit-playsinline', '');
+            nedryGateVideoEl.addEventListener('ended', () => hideNedryGateOverlay());
+            nedryGateVideoEl.addEventListener('error', () => hideNedryGateOverlay());
+            nedryGateOverlayEl.appendChild(nedryGateVideoEl);
+            el.appendChild(nedryGateOverlayEl);
           }
 
           if (overlay.id === 'overlay-left-monitor') {
@@ -2033,6 +2153,29 @@
             img.loading = 'lazy';
             img.decoding = 'async';
             el.appendChild(img);
+          }
+
+          if (overlay.id === 'overlay-right-monitor') {
+            el.classList.add('join-discord-overlay');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'join-discord-button';
+            button.setAttribute('aria-label', 'Join our Discord');
+            button.title = 'Join our Discord';
+            button.addEventListener('pointerdown', (event) => event.stopPropagation());
+            button.addEventListener('click', (event) => {
+              event.stopPropagation();
+              playNedryGateOverlay();
+            });
+
+            const img = document.createElement('img');
+            img.className = 'join-discord-button-image';
+            img.src = DISCORD_BUTTON_IMAGE_URL;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            button.appendChild(img);
+            el.appendChild(button);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
