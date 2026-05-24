@@ -1770,6 +1770,11 @@
         if (pendingAquariumSequenceOnLoad) {
           return;
         }
+        if (document.readyState === 'complete') {
+          pendingAquariumSequenceOnLoad = false;
+          playAquariumHotspotSequence();
+          return;
+        }
         pendingAquariumSequenceOnLoad = true;
         window.addEventListener('load', () => {
           pendingAquariumSequenceOnLoad = false;
