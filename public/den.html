@@ -1130,12 +1130,14 @@
 
         if (shouldPlay) {
           aquariumYoutubeIframeEl.style.display = 'block';
-          aquariumYoutubeIframeEl.src = AQUARIUM_YOUTUBE_EMBED_URL;
+          const embedUrl = new URL(AQUARIUM_YOUTUBE_EMBED_URL);
+          embedUrl.searchParams.set('origin', window.location.origin);
+          aquariumYoutubeIframeEl.src = embedUrl.toString();
           return;
         }
 
         aquariumYoutubeIframeEl.style.display = 'none';
-        aquariumYoutubeIframeEl.src = 'about:blank';
+        aquariumYoutubeIframeEl.src = '';
       }
 
       function hideAquariumStaticOverlay({ resetPlayback = true, showYoutubeAfter = false } = {}) {
@@ -1152,9 +1154,6 @@
           if (discordWidgetIframeEl) {
             discordWidgetIframeEl.style.visibility = 'visible';
           }
-        }
-        if (discordWidgetIframeEl && !showYoutubeAfter) {
-          discordWidgetIframeEl.style.visibility = 'visible';
         }
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
@@ -1798,7 +1797,7 @@
             aquariumYoutubeIframeEl.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
             aquariumYoutubeIframeEl.setAttribute('allowfullscreen', '');
             aquariumYoutubeIframeEl.loading = 'lazy';
-            aquariumYoutubeIframeEl.src = 'about:blank';
+            aquariumYoutubeIframeEl.src = '';
             el.appendChild(aquariumYoutubeIframeEl);
 
             aquariumStaticOverlayEl = document.createElement('div');
