@@ -1771,11 +1771,6 @@
           return;
         }
         pendingAquariumSequenceOnLoad = true;
-        if (document.readyState === 'complete') {
-          pendingAquariumSequenceOnLoad = false;
-          playAquariumHotspotSequence();
-          return;
-        }
         window.addEventListener('load', () => {
           pendingAquariumSequenceOnLoad = false;
           playAquariumHotspotSequence();
