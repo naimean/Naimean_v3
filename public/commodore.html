@@ -155,7 +155,7 @@
       const DESIGN_WIDTH = 444;
       const DESIGN_HEIGHT = 557;
       const MIN_SIZE = 12;
-      const STORAGE_KEY = 'naimean.commodore.layout.v1';
+      const STORAGE_KEY = 'naimean.v3.commodore.layout';
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -325,12 +325,6 @@
       window.addEventListener('pointerup', endEdit);
       window.addEventListener('pointercancel', endEdit);
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
-      window.addEventListener('keydown', (event) => {
-        if (event.code === 'Backquote') {
-          event.preventDefault();
-          setDebug(!document.body.classList.contains('debug'));
-        }
-      });
     })();
   </script>
 </body>
