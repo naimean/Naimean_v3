@@ -1885,17 +1885,12 @@
         return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
       }
 
-      const RADIO_TUNING_RESTART_THRESHOLD_S = 0.05;
-
       function resetRadioTuningPlayback(audioEl) {
         audioEl.playbackRate = 1;
         audioEl.volume = 1;
       }
 
       function ensureRadioTuningLoopPlayback(audioEl) {
-        if (audioEl.ended || (Number.isFinite(audioEl.duration) && audioEl.currentTime >= Math.max(audioEl.duration - RADIO_TUNING_RESTART_THRESHOLD_S, 0))) {
-          audioEl.currentTime = 0;
-        }
         if (!audioEl.paused) return;
         const playPromise = audioEl.play();
         if (playPromise && typeof playPromise.catch === 'function') {
@@ -2295,7 +2290,7 @@
             let tuningPosition = applyRadioTuningPosition(scaleBlock, 0.84);
             const tuningAudio = flipClockRadioTuningAudioEl || new Audio(RADIO_TUNING_AUDIO_URL);
             tuningAudio.preload = 'auto';
-            tuningAudio.loop = false;
+            tuningAudio.loop = true;
             flipClockRadioTuningAudioEl = tuningAudio;
             resetRadioTuningPlayback(tuningAudio);
             const TUNING_DRAG_THRESHOLD_PX = 1;
