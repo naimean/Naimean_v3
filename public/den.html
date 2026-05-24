@@ -167,6 +167,7 @@
     }
 
     .screen-overlay.discord-widget-overlay {
+      position: absolute;
       overflow: hidden;
       border-radius: 6px;
       pointer-events: auto;
@@ -181,8 +182,34 @@
       border: 0;
       display: block;
       pointer-events: auto;
+      position: relative;
+      z-index: 1;
       transform: scale(2);
       transform-origin: top left;
+    }
+
+    .discord-static-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 2;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .discord-static-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .discord-static-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
     }
 
     /* Effects always on top. */
@@ -759,12 +786,8 @@
       const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
       const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
-      const STARSHRIMP_YOUTUBE_VIDEO_URLS = [
-        'https://www.youtube.com/watch?v=GZ7jsIR_TnY',
-        'https://www.youtube.com/watch?v=dgAz1qEG2uo',
-        'https://www.youtube.com/watch?v=sFwo1mwrbxw'
-      ];
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
+      const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -884,6 +907,8 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
+      let aquariumStaticOverlayEl = null;
+      let aquariumStaticVideoEl = null;
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -901,6 +926,34 @@
 
       function runtimeHotspotXToSource(id, x) {
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
+      }
+
+      function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
+        if (aquariumStaticOverlayEl) {
+          aquariumStaticOverlayEl.classList.remove('is-active');
+        }
+        if (aquariumStaticVideoEl) {
+          aquariumStaticVideoEl.pause();
+          if (resetPlayback) {
+            aquariumStaticVideoEl.currentTime = 0;
+          }
+        }
+      }
+
+      async function playAquariumStaticOverlay() {
+        if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
+          return;
+        }
+
+        aquariumStaticOverlayEl.classList.add('is-active');
+        aquariumStaticVideoEl.currentTime = 0;
+
+        try {
+          await aquariumStaticVideoEl.play();
+        } catch (error) {
+          console.warn('Unable to play aquarium static overlay.', error);
+          hideAquariumStaticOverlay();
+        }
       }
 
       function clamp(value, min, max) {
@@ -1430,8 +1483,7 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              const randomIndex = Math.floor(Math.random() * STARSHRIMP_YOUTUBE_VIDEO_URLS.length);
-              window.location.assign(STARSHRIMP_YOUTUBE_VIDEO_URLS[randomIndex]);
+              playAquariumStaticOverlay();
               return;
             }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
@@ -1453,6 +1505,8 @@
 
       function createOverlays() {
         overlayElementsById.clear();
+        aquariumStaticOverlayEl = null;
+        aquariumStaticVideoEl = null;
         overlayDefaults.forEach((overlay) => {
           const rect = getOverlayRect(overlay.id);
           if (!rect) return;
@@ -1475,6 +1529,21 @@
             iframe.sandbox = 'allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts';
             iframe.loading = 'lazy';
             el.appendChild(iframe);
+
+            aquariumStaticOverlayEl = document.createElement('div');
+            aquariumStaticOverlayEl.className = 'discord-static-overlay';
+            aquariumStaticOverlayEl.setAttribute('aria-hidden', 'true');
+
+            aquariumStaticVideoEl = document.createElement('video');
+            aquariumStaticVideoEl.className = 'discord-static-video';
+            aquariumStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            aquariumStaticVideoEl.preload = 'auto';
+            aquariumStaticVideoEl.playsInline = true;
+            aquariumStaticVideoEl.setAttribute('playsinline', '');
+            aquariumStaticVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
+            aquariumStaticVideoEl.addEventListener('error', () => hideAquariumStaticOverlay());
+            aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
+            el.appendChild(aquariumStaticOverlayEl);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
