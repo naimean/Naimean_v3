@@ -733,24 +733,38 @@
       }
 
       async function postHotspotsToLegacyServer(savedSourceHotspots) {
-        const response = await fetch(LEGACY_HOTSPOT_API_PATH, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            title: LEGACY_HOTSPOT_RECORD_TITLE,
-            content: JSON.stringify(savedSourceHotspots)
-          }),
-          cache: 'no-store'
-        });
+        let lastError = null;
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(LEGACY_HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                title: LEGACY_HOTSPOT_RECORD_TITLE,
+                content: JSON.stringify(savedSourceHotspots)
+              }),
+              cache: 'no-store'
+            });
 
-        if (!response.ok) {
-          const errorDetails = await readResponseErrorText(response);
-          throw new Error(
-            errorDetails
-              ? `Server save failed (${response.status}): ${errorDetails}`
-              : `Server save failed (${response.status})`
-          );
+            if (!response.ok) {
+              const errorDetails = await readResponseErrorText(response);
+              throw new Error(
+                errorDetails
+                  ? `Server save failed (${response.status}): ${errorDetails}`
+                  : `Server save failed (${response.status})`
+              );
+            }
+
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+            }
+          }
         }
+
+        throw lastError || new Error('Server save failed');
       }
 
       async function postHotspotsToServer(savedSourceHotspots) {
