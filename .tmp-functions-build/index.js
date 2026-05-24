@@ -9,7 +9,7 @@ async function onRequest({ request, env }) {
 }
 __name(onRequest, "onRequest");
 
-// ../.wrangler/tmp/pages-gQ9mwA/functionsRoutes-0.9376720216053964.mjs
+// ../.wrangler/tmp/pages-6PLMXJ/functionsRoutes-0.5831479426286872.mjs
 var routes = [
   {
     routePath: "/api/hotspots",
