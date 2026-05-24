@@ -189,6 +189,23 @@
       object-fit: cover;
     }
 
+    .aquarium-video-hint {
+      position: absolute;
+      right: 12px;
+      bottom: 56px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      display: none;
+      pointer-events: none;
+      z-index: 2;
+      background: rgba(8, 10, 14, 0.82);
+      color: rgba(255, 255, 255, 0.94);
+      font: 600 12px/1.2 Arial, sans-serif;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
     .discord-static-overlay {
       position: absolute;
       inset: 0;
@@ -1102,6 +1119,7 @@
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
       let aquariumEmbeddedVideoEl = null;
+      let aquariumEmbeddedVideoHintEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let flipClockRadioTuningAudioEl = null;
@@ -1130,6 +1148,9 @@
 
         if (shouldPlay) {
           aquariumEmbeddedVideoEl.style.display = 'block';
+          if (aquariumEmbeddedVideoHintEl) {
+            aquariumEmbeddedVideoHintEl.style.display = 'block';
+          }
           aquariumEmbeddedVideoEl.currentTime = 0;
           aquariumEmbeddedVideoEl
             .play()
@@ -1140,6 +1161,9 @@
         aquariumEmbeddedVideoEl.pause();
         aquariumEmbeddedVideoEl.currentTime = 0;
         aquariumEmbeddedVideoEl.style.display = 'none';
+        if (aquariumEmbeddedVideoHintEl) {
+          aquariumEmbeddedVideoHintEl.style.display = 'none';
+        }
       }
 
       function hideAquariumStaticOverlay({ resetPlayback = true, showEmbeddedVideoAfter = false } = {}) {
@@ -1764,6 +1788,7 @@
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
         aquariumEmbeddedVideoEl = null;
+        aquariumEmbeddedVideoHintEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -1806,6 +1831,12 @@
             aquariumEmbeddedVideoEl.setAttribute('webkit-playsinline', '');
             aquariumEmbeddedVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
             el.appendChild(aquariumEmbeddedVideoEl);
+
+            aquariumEmbeddedVideoHintEl = document.createElement('div');
+            aquariumEmbeddedVideoHintEl.className = 'aquarium-video-hint';
+            aquariumEmbeddedVideoHintEl.textContent = 'Muted — use controls to unmute';
+            aquariumEmbeddedVideoHintEl.setAttribute('aria-hidden', 'true');
+            el.appendChild(aquariumEmbeddedVideoHintEl);
 
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
