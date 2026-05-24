@@ -198,9 +198,11 @@
     .flip-clock-overlay {
       display: flex;
       align-items: stretch;
-      background: #0e0e0e;
-      border-radius: 6px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.06);
+      background:
+        linear-gradient(180deg, rgba(31, 31, 31, 0.94) 0%, rgba(11, 11, 11, 0.98) 100%);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.08);
       pointer-events: auto;
       overflow: hidden;
     }
@@ -217,6 +219,16 @@
       cursor: pointer;
       transition: background 0.12s;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    .fc-half-clock {
+      background: linear-gradient(180deg, rgba(24, 24, 24, 0.94) 0%, rgba(10, 10, 10, 0.96) 100%);
+    }
+
+    .fc-half-calendar {
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 42%),
+        linear-gradient(180deg, rgba(247, 237, 208, 0.98) 0%, rgba(234, 220, 181, 0.98) 100%);
     }
 
     .fc-half:hover { background: rgba(255,255,255,0.05); }
@@ -252,6 +264,11 @@
       pointer-events: none;
     }
 
+    .fc-half-calendar .fc-label {
+      color: rgba(52, 43, 28, 0.76);
+      letter-spacing: 0.12em;
+    }
+
     .fc-vdivider {
       width: 2px;
       background: rgba(255,255,255,0.07);
@@ -267,6 +284,12 @@
       background: #1c1c1c;
       box-shadow: 0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
       pointer-events: none;
+    }
+
+    .fc-half-calendar .fc-digit,
+    .fc-half-calendar .fc-month {
+      background: #f8efd2;
+      box-shadow: 0 2px 6px rgba(52, 40, 18, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.65);
     }
 
     .fc-digit { width: 58px; height: 84px; }
@@ -289,6 +312,17 @@
     .fc-digit .fc-bot, .fc-month .fc-bot {
       bottom: 0;
       background: #1c1c1c;
+    }
+
+    .fc-half-calendar .fc-digit .fc-top,
+    .fc-half-calendar .fc-month .fc-top {
+      background: #fff7df;
+      border-bottom: 1px solid rgba(74, 60, 30, 0.25);
+    }
+
+    .fc-half-calendar .fc-digit .fc-bot,
+    .fc-half-calendar .fc-month .fc-bot {
+      background: #f1e2b6;
     }
 
     /* Number span positioned so each half clips the correct half of the glyph */
@@ -321,6 +355,12 @@
       text-shadow: 0 0 8px rgba(240,210,80,0.18);
       user-select: none;
       pointer-events: none;
+    }
+
+    .fc-half-calendar .fc-digit .fc-num,
+    .fc-half-calendar .fc-month .fc-num {
+      color: #3b2d16;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
     }
 
     /* Top half clips glyph from top; bottom half clips from bottom */
@@ -389,6 +429,14 @@
     body.debug .hotspot {
       border-color: rgba(65, 229, 255, 0.95);
       background: rgba(65, 229, 255, 0.12);
+    }
+
+    .hotspot.overlay-control-hotspot {
+      pointer-events: none;
+    }
+
+    body.debug .hotspot.overlay-control-hotspot {
+      pointer-events: auto;
     }
 
     body.debug .hotspot-label {
@@ -705,6 +753,12 @@
       const CLOCK_URL_IOS = 'clock://';
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
+      const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
+      const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map([
+        [DISCORD_OVERLAY_CONTROL_ID, 'overlay-big-tv'],
+        [FLIP_CLOCK_OVERLAY_CONTROL_ID, 'overlay-flip-clock']
+      ]);
 
       // Add tiles here to extend the horizontal world.
       const tiles = [
@@ -729,11 +783,13 @@
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: 'stopwatch', x: 656, y: 1741, w: 317, h: 112 },
         { id: 'date-tracker', x: 983, y: 1741, w: 317, h: 112 },
-        { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 }
+        { id: 'ashtray', x: 2055, y: 1336, w: 176, h: 128 },
+        { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
+        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 945, y: 1720, w: 450, h: 195 }
       ];
 
       // Overlay placeholders over transparent screen cutouts.
-      const overlays = [
+      const overlayDefaults = [
         { id: 'overlay-big-tv', x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
@@ -802,6 +858,7 @@
       let hotspotApiMode = 'primary';
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
+      const overlayElementsById = new Map();
 
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
@@ -871,6 +928,48 @@
           });
         });
         return saved;
+      }
+
+      function getRuntimeHotspotById(id) {
+        return hotspots.find((spot) => spot.id === id) || null;
+      }
+
+      function getOverlayRect(overlayId) {
+        const controlEntry = Array.from(OVERLAY_CONTROL_TO_OVERLAY_ID.entries())
+          .find(([, targetOverlayId]) => targetOverlayId === overlayId);
+        if (controlEntry) {
+          const controlledSpot = getRuntimeHotspotById(controlEntry[0]);
+          if (controlledSpot) {
+            return {
+              x: controlledSpot.x,
+              y: controlledSpot.y,
+              w: controlledSpot.w,
+              h: controlledSpot.h
+            };
+          }
+        }
+
+        const fallback = overlayDefaults.find((overlay) => overlay.id === overlayId);
+        if (!fallback) return null;
+        return {
+          x: fallback.x,
+          y: fallback.y,
+          w: fallback.w,
+          h: fallback.h
+        };
+      }
+
+      function syncControlledOverlaysFromHotspots() {
+        OVERLAY_CONTROL_TO_OVERLAY_ID.forEach((overlayId, controlHotspotId) => {
+          const hotspotEl = document.getElementById(controlHotspotId);
+          const overlayEl = overlayElementsById.get(overlayId);
+          if (!hotspotEl || !overlayEl) return;
+
+          overlayEl.style.left = hotspotEl.style.left;
+          overlayEl.style.top = hotspotEl.style.top;
+          overlayEl.style.width = hotspotEl.style.width;
+          overlayEl.style.height = hotspotEl.style.height;
+        });
       }
 
       function getSourceOutput(sourceHotspots) {
@@ -1273,6 +1372,9 @@
           const el = document.createElement('button');
           el.type = 'button';
           el.className = 'hotspot';
+          if (OVERLAY_CONTROL_TO_OVERLAY_ID.has(spot.id)) {
+            el.classList.add('overlay-control-hotspot');
+          }
           el.id = spot.id;
           el.style.left = `${spot.x}px`;
           el.style.top = `${spot.y}px`;
@@ -1316,14 +1418,18 @@
       }
 
       function createOverlays() {
-        overlays.forEach((overlay) => {
+        overlayElementsById.clear();
+        overlayDefaults.forEach((overlay) => {
+          const rect = getOverlayRect(overlay.id);
+          if (!rect) return;
+
           const el = document.createElement('div');
           el.id = overlay.id;
           el.className = 'screen-overlay';
-          el.style.left = `${overlay.x}px`;
-          el.style.top = `${overlay.y}px`;
-          el.style.width = `${overlay.w}px`;
-          el.style.height = `${overlay.h}px`;
+          el.style.left = `${rect.x}px`;
+          el.style.top = `${rect.y}px`;
+          el.style.width = `${rect.w}px`;
+          el.style.height = `${rect.h}px`;
 
           if (overlay.id === 'overlay-big-tv') {
             el.classList.add('discord-widget-overlay');
@@ -1341,9 +1447,12 @@
             el.classList.add('flip-clock-overlay');
 
             // Helper to build a clickable half
-            function makeHalf(label, ariaLabel, onActivate) {
+            function makeHalf(label, ariaLabel, onActivate, variantClass) {
               const half = document.createElement('div');
               half.className = 'fc-half';
+              if (variantClass) {
+                half.classList.add(variantClass);
+              }
               half.setAttribute('role', 'button');
               half.setAttribute('tabindex', '0');
               half.setAttribute('aria-label', ariaLabel);
@@ -1369,7 +1478,7 @@
             }
 
             // Left half — clock
-            const { half: clockHalf, digits: clockDigits } = makeHalf('Time', 'Open Clock App', openClockApp);
+            const { half: clockHalf, digits: clockDigits } = makeHalf('Time', 'Open Clock App', openClockApp, 'fc-half-clock');
             const h1 = createFlipCard(false); h1.dataset.key = 'h1';
             const h2 = createFlipCard(false); h2.dataset.key = 'h2';
             const colon = document.createElement('span');
@@ -1386,7 +1495,7 @@
             divider.setAttribute('aria-hidden', 'true');
 
             // Right half — calendar
-            const { half: calHalf, digits: calDigits } = makeHalf('Date', 'Open Calendar App', openCalendarApp);
+            const { half: calHalf, digits: calDigits } = makeHalf('Date', 'Open Calendar App', openCalendarApp, 'fc-half-calendar');
             const d1 = createFlipCard(false); d1.dataset.key = 'd1';
             const d2 = createFlipCard(false); d2.dataset.key = 'd2';
             const mon = createFlipCard(true);  mon.dataset.key = 'mon';
@@ -1399,6 +1508,7 @@
           }
 
           screenOverlayLayer.appendChild(el);
+          overlayElementsById.set(overlay.id, el);
         });
       }
 
@@ -1574,6 +1684,9 @@
         }
 
         updateHotspotLabel(el);
+        if (OVERLAY_CONTROL_TO_OVERLAY_ID.has(el.id)) {
+          syncControlledOverlaysFromHotspots();
+        }
       }
 
       function onPointerDown(event) {
