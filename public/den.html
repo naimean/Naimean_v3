@@ -1326,7 +1326,16 @@
           aquariumEmbeddedVideoEl.currentTime = 0;
           aquariumEmbeddedVideoEl
             .play()
-            .catch((error) => console.warn('Unable to play aquarium embed video.', error));
+            .catch((error) => {
+              console.warn('Unable to play aquarium embed video.', error);
+              aquariumEmbeddedVideoEl.style.display = 'none';
+              if (aquariumEmbeddedVideoHintEl) {
+                aquariumEmbeddedVideoHintEl.style.display = 'none';
+              }
+              if (discordWidgetIframeEl) {
+                discordWidgetIframeEl.style.visibility = 'visible';
+              }
+            });
           return;
         }
 
@@ -2092,6 +2101,15 @@
             aquariumEmbeddedVideoEl.setAttribute('playsinline', '');
             aquariumEmbeddedVideoEl.setAttribute('webkit-playsinline', '');
             aquariumEmbeddedVideoEl.addEventListener('ended', () => hideAquariumStaticOverlay());
+            aquariumEmbeddedVideoEl.addEventListener('error', () => {
+              aquariumEmbeddedVideoEl.style.display = 'none';
+              if (aquariumEmbeddedVideoHintEl) {
+                aquariumEmbeddedVideoHintEl.style.display = 'none';
+              }
+              if (discordWidgetIframeEl) {
+                discordWidgetIframeEl.style.visibility = 'visible';
+              }
+            });
             el.appendChild(aquariumEmbeddedVideoEl);
 
             aquariumEmbeddedVideoHintEl = document.createElement('div');
