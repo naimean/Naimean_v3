@@ -242,24 +242,24 @@
 
     /* ── Retro Desk Clock Overlay ──────────────────────────── */
     .flip-clock-overlay {
-      --fc-scale: 0.74;
-      --fc-card-height: calc(58px * var(--fc-scale));
-      --fc-digit-width: calc(42px * var(--fc-scale));
-      --fc-digit-font-size: calc(66px * var(--fc-scale));
+      --fc-scale: 0.72;
+      --fc-card-height: calc(56px * var(--fc-scale));
+      --fc-digit-width: calc(38px * var(--fc-scale));
+      --fc-digit-font-size: calc(64px * var(--fc-scale));
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: calc(8px * var(--fc-scale));
-      padding: calc(10px * var(--fc-scale));
+      gap: calc(6px * var(--fc-scale));
+      padding: calc(8px * var(--fc-scale)) calc(9px * var(--fc-scale)) calc(9px * var(--fc-scale));
       background:
-        linear-gradient(180deg, rgba(255, 233, 211, 0.16) 0%, rgba(255, 233, 211, 0) 18%),
-        linear-gradient(180deg, #b48a62 0%, #8d6847 44%, #6d5038 100%);
-      border-radius: calc(18px * var(--fc-scale));
-      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 232, 206, 0.28);
+        linear-gradient(180deg, rgba(255, 226, 193, 0.2) 0%, rgba(255, 226, 193, 0) 22%),
+        linear-gradient(180deg, #be9772 0%, #9f7650 42%, #7c573a 100%);
+      border-radius: calc(11px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 229, 197, 0.24);
       box-shadow:
-        0 calc(10px * var(--fc-scale)) calc(24px * var(--fc-scale)) rgba(0, 0, 0, 0.56),
-        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 245, 233, 0.32),
-        inset 0 calc(-3px * var(--fc-scale)) 0 rgba(71, 49, 34, 0.46);
+        0 calc(10px * var(--fc-scale)) calc(18px * var(--fc-scale)) rgba(0, 0, 0, 0.5),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 247, 236, 0.26),
+        inset 0 calc(-3px * var(--fc-scale)) 0 rgba(64, 42, 28, 0.55);
       pointer-events: auto;
       overflow: hidden;
     }
@@ -270,51 +270,44 @@
       inset: 0;
       border-radius: inherit;
       box-shadow:
-        inset calc(2px * var(--fc-scale)) 0 0 rgba(255, 250, 244, 0.15),
-        inset calc(-2px * var(--fc-scale)) 0 0 rgba(48, 31, 20, 0.22);
+        inset calc(2px * var(--fc-scale)) 0 0 rgba(255, 245, 231, 0.12),
+        inset calc(-2px * var(--fc-scale)) 0 0 rgba(53, 34, 21, 0.24);
       pointer-events: none;
     }
 
     .rc-top {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: calc(10px * var(--fc-scale));
-      min-height: calc(38px * var(--fc-scale));
-      padding: calc(1px * var(--fc-scale)) calc(4px * var(--fc-scale)) 0;
-    }
-
-    .rc-top-left {
-      display: flex;
-      align-items: flex-start;
-      gap: calc(8px * var(--fc-scale));
-      flex: 1;
+      min-height: calc(18px * var(--fc-scale));
+      padding: 0 calc(1px * var(--fc-scale));
     }
 
     .rc-speaker {
       flex: 1;
-      min-height: calc(26px * var(--fc-scale));
-      border-radius: calc(8px * var(--fc-scale));
+      min-height: calc(11px * var(--fc-scale));
+      border-radius: calc(999px * var(--fc-scale));
       background:
-        radial-gradient(circle, rgba(238, 223, 204, 0.7) 0 calc(1px * var(--fc-scale)), transparent calc(1.2px * var(--fc-scale))),
-        linear-gradient(180deg, rgba(66, 45, 30, 0.16) 0%, rgba(248, 227, 201, 0.08) 100%);
-      background-size: calc(8px * var(--fc-scale)) calc(8px * var(--fc-scale)), auto;
-      box-shadow: inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 245, 233, 0.16);
-      opacity: 0.9;
+        radial-gradient(circle, rgba(255, 240, 220, 0.46) 0 calc(0.9px * var(--fc-scale)), transparent calc(1.1px * var(--fc-scale))),
+        linear-gradient(180deg, rgba(72, 46, 28, 0.3) 0%, rgba(248, 224, 194, 0.1) 100%);
+      background-size: calc(6px * var(--fc-scale)) calc(6px * var(--fc-scale)), auto;
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(87, 57, 35, 0.35);
+      box-shadow: inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 244, 232, 0.18);
+      opacity: 0.96;
     }
 
     .rc-knob {
       position: relative;
       flex: 0 0 auto;
-      width: calc(20px * var(--fc-scale));
-      height: calc(20px * var(--fc-scale));
-      margin-top: calc(2px * var(--fc-scale));
+      width: calc(11px * var(--fc-scale));
+      height: calc(11px * var(--fc-scale));
       border-radius: 50%;
       background:
-        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18) 0 14%, transparent 15% 100%),
-        linear-gradient(180deg, #332820 0%, #0d0c0d 100%);
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.14) 0 12%, transparent 13% 100%),
+        linear-gradient(180deg, #504640 0%, #181716 100%);
       box-shadow:
         inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 255, 255, 0.12),
-        0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.35);
+        0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.28);
     }
 
     .rc-knob::before {
@@ -323,24 +316,22 @@
       top: 50%;
       left: 50%;
       width: calc(2px * var(--fc-scale));
-      height: calc(7px * var(--fc-scale));
-      background: rgba(252, 245, 236, 0.65);
+      height: calc(2px * var(--fc-scale));
+      background: rgba(240, 230, 220, 0.58);
       border-radius: 999px;
-      transform: translate(-50%, -100%);
+      transform: translate(-50%, -50%);
     }
 
     .rc-knob-label {
       position: absolute;
-      top: calc(-7px * var(--fc-scale));
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: calc(6px * var(--fc-scale));
-      line-height: 1;
-      letter-spacing: 0.08em;
-      color: rgba(45, 31, 22, 0.84);
-      text-transform: uppercase;
-      user-select: none;
-      pointer-events: none;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .rc-face {
@@ -348,25 +339,25 @@
       display: flex;
       align-items: stretch;
       flex: 1;
-      gap: calc(10px * var(--fc-scale));
-      padding: calc(10px * var(--fc-scale)) calc(12px * var(--fc-scale));
-      border-radius: calc(12px * var(--fc-scale));
+      gap: calc(8px * var(--fc-scale));
+      padding: calc(8px * var(--fc-scale)) calc(9px * var(--fc-scale)) calc(7px * var(--fc-scale));
+      border-radius: calc(7px * var(--fc-scale));
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 18%),
-        linear-gradient(180deg, #18191b 0%, #0c0d0f 100%);
-      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.14);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 16%),
+        linear-gradient(180deg, #1f2022 0%, #08090a 100%);
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(228, 231, 230, 0.48);
       box-shadow:
-        inset 0 0 0 calc(2px * var(--fc-scale)) rgba(7, 8, 9, 0.88),
-        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 255, 255, 0.08);
+        inset 0 0 0 calc(1px * var(--fc-scale)) rgba(7, 8, 9, 0.92),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 255, 255, 0.06);
       overflow: hidden;
     }
 
     .rc-face::after {
       content: '';
       position: absolute;
-      inset: calc(4px * var(--fc-scale));
-      border-radius: calc(9px * var(--fc-scale));
-      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(243, 243, 240, 0.7);
+      inset: calc(2px * var(--fc-scale));
+      border-radius: calc(5px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
       pointer-events: none;
     }
 
@@ -391,20 +382,21 @@
     }
 
     .rc-clock-zone {
-      flex: 0 0 45%;
+      flex: 0 0 46%;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding-left: calc(6px * var(--fc-scale));
+      padding-left: calc(4px * var(--fc-scale));
       min-width: 0;
     }
 
     .rc-ampm {
-      margin-bottom: calc(2px * var(--fc-scale));
-      font-size: calc(10px * var(--fc-scale));
+      margin-bottom: calc(1px * var(--fc-scale));
+      padding-left: calc(4px * var(--fc-scale));
+      font-size: calc(8px * var(--fc-scale));
       font-weight: 700;
-      letter-spacing: 0.14em;
-      color: rgba(183, 187, 191, 0.72);
+      letter-spacing: 0.18em;
+      color: rgba(205, 208, 210, 0.82);
       text-transform: uppercase;
       user-select: none;
       pointer-events: none;
@@ -417,9 +409,26 @@
     }
 
     .rc-time-gap {
-      width: calc(16px * var(--fc-scale));
+      position: relative;
+      width: calc(10px * var(--fc-scale));
       flex: 0 0 auto;
     }
+
+    .rc-time-gap::before,
+    .rc-time-gap::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      width: calc(2px * var(--fc-scale));
+      height: calc(2px * var(--fc-scale));
+      border-radius: 999px;
+      background: rgba(241, 244, 246, 0.85);
+      transform: translateX(-50%);
+      box-shadow: 0 0 calc(2px * var(--fc-scale)) rgba(255, 255, 255, 0.18);
+    }
+
+    .rc-time-gap::before { top: 35%; }
+    .rc-time-gap::after { top: 62%; }
 
     .fc-digit {
       position: relative;
@@ -445,7 +454,7 @@
 
     .fc-digit .fc-top {
       top: 0;
-      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.09);
     }
 
     .fc-digit .fc-bot {
@@ -461,9 +470,10 @@
       text-align: center;
       font-size: var(--fc-digit-font-size);
       font-weight: 900;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #f4f5f6;
-      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.6);
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      letter-spacing: -0.05em;
+      color: #f6f7f8;
+      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.72);
       user-select: none;
       pointer-events: none;
     }
@@ -480,7 +490,7 @@
       overflow: hidden;
       z-index: 4;
       transform-origin: bottom center;
-      background: linear-gradient(180deg, rgba(54, 56, 60, 0.88) 0%, rgba(20, 20, 22, 0.94) 100%);
+      background: linear-gradient(180deg, rgba(58, 60, 64, 0.92) 0%, rgba(16, 17, 20, 0.98) 100%);
       border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
       pointer-events: none;
     }
@@ -495,9 +505,10 @@
       text-align: center;
       font-size: var(--fc-digit-font-size);
       font-weight: 900;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #f4f5f6;
-      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.6);
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      letter-spacing: -0.05em;
+      color: #f6f7f8;
+      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.72);
       user-select: none;
       pointer-events: none;
     }
@@ -507,18 +518,19 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: calc(3px * var(--fc-scale)) calc(4px * var(--fc-scale)) calc(3px * var(--fc-scale)) 0;
+      padding: calc(2px * var(--fc-scale)) calc(2px * var(--fc-scale)) calc(1px * var(--fc-scale)) calc(6px * var(--fc-scale));
       min-width: 0;
+      border-left: max(1px, calc(1px * var(--fc-scale))) solid rgba(242, 243, 241, 0.12);
       color: rgba(245, 243, 235, 0.9);
       font-family: Arial, Helvetica, sans-serif;
     }
 
     .rc-model {
-      align-self: flex-end;
-      font-size: calc(10px * var(--fc-scale));
+      align-self: flex-start;
+      font-size: calc(8px * var(--fc-scale));
       font-weight: 700;
       letter-spacing: 0.12em;
-      color: rgba(247, 247, 244, 0.92);
+      color: rgba(220, 221, 219, 0.72);
       user-select: none;
       pointer-events: none;
     }
@@ -526,15 +538,15 @@
     .rc-date-badge {
       position: absolute;
       right: calc(6px * var(--fc-scale));
-      top: calc(28px * var(--fc-scale));
-      padding: calc(2px * var(--fc-scale)) calc(5px * var(--fc-scale));
-      border-radius: calc(999px * var(--fc-scale));
-      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.04);
-      font-size: calc(8px * var(--fc-scale));
+      top: calc(10px * var(--fc-scale));
+      padding: calc(1px * var(--fc-scale)) calc(3px * var(--fc-scale));
+      border-radius: calc(2px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: calc(6px * var(--fc-scale));
       font-weight: 700;
       letter-spacing: 0.12em;
-      color: rgba(228, 228, 224, 0.72);
+      color: rgba(210, 212, 210, 0.62);
       text-transform: uppercase;
       user-select: none;
       pointer-events: none;
@@ -544,27 +556,27 @@
       position: relative;
       display: flex;
       flex-direction: column;
-      gap: calc(8px * var(--fc-scale));
-      margin-top: calc(4px * var(--fc-scale));
-      padding-right: calc(12px * var(--fc-scale));
+      gap: calc(6px * var(--fc-scale));
+      margin-top: calc(3px * var(--fc-scale));
+      padding-right: calc(10px * var(--fc-scale));
     }
 
     .rc-scale-row {
       position: relative;
       display: flex;
       align-items: center;
-      gap: calc(6px * var(--fc-scale));
-      padding-right: calc(6px * var(--fc-scale));
+      gap: calc(4px * var(--fc-scale));
+      padding-right: calc(4px * var(--fc-scale));
       user-select: none;
       pointer-events: none;
     }
 
     .rc-band {
-      flex: 0 0 calc(14px * var(--fc-scale));
-      font-size: calc(10px * var(--fc-scale));
+      flex: 0 0 calc(12px * var(--fc-scale));
+      font-size: calc(8px * var(--fc-scale));
       font-weight: 700;
       letter-spacing: 0.12em;
-      color: rgba(247, 247, 243, 0.94);
+      color: rgba(223, 224, 223, 0.86);
     }
 
     .rc-frequencies {
@@ -572,12 +584,12 @@
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       align-items: end;
-      gap: calc(6px * var(--fc-scale));
+      gap: calc(4px * var(--fc-scale));
       flex: 1;
-      padding-top: calc(11px * var(--fc-scale));
-      font-size: calc(9px * var(--fc-scale));
+      padding-top: calc(9px * var(--fc-scale));
+      font-size: calc(7px * var(--fc-scale));
       line-height: 1;
-      color: rgba(236, 236, 231, 0.82);
+      color: rgba(228, 228, 224, 0.74);
     }
 
     .rc-frequencies::before {
@@ -586,40 +598,40 @@
       left: 0;
       right: 0;
       top: 0;
-      height: calc(10px * var(--fc-scale));
+      height: calc(8px * var(--fc-scale));
       background:
         repeating-linear-gradient(90deg,
           rgba(255, 255, 255, 0.9) 0 calc(1px * var(--fc-scale)),
-          transparent calc(1px * var(--fc-scale)) calc(8px * var(--fc-scale)));
-      opacity: 0.72;
+          transparent calc(1px * var(--fc-scale)) calc(6px * var(--fc-scale)));
+      opacity: 0.66;
     }
 
     .rc-unit {
       flex: 0 0 auto;
-      font-size: calc(8px * var(--fc-scale));
+      font-size: calc(6px * var(--fc-scale));
       font-weight: 700;
       letter-spacing: 0.08em;
-      color: rgba(236, 236, 231, 0.74);
+      color: rgba(216, 216, 212, 0.56);
     }
 
     .rc-selector-line {
       position: absolute;
-      top: calc(2px * var(--fc-scale));
-      bottom: calc(4px * var(--fc-scale));
-      left: 82%;
+      top: calc(1px * var(--fc-scale));
+      bottom: calc(3px * var(--fc-scale));
+      left: 84%;
       width: calc(2px * var(--fc-scale));
       border-radius: 999px;
-      background: linear-gradient(180deg, #ffcbb8 0%, #ff8f79 48%, #ffd1c6 100%);
-      box-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(255, 122, 101, 0.35);
+      background: linear-gradient(180deg, #ffe0d4 0%, #f4aea2 45%, #ffe1d4 100%);
+      box-shadow: 0 0 calc(6px * var(--fc-scale)) rgba(255, 165, 147, 0.28);
       pointer-events: none;
     }
 
     .rc-selector-label {
       align-self: flex-end;
-      font-size: calc(7px * var(--fc-scale));
+      font-size: calc(6px * var(--fc-scale));
       font-weight: 700;
       letter-spacing: 0.12em;
-      color: rgba(214, 214, 208, 0.5);
+      color: rgba(214, 214, 208, 0.36);
       text-transform: uppercase;
       user-select: none;
       pointer-events: none;
@@ -628,11 +640,11 @@
     .rc-brand {
       align-self: flex-end;
       margin-top: auto;
-      font-size: calc(15px * var(--fc-scale));
+      font-size: calc(10px * var(--fc-scale));
       font-weight: 700;
       font-style: italic;
-      letter-spacing: -0.02em;
-      color: rgba(248, 248, 244, 0.96);
+      letter-spacing: -0.01em;
+      color: rgba(242, 242, 238, 0.92);
       user-select: none;
       pointer-events: none;
     }
@@ -1790,30 +1802,19 @@
             const top = document.createElement('div');
             top.className = 'rc-top';
 
-            const topLeft = document.createElement('div');
-            topLeft.className = 'rc-top-left';
-
             const sleepKnob = document.createElement('div');
             sleepKnob.className = 'rc-knob';
-            const sleepLabel = document.createElement('span');
-            sleepLabel.className = 'rc-knob-label';
-            sleepLabel.textContent = 'Snooze';
-            sleepKnob.appendChild(sleepLabel);
+            sleepKnob.setAttribute('aria-hidden', 'true');
 
             const speaker = document.createElement('div');
             speaker.className = 'rc-speaker';
             speaker.setAttribute('aria-hidden', 'true');
 
-            topLeft.append(sleepKnob, speaker);
-
             const tunerKnob = document.createElement('div');
             tunerKnob.className = 'rc-knob';
-            const tunerLabel = document.createElement('span');
-            tunerLabel.className = 'rc-knob-label';
-            tunerLabel.textContent = 'Tune';
-            tunerKnob.appendChild(tunerLabel);
+            tunerKnob.setAttribute('aria-hidden', 'true');
 
-            top.append(topLeft, tunerKnob);
+            top.append(sleepKnob, speaker, tunerKnob);
 
             const face = document.createElement('div');
             face.className = 'rc-face';
@@ -1840,7 +1841,7 @@
 
             const model = document.createElement('div');
             model.className = 'rc-model';
-            model.textContent = 'RC';
+            model.textContent = 'FM/AM';
 
             const dateBadge = document.createElement('div');
             dateBadge.className = 'rc-date-badge';
@@ -1876,7 +1877,7 @@
 
             const selectorLabel = document.createElement('div');
             selectorLabel.className = 'rc-selector-label';
-            selectorLabel.textContent = 'Clock Selector';
+            selectorLabel.textContent = 'Tuning';
 
             const brand = document.createElement('div');
             brand.className = 'rc-brand';
