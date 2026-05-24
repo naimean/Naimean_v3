@@ -1327,6 +1327,7 @@
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
       const AQUARIUM_CLIP_MIN_TIMEOUT_SECONDS = 0.25;
+      const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze([
         { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 0 },
         { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 10 },
@@ -1704,7 +1705,7 @@
             }
             const duration = Number.isFinite(aquariumClipVideoEl.duration) ? aquariumClipVideoEl.duration : 0;
             const safeStartSeconds = duration > 0
-              ? Math.min(safeRequestedStart, Math.max(0, duration - 0.1))
+              ? Math.min(safeRequestedStart, Math.max(0, duration - AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS))
               : safeRequestedStart;
             clipEndSeconds = duration > 0
               ? Math.min(duration, safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS)
