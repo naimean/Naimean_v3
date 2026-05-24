@@ -586,12 +586,29 @@
       position: absolute;
       top: calc(1px * var(--fc-scale));
       bottom: calc(3px * var(--fc-scale));
-      left: 84%;
+      left: var(--rc-tuning-position, 84%);
+      transform: translateX(-50%);
       width: calc(2px * var(--fc-scale));
       border-radius: 999px;
       background: linear-gradient(180deg, #ffe0d4 0%, #f4aea2 45%, #ffe1d4 100%);
       box-shadow: 0 0 calc(6px * var(--fc-scale)) rgba(255, 165, 147, 0.28);
       pointer-events: none;
+    }
+
+    .rc-selector-dot {
+      position: absolute;
+      top: calc(8px * var(--fc-scale));
+      bottom: calc(8px * var(--fc-scale));
+      left: var(--rc-tuning-position, 84%);
+      transform: translateX(-50%);
+      width: calc(8px * var(--fc-scale));
+      border: 0;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 25%, #ffb6a8 0 32%, #f65244 33% 100%);
+      box-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(255, 82, 67, 0.55);
+      cursor: ew-resize;
+      touch-action: none;
+      z-index: 5;
     }
 
     .rc-selector-label {
@@ -939,6 +956,7 @@
       const WHITEBOARD_HOTSPOT_IDS = new Set(['rca-board', 'whiteboard']);
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const RADIO_TUNING_AUDIO_URL = 'assets/audio/radio-tuning-search.v20260524.mp3';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const NOTES_URL = 'notes.html';
@@ -1048,6 +1066,7 @@
       let discordWidgetIframeEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
+      let flipClockRadioTuningAudioEl = null;
       // Debug hotspot editing state
       let debugEditType = null; // 'move' | 'resize'
       let debugEditEl = null;
@@ -1527,6 +1546,24 @@
         el.dataset.val = newVal;
       }
 
+      function applyRadioTuningPosition(scaleBlock, value) {
+        const clamped = clamp(value, 0, 1);
+        scaleBlock.style.setProperty('--rc-tuning-position', `${(clamped * 100).toFixed(2)}%`);
+        return clamped;
+      }
+
+      function ensureRadioTuningLoopPlayback(audioEl) {
+        if (!audioEl.paused) return;
+        const playPromise = audioEl.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+      }
+
+      function stopRadioTuningLoopPlayback(audioEl) {
+        audioEl.pause();
+      }
+
       function startFlipClock(container) {
         const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
                              'Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1659,6 +1696,9 @@
         discordWidgetIframeEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        if (flipClockRadioTuningAudioEl) {
+          stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
+        }
         overlayDefaults.forEach((overlay) => {
           const rect = getOverlayRect(overlay.id);
           if (!rect) return;
@@ -1784,6 +1824,102 @@
             const selectorLine = document.createElement('div');
             selectorLine.className = 'rc-selector-line';
             selectorLine.setAttribute('aria-hidden', 'true');
+            let tuningPosition = applyRadioTuningPosition(scaleBlock, 0.84);
+            const tuningAudio = flipClockRadioTuningAudioEl || new Audio(RADIO_TUNING_AUDIO_URL);
+            tuningAudio.preload = 'auto';
+            tuningAudio.loop = true;
+            flipClockRadioTuningAudioEl = tuningAudio;
+            const TUNING_DRAG_THRESHOLD_PX = 1;
+            const KEYBOARD_TUNING_STEP = 0.02;
+            const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
+            let activeTunePointerId = null;
+            let lastPointerClientX = 0;
+            let stopTuneAudioTimeoutId = null;
+
+            const selectorDot = document.createElement('div');
+            selectorDot.className = 'rc-selector-dot';
+            selectorDot.setAttribute('role', 'slider');
+            selectorDot.setAttribute('tabindex', '0');
+            selectorDot.setAttribute('aria-label', 'Tune radio frequency');
+            selectorDot.setAttribute('aria-valuemin', '0');
+            selectorDot.setAttribute('aria-valuemax', '100');
+            selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+
+            function updateTuningFromClientX(clientX, { playAudio } = { playAudio: true }) {
+              const rect = scaleBlock.getBoundingClientRect();
+              if (!rect.width) return false;
+              const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
+              if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
+              tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
+              selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              if (playAudio) {
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
+              return true;
+            }
+
+            function endTuneDrag(pointerId) {
+              if (activeTunePointerId !== pointerId) return;
+              activeTunePointerId = null;
+              stopRadioTuningLoopPlayback(tuningAudio);
+              if (selectorDot.hasPointerCapture(pointerId)) {
+                selectorDot.releasePointerCapture(pointerId);
+              }
+            }
+
+            selectorDot.addEventListener('pointerdown', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              activeTunePointerId = event.pointerId;
+              lastPointerClientX = event.clientX;
+              selectorDot.setPointerCapture(event.pointerId);
+            });
+
+            selectorDot.addEventListener('pointermove', (event) => {
+              if (event.pointerId !== activeTunePointerId) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const didMove = updateTuningFromClientX(event.clientX);
+              if (!didMove && Math.abs(event.clientX - lastPointerClientX) > TUNING_DRAG_THRESHOLD_PX) {
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
+              lastPointerClientX = event.clientX;
+            });
+
+            selectorDot.addEventListener('pointerup', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              endTuneDrag(event.pointerId);
+            });
+            selectorDot.addEventListener('pointercancel', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              endTuneDrag(event.pointerId);
+            });
+            selectorDot.addEventListener('lostpointercapture', () => {
+              activeTunePointerId = null;
+              stopRadioTuningLoopPlayback(tuningAudio);
+            });
+            selectorDot.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+            selectorDot.addEventListener('keydown', (event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              event.stopPropagation();
+              const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
+              tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
+              selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              ensureRadioTuningLoopPlayback(tuningAudio);
+              if (stopTuneAudioTimeoutId !== null) {
+                window.clearTimeout(stopTuneAudioTimeoutId);
+              }
+              stopTuneAudioTimeoutId = window.setTimeout(() => {
+                stopTuneAudioTimeoutId = null;
+                stopRadioTuningLoopPlayback(tuningAudio);
+              }, KEYBOARD_AUDIO_STOP_DELAY_MS);
+            });
 
             const fmRow = document.createElement('div');
             fmRow.className = 'rc-scale-row';
@@ -1813,7 +1949,7 @@
             brand.className = 'rc-brand';
             brand.textContent = 'Panasonic';
 
-            scaleBlock.append(selectorLine, fmRow, amRow);
+            scaleBlock.append(selectorLine, selectorDot, fmRow, amRow);
             radioZone.append(model, dateBadge, scaleBlock, selectorLabel, brand);
 
             face.append(clockZone, radioZone);
@@ -2153,6 +2289,10 @@
         if (flipClockIntervalId !== null) {
           clearInterval(flipClockIntervalId);
           flipClockIntervalId = null;
+        }
+        if (flipClockRadioTuningAudioEl) {
+          stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
+          flipClockRadioTuningAudioEl.currentTime = 0;
         }
         stopMomentum();
       }
