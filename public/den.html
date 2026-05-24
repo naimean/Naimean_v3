@@ -1885,13 +1885,15 @@
         return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
       }
 
-      function applyRadioTuningWarp(audioEl, tuningPosition, { isMoving = false, timestampMs } = {}) {
+      const RADIO_TUNING_RESTART_THRESHOLD_S = 0.05;
+
+      function resetRadioTuningPlayback(audioEl) {
         audioEl.playbackRate = 1;
         audioEl.volume = 1;
       }
 
       function ensureRadioTuningLoopPlayback(audioEl) {
-        if (audioEl.ended || (Number.isFinite(audioEl.duration) && audioEl.currentTime >= Math.max(audioEl.duration - 0.05, 0))) {
+        if (audioEl.ended || (Number.isFinite(audioEl.duration) && audioEl.currentTime >= Math.max(audioEl.duration - RADIO_TUNING_RESTART_THRESHOLD_S, 0))) {
           audioEl.currentTime = 0;
         }
         if (!audioEl.paused) return;
@@ -2295,7 +2297,7 @@
             tuningAudio.preload = 'auto';
             tuningAudio.loop = false;
             flipClockRadioTuningAudioEl = tuningAudio;
-            applyRadioTuningWarp(tuningAudio, tuningPosition);
+            resetRadioTuningPlayback(tuningAudio);
             const TUNING_DRAG_THRESHOLD_PX = 1;
             const KEYBOARD_TUNING_STEP = 0.02;
             const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
@@ -2319,7 +2321,7 @@
               if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
               tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs });
+              resetRadioTuningPlayback(tuningAudio);
               if (playAudio) {
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
@@ -2343,7 +2345,7 @@
               selectorDot.setPointerCapture(event.pointerId);
               const didUpdateTuning = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
               if (!didUpdateTuning) {
-                applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+                resetRadioTuningPlayback(tuningAudio);
                 ensureRadioTuningLoopPlayback(tuningAudio);
               }
             });
@@ -2384,7 +2386,7 @@
               const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
               tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
               selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
-              applyRadioTuningWarp(tuningAudio, tuningPosition, { isMoving: true, timestampMs: event.timeStamp });
+              resetRadioTuningPlayback(tuningAudio);
               ensureRadioTuningLoopPlayback(tuningAudio);
               if (stopTuneAudioTimeoutId !== null) {
                 window.clearTimeout(stopTuneAudioTimeoutId);
