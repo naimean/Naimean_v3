@@ -1283,12 +1283,11 @@
         const saveResultFlash = consumeSaveResultFlash();
         if (saveResultFlash) {
           debugStatus.textContent = saveResultFlash;
-          return;
+        } else {
+          debugStatus.textContent = serverHotspots
+            ? 'Hotspots loaded from the server.'
+            : 'Server hotspots unavailable; loaded bundled default hotspots.';
         }
-
-        debugStatus.textContent = serverHotspots
-          ? 'Hotspots loaded from the server.'
-          : 'Server hotspots unavailable; loaded bundled default hotspots.';
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
