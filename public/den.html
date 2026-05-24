@@ -533,7 +533,16 @@
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 }
-      ].map((overlay) => ({ ...overlay, x: overlay.x + SCENE_OFFSET_X }));
+      ].map((overlay) => {
+        const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
+        if (overlay.id === 'overlay-big-tv') {
+          adjustedOverlay.x += 1;
+          adjustedOverlay.y += 1;
+          adjustedOverlay.w = Math.max(0, adjustedOverlay.w - 2);
+          adjustedOverlay.h = Math.max(0, adjustedOverlay.h - 2);
+        }
+        return adjustedOverlay;
+      });
 
       const viewport = document.getElementById('viewport');
       const stage = document.getElementById('stage');
