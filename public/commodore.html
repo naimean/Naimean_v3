@@ -117,6 +117,16 @@
       color: #aef3ff;
     }
 
+    #debug-save-btn[data-state="saved"] {
+      border-color: rgba(123, 255, 187, 0.85);
+      color: #d9ffe8;
+    }
+
+    #debug-save-btn[data-state="error"] {
+      border-color: rgba(255, 111, 111, 0.9);
+      color: #ffd4d4;
+    }
+
     body.debug #debug-save-btn {
       display: inline-block;
     }
@@ -125,6 +135,7 @@
       outline: 1px dashed rgba(255, 255, 255, 0.9);
       cursor: move;
       pointer-events: auto;
+      touch-action: none;
     }
 
     body.debug .shadow-layer {
@@ -138,6 +149,18 @@
     body.debug .label,
     body.debug .resize-handle {
       display: block;
+    }
+
+    @media (pointer: coarse) {
+      .resize-handle {
+        width: 16px;
+        height: 16px;
+      }
+
+      .resize-handle[data-dir="nw"] { top: -8px; left: -8px; }
+      .resize-handle[data-dir="ne"] { top: -8px; right: -8px; }
+      .resize-handle[data-dir="sw"] { bottom: -8px; left: -8px; }
+      .resize-handle[data-dir="se"] { right: -8px; bottom: -8px; }
     }
 
     @media (min-width: 900px) {
@@ -175,6 +198,7 @@
       const DESIGN_HEIGHT = 557;
       const MIN_SIZE = 12;
       const STORAGE_KEY = 'commodore.editor.layout.v1';
+      const SAVE_FEEDBACK_DURATION_MS = 1400;
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -187,6 +211,7 @@
       const saveButton = document.getElementById('debug-save-btn');
       const layout = loadLayout();
       let editState = null;
+      let saveButtonResetTimer = null;
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -226,8 +251,33 @@
         }
       }
 
-      function saveLayout() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+      function resetSaveButtonLabel() {
+        saveButton.dataset.state = '';
+        saveButton.textContent = 'Save';
+      }
+
+      function setSaveButtonState(state, text) {
+        if (saveButtonResetTimer) {
+          clearTimeout(saveButtonResetTimer);
+          saveButtonResetTimer = null;
+        }
+        saveButton.dataset.state = state;
+        saveButton.textContent = text;
+        if (state) {
+          saveButtonResetTimer = setTimeout(resetSaveButtonLabel, SAVE_FEEDBACK_DURATION_MS);
+        }
+      }
+
+      function saveLayout(showFeedback = false) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+          if (showFeedback) setSaveButtonState('saved', 'Saved');
+          return true;
+        } catch (error) {
+          console.warn('Unable to save Commodore debug layout.', error);
+          if (showFeedback) setSaveButtonState('error', 'Save Failed: Check Storage');
+          return false;
+        }
       }
 
       function makeEditable(id, config) {
@@ -271,11 +321,16 @@
         const rect = layout[id];
         const scale = overlayLayer.clientWidth / DESIGN_WIDTH;
         if (!rect || scale <= 0) return;
+        if (editableEl.setPointerCapture) {
+          editableEl.setPointerCapture(event.pointerId);
+        }
         editState = {
           id,
           type,
           dir,
           scale,
+          pointerId: event.pointerId,
+          sourceEl: editableEl,
           startX: event.clientX,
           startY: event.clientY,
           rect: { ...rect }
@@ -284,6 +339,7 @@
 
       function updateDrag(event) {
         if (!editState) return;
+        if (event.pointerId !== editState.pointerId) return;
         const dx = (event.clientX - editState.startX) / editState.scale;
         const dy = (event.clientY - editState.startY) / editState.scale;
         const next = { ...editState.rect };
@@ -314,8 +370,12 @@
         renderLayout();
       }
 
-      function endEdit() {
+      function endEdit(event) {
         if (!editState) return;
+        if (event && event.pointerId !== editState.pointerId) return;
+        if (editState.sourceEl?.hasPointerCapture?.(editState.pointerId)) {
+          editState.sourceEl.releasePointerCapture(editState.pointerId);
+        }
         editState = null;
         saveLayout();
       }
@@ -331,6 +391,7 @@
 
       overlayLayer.addEventListener('pointerdown', (event) => {
         if (!document.body.classList.contains('debug')) return;
+        if (event.button !== 0) return;
         const handle = event.target.closest('.resize-handle');
         if (handle) {
           startEdit(event, 'resize', handle.dataset.dir, handle.closest('.editable'));
@@ -345,7 +406,7 @@
       window.addEventListener('pointerup', endEdit);
       window.addEventListener('pointercancel', endEdit);
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
-      saveButton.addEventListener('click', saveLayout);
+      saveButton.addEventListener('click', () => saveLayout(true));
     })();
   </script>
 </body>

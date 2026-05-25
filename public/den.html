@@ -1328,7 +1328,21 @@
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
       const AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS = 0.25;
       const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
-      const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([]);
+      const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 0 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 10 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 20 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 30 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 40 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 50 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 60 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 0 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 10 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 20 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 30 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 40 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 50 }
+      ]);
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze(
         AQUARIUM_SHRIMP_CLIP_CONFIGS
           .filter((clip) => clip && typeof clip.filename === 'string' && clip.filename)
@@ -1361,7 +1375,7 @@
       const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
       const RADIO_TUNING_VOLUME_MIN = 0.08;
       const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
-      const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/notarickroll-piece-1.v20260424.mp4';
+      const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4';
       const ZELDA_SECRET_AUDIO_URL = 'assets/audio/zelda-secret.v20260424.mp3';
       const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
