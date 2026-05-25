@@ -431,89 +431,47 @@
       }
     }
 
-    .calendar-app-icon {
-      width: min(72%, calc(100% - 20px));
-      aspect-ratio: 1.05 / 1;
-      border: 0;
-      border-radius: 14%;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.02)),
-        linear-gradient(180deg, #7b86ff 0%, #5865f2 45%, #4752c4 100%);
-      box-shadow:
-        0 12px 28px rgba(2, 10, 22, 0.45),
-        inset 0 1px 0 rgba(233, 237, 255, 0.68);
-      padding: 0;
+    .left-monitor-selector {
+      position: absolute;
+      inset: 0;
       display: flex;
-      align-items: stretch;
-      justify-content: stretch;
+      z-index: 2;
+    }
+
+    .left-monitor-segment {
+      flex: 1 1 20%;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
       cursor: pointer;
+      border-left: 1px solid rgba(216, 236, 255, 0.35);
     }
 
-    .calendar-app-icon:focus-visible {
+    .left-monitor-segment:first-child {
+      border-left: 0;
+    }
+
+    .left-monitor-segment:hover,
+    .left-monitor-segment.is-selected {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .left-monitor-segment:focus-visible {
       outline: 2px solid rgba(65, 229, 255, 0.95);
-      outline-offset: 3px;
+      outline-offset: -2px;
     }
 
-    .calendar-app-icon-face {
-      flex: 1;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      padding: 10% 10% 12%;
-      border-radius: inherit;
-      background:
-        linear-gradient(180deg, #eef2ff 0%, #a9b6ff 56%, #5865f2 100%);
-      color: #eef2ff;
-      text-align: center;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .calendar-app-icon-top {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16%;
-      align-items: center;
-      padding-bottom: 8%;
-      border-bottom: 0.14em solid rgba(240, 246, 255, 0.4);
-      color: #ffffff;
-      background: linear-gradient(180deg, #8f98ff 0%, #5865f2 55%, #3f49b7 100%);
-      border-radius: 18% 18% 12% 12%;
-      margin: -2% -2% 10%;
-      padding-top: 8%;
-    }
-
-    .calendar-app-icon-ring {
-      width: 26%;
-      aspect-ratio: 1;
-      margin: 0 auto;
-      border-radius: 999px;
-      background: rgba(237, 242, 255, 0.95);
-      box-shadow: 0 0 0 0.16em rgba(43, 53, 140, 0.26);
-    }
-
-    .calendar-app-icon-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8%;
-      align-content: center;
-      justify-items: center;
-      padding: 0 8%;
-    }
-
-    .calendar-app-icon-grid span {
-      width: 58%;
-      aspect-ratio: 1;
-      border-radius: 0.32em;
-      background: rgba(242, 246, 255, 0.34);
-    }
-
-    .calendar-app-icon-label {
-      align-self: end;
-      font-weight: 700;
-      font-size: clamp(10px, 13%, 32px);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #eef2ff;
-      padding-top: 10%;
+    .big-tv-monitor-state-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      position: relative;
+      z-index: 1;
     }
 
     .discord-widget-frame {
@@ -1404,7 +1362,6 @@
       const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/notarickroll-piece-1.v20260424.mp4';
       const ZELDA_SECRET_AUDIO_URL = 'assets/audio/zelda-secret.v20260424.mp3';
-      const DISCORD_WIDGET_URL = 'https://discord.com/widget?id=1487898909224341534&theme=dark';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
@@ -1414,7 +1371,21 @@
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
       const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
-      const CALENDAR_PAGE_URL = '/calendar.html';
+      const LEFT_MONITOR_STATE_TO_IMAGE_URL = Object.freeze({
+        login: 'assets/image/L_Monitor/L_Monitor_Login.png',
+        tools: 'assets/image/L_Monitor/L_Monitor_Tools.png',
+        calendar: 'assets/image/L_Monitor/L_Monitor_Calendar.png',
+        mail: 'assets/image/L_Monitor/L_Monitor_Mail.png',
+        none: 'assets/image/L_Monitor/L_Monitor_None.png'
+      });
+      const LEFT_MONITOR_SEGMENTS = Object.freeze([
+        { state: 'login', label: 'Login' },
+        { state: 'tools', label: 'Tools' },
+        { state: 'calendar', label: 'Calendar' },
+        { state: 'mail', label: 'Mail' },
+        { state: 'none', label: 'None' }
+      ]);
+      const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1542,7 +1513,7 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
-      let discordWidgetIframeEl = null;
+      let bigTvMonitorImageEl = null;
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
@@ -1564,6 +1535,8 @@
       let rightMonitorStaticVideoEl = null;
       let leftMonitorStaticOverlayEl = null;
       let leftMonitorStaticVideoEl = null;
+      let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
+      const leftMonitorSegmentButtonsByState = new Map();
       let rightMonitorFlickerTimeoutId = null;
       let leftMonitorFlickerTimeoutId = null;
       // Debug hotspot editing state
@@ -1593,11 +1566,31 @@
         if (discordOverlayEl) {
           discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
-        if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
+        if (bigTvMonitorImageEl) {
+          bigTvMonitorImageEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
           aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
+        }
+      }
+
+      function syncLeftMonitorSelectionUi() {
+        leftMonitorSegmentButtonsByState.forEach((button, state) => {
+          button.classList.toggle('is-selected', state === leftMonitorSelectedState);
+          button.setAttribute('aria-pressed', state === leftMonitorSelectedState ? 'true' : 'false');
+        });
+      }
+
+      function setBigTvMonitorState(nextState) {
+        if (!(nextState in LEFT_MONITOR_STATE_TO_IMAGE_URL)) {
+          return;
+        }
+        leftMonitorSelectedState = nextState;
+        syncLeftMonitorSelectionUi();
+        if (bigTvMonitorImageEl) {
+          bigTvMonitorImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
+          const stateLabel = LEFT_MONITOR_SEGMENTS.find(({ state }) => state === nextState)?.label || 'Unknown';
+          bigTvMonitorImageEl.alt = `Big TV display: ${stateLabel} screen`;
         }
       }
 
@@ -2669,10 +2662,6 @@
               window.location.assign(NOAHS_ARCADE_URL);
               return;
             }
-            if (spot.id === 'left-monitor') {
-              window.location.assign(CALENDAR_PAGE_URL);
-              return;
-            }
             if (spot.id === 'commodore-screen' || spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
               window.location.assign(COMMODORE_URL);
               return;
@@ -2721,7 +2710,8 @@
 
       function createOverlays() {
         overlayElementsById.clear();
-        discordWidgetIframeEl = null;
+        leftMonitorSegmentButtonsByState.clear();
+        bigTvMonitorImageEl = null;
         aquariumOverlayEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
@@ -2753,15 +2743,16 @@
 
           if (overlay.id === DISCORD_OVERLAY_ID) {
             el.classList.add('discord-widget-overlay');
-            const iframe = document.createElement('iframe');
-            iframe.className = 'discord-widget-frame';
-            iframe.src = DISCORD_WIDGET_URL;
-            iframe.title = 'Naimean Discord Widget';
-            iframe.setAttribute('allowtransparency', 'true');
-            iframe.sandbox = 'allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts';
-            iframe.loading = 'lazy';
-            discordWidgetIframeEl = iframe;
-            el.appendChild(iframe);
+            const image = document.createElement('img');
+            image.className = 'big-tv-monitor-state-image';
+            image.alt = `Big TV display: ${
+              LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label || 'Unknown'
+            } screen`;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            bigTvMonitorImageEl = image;
+            el.appendChild(image);
+            setBigTvMonitorState(leftMonitorSelectedState);
           }
 
           if (overlay.id === AQUARIUM_OVERLAY_ID) {
@@ -2845,36 +2836,24 @@
 
           if (overlay.id === 'overlay-left-monitor') {
             el.classList.add('calendar-monitor-overlay');
-            const icon = document.createElement('button');
-            icon.type = 'button';
-            icon.className = 'calendar-app-icon';
-            icon.setAttribute('aria-label', 'Open Calendar');
-            icon.addEventListener('pointerdown', (event) => event.stopPropagation());
-            icon.addEventListener('click', (event) => {
-              event.stopPropagation();
-              window.location.assign(CALENDAR_PAGE_URL);
+            const selector = document.createElement('div');
+            selector.className = 'left-monitor-selector';
+            LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
+              const segment = document.createElement('button');
+              segment.type = 'button';
+              segment.className = 'left-monitor-segment';
+              segment.setAttribute('aria-label', `Set ${label} on big TV`);
+              segment.setAttribute('aria-pressed', 'false');
+              segment.addEventListener('pointerdown', (event) => event.stopPropagation());
+              segment.addEventListener('click', (event) => {
+                event.stopPropagation();
+                setBigTvMonitorState(state);
+              });
+              leftMonitorSegmentButtonsByState.set(state, segment);
+              selector.appendChild(segment);
             });
-
-            const face = document.createElement('span');
-            face.className = 'calendar-app-icon-face';
-
-            const top = document.createElement('span');
-            top.className = 'calendar-app-icon-top';
-            top.innerHTML = '<span class=\"calendar-app-icon-ring\"></span><span class=\"calendar-app-icon-ring\"></span>';
-
-            const grid = document.createElement('span');
-            grid.className = 'calendar-app-icon-grid';
-            for (let i = 0; i < 9; i += 1) {
-              grid.appendChild(document.createElement('span'));
-            }
-
-            const label = document.createElement('span');
-            label.className = 'calendar-app-icon-label';
-            label.textContent = 'CAL';
-
-            face.append(top, grid, label);
-            icon.appendChild(face);
-            el.appendChild(icon);
+            el.appendChild(selector);
+            syncLeftMonitorSelectionUi();
 
             leftMonitorStaticOverlayEl = document.createElement('div');
             leftMonitorStaticOverlayEl.className = 'overlay-static-layer';
