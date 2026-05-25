@@ -198,6 +198,7 @@
       const DESIGN_HEIGHT = 557;
       const MIN_SIZE = 12;
       const STORAGE_KEY = 'commodore.editor.layout.v1';
+      const SAVE_FEEDBACK_DURATION_MS = 1400;
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -263,7 +264,7 @@
         saveButton.dataset.state = state;
         saveButton.textContent = text;
         if (state) {
-          saveButtonResetTimer = window.setTimeout(resetSaveButtonLabel, 1400);
+          saveButtonResetTimer = setTimeout(resetSaveButtonLabel, SAVE_FEEDBACK_DURATION_MS);
         }
       }
 
@@ -272,8 +273,9 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
           if (showFeedback) setSaveButtonState('saved', 'Saved');
           return true;
-        } catch {
-          if (showFeedback) setSaveButtonState('error', 'Save Failed');
+        } catch (error) {
+          console.warn('Unable to save Commodore debug layout.', error);
+          if (showFeedback) setSaveButtonState('error', 'Save Failed: Check Storage');
           return false;
         }
       }
@@ -319,7 +321,7 @@
         const rect = layout[id];
         const scale = overlayLayer.clientWidth / DESIGN_WIDTH;
         if (!rect || scale <= 0) return;
-        if (typeof event.pointerId === 'number' && editableEl.setPointerCapture) {
+        if (editableEl.setPointerCapture) {
           editableEl.setPointerCapture(event.pointerId);
         }
         editState = {
@@ -371,10 +373,7 @@
       function endEdit(event) {
         if (!editState) return;
         if (event && event.pointerId !== editState.pointerId) return;
-        if (
-          typeof editState.pointerId === 'number' &&
-          editState.sourceEl?.hasPointerCapture?.(editState.pointerId)
-        ) {
+        if (editState.sourceEl?.hasPointerCapture?.(editState.pointerId)) {
           editState.sourceEl.releasePointerCapture(editState.pointerId);
         }
         editState = null;
@@ -392,7 +391,7 @@
 
       overlayLayer.addEventListener('pointerdown', (event) => {
         if (!document.body.classList.contains('debug')) return;
-        if (typeof event.button === 'number' && event.button !== 0) return;
+        if (event.button !== 0) return;
         const handle = event.target.closest('.resize-handle');
         if (handle) {
           startEdit(event, 'resize', handle.dataset.dir, handle.closest('.editable'));
