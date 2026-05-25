@@ -462,7 +462,7 @@
       outline-offset: -2px;
     }
 
-    .big-tv-monitor-state-image {
+    .left-monitor-state-image {
       width: 100%;
       height: 100%;
       display: block;
@@ -1513,7 +1513,7 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
-      let bigTvMonitorImageEl = null;
+      let leftMonitorStateImageEl = null;
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
@@ -1566,9 +1566,6 @@
         if (discordOverlayEl) {
           discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
-        if (bigTvMonitorImageEl) {
-          bigTvMonitorImageEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
-        }
         if (aquariumOverlayEl) {
           aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
         }
@@ -1581,16 +1578,16 @@
         });
       }
 
-      function setBigTvMonitorState(nextState) {
+      function setLeftMonitorState(nextState) {
         if (!(nextState in LEFT_MONITOR_STATE_TO_IMAGE_URL)) {
           return;
         }
         leftMonitorSelectedState = nextState;
         syncLeftMonitorSelectionUi();
-        if (bigTvMonitorImageEl) {
-          bigTvMonitorImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
+        if (leftMonitorStateImageEl) {
+          leftMonitorStateImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
           const stateLabel = LEFT_MONITOR_SEGMENTS.find(({ state }) => state === nextState)?.label || 'Unknown';
-          bigTvMonitorImageEl.alt = `Big TV display: ${stateLabel} screen`;
+          leftMonitorStateImageEl.alt = `Left monitor display: ${stateLabel} screen`;
         }
       }
 
@@ -2711,7 +2708,7 @@
       function createOverlays() {
         overlayElementsById.clear();
         leftMonitorSegmentButtonsByState.clear();
-        bigTvMonitorImageEl = null;
+        leftMonitorStateImageEl = null;
         aquariumOverlayEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
@@ -2743,16 +2740,6 @@
 
           if (overlay.id === DISCORD_OVERLAY_ID) {
             el.classList.add('discord-widget-overlay');
-            const image = document.createElement('img');
-            image.className = 'big-tv-monitor-state-image';
-            image.alt = `Big TV display: ${
-              LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label || 'Unknown'
-            } screen`;
-            image.loading = 'lazy';
-            image.decoding = 'async';
-            bigTvMonitorImageEl = image;
-            el.appendChild(image);
-            setBigTvMonitorState(leftMonitorSelectedState);
           }
 
           if (overlay.id === AQUARIUM_OVERLAY_ID) {
@@ -2836,6 +2823,16 @@
 
           if (overlay.id === 'overlay-left-monitor') {
             el.classList.add('calendar-monitor-overlay');
+            const image = document.createElement('img');
+            image.className = 'left-monitor-state-image';
+            image.alt = `Left monitor display: ${
+              LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label || 'Unknown'
+            } screen`;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            leftMonitorStateImageEl = image;
+            el.appendChild(image);
+
             const selector = document.createElement('div');
             selector.className = 'left-monitor-selector';
             LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
@@ -2847,13 +2844,13 @@
               segment.addEventListener('pointerdown', (event) => event.stopPropagation());
               segment.addEventListener('click', (event) => {
                 event.stopPropagation();
-                setBigTvMonitorState(state);
+                setLeftMonitorState(state);
               });
               leftMonitorSegmentButtonsByState.set(state, segment);
               selector.appendChild(segment);
             });
             el.appendChild(selector);
-            syncLeftMonitorSelectionUi();
+            setLeftMonitorState(leftMonitorSelectedState);
 
             leftMonitorStaticOverlayEl = document.createElement('div');
             leftMonitorStaticOverlayEl.className = 'overlay-static-layer';
