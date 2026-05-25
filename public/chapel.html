@@ -194,7 +194,7 @@
           button.type = 'button';
           button.className = 'hotspot';
           button.dataset.id = definition.id;
-          button.ariaLabel = definition.label;
+          button.setAttribute('aria-label', definition.label);
           button.style.left = `${toPercentX(rect.x)}%`;
           button.style.top = `${toPercentY(rect.y)}%`;
           button.style.width = `${toPercentX(rect.w)}%`;
