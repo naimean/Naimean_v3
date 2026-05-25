@@ -359,6 +359,12 @@
         }
       }
 
+      function togglePowerState() {
+        isPoweredOn = !isPoweredOn;
+        applyPowerState();
+        savePowerState();
+      }
+
       function resetSaveButtonLabel() {
         saveButton.dataset.state = '';
         saveButton.textContent = 'Save';
@@ -536,9 +542,7 @@
         }
         if (hotspot.dataset.id === 'power-button') {
           event.preventDefault();
-          isPoweredOn = !isPoweredOn;
-          applyPowerState();
-          savePowerState();
+          togglePowerState();
         }
       });
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
