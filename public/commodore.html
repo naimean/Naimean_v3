@@ -469,6 +469,10 @@
       const MIN_SIZE = 12;
       const STORAGE_KEY = 'commodore.editor.layout.v1';
       const POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
+      const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
+      const COMMODORE_NAV_SOURCE_DEN = 'den';
+      const COMMODORE_HISTORY_SOURCE_KEY = 'commodoreSource';
+      const COMMODORE_HISTORY_DEN_BACK_GUARD_KEY = 'commodoreDenBackGuard';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
       const DEN_URL = '/den.html';
       const COMMODORE_BOOT_TEXT = [
@@ -494,6 +498,7 @@
       let editState = null;
       let saveButtonResetTimer = null;
       let isPoweredOn = loadPowerState();
+      let shouldRouteBackToDen = consumeCommodoreEntrySource() === COMMODORE_NAV_SOURCE_DEN;
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -539,6 +544,41 @@
           return sessionStorage.getItem(POWER_STATE_STORAGE_KEY) === 'true';
         } catch {
           return false;
+        }
+      }
+
+      function consumeCommodoreEntrySource() {
+        try {
+          const source = sessionStorage.getItem(COMMODORE_NAV_SOURCE_STORAGE_KEY);
+          sessionStorage.removeItem(COMMODORE_NAV_SOURCE_STORAGE_KEY);
+          return source;
+        } catch {
+          return null;
+        }
+      }
+
+      function primeBackNavigationToDen() {
+        if (!shouldRouteBackToDen) return;
+        try {
+          const currentState =
+            history.state && typeof history.state === 'object' ? history.state : {};
+          if (currentState[COMMODORE_HISTORY_DEN_BACK_GUARD_KEY]) return;
+          const denSourceState = {
+            ...currentState,
+            [COMMODORE_HISTORY_SOURCE_KEY]: COMMODORE_NAV_SOURCE_DEN
+          };
+          history.replaceState(denSourceState, '', window.location.href);
+          history.pushState(
+            {
+              ...denSourceState,
+              [COMMODORE_HISTORY_DEN_BACK_GUARD_KEY]: true
+            },
+            '',
+            window.location.href
+          );
+        } catch (error) {
+          console.warn('Unable to prime Commodore back navigation source.', error);
+          shouldRouteBackToDen = false;
         }
       }
 
@@ -714,6 +754,7 @@
       }
 
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
+      primeBackNavigationToDen();
       monitorShadowEl = overlayLayer.querySelector('[data-id="monitor-shadow"]');
       powerButtonEl = overlayLayer.querySelector('[data-id="power-button"]');
       greenscreenTextEl = document.createElement('div');
@@ -749,6 +790,15 @@
       window.addEventListener('pointermove', updateDrag);
       window.addEventListener('pointerup', endEdit);
       window.addEventListener('pointercancel', endEdit);
+      window.addEventListener('popstate', (event) => {
+        if (!shouldRouteBackToDen) return;
+        const state = event.state;
+        if (!state || typeof state !== 'object') return;
+        if (state[COMMODORE_HISTORY_SOURCE_KEY] !== COMMODORE_NAV_SOURCE_DEN) return;
+        if (state[COMMODORE_HISTORY_DEN_BACK_GUARD_KEY]) return;
+        shouldRouteBackToDen = false;
+        window.location.replace(DEN_URL);
+      });
       overlayLayer.addEventListener('click', (event) => {
         if (document.body.classList.contains('debug')) return;
         const hotspot = event.target.closest('.hotspot');
