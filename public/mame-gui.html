@@ -316,7 +316,7 @@
           googleBtn.textContent = 'Google';
           googleBtn.title = `Search Google for "${cabinet.name}"`;
           googleBtn.addEventListener('click', () => {
-            const query = encodeURIComponent('Dos Game Online ' + cabinet.name);
+            const query = encodeURIComponent('DOS Game Online ' + cabinet.name);
             window.location.href = `https://www.google.com/search?q=${query}`;
           });
           urlRow.appendChild(googleBtn);
