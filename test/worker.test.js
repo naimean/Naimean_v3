@@ -203,20 +203,23 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/other.html']);
 });
 
-test('worker redirects /den to /den.html', async () => {
+test('worker serves /den through the den asset alias', async () => {
+  const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
     ASSETS: {
-      async fetch() {
-        throw new Error('ASSETS should not be called for /den');
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('den', { status: 200 });
       }
     }
   };
 
   const response = await router.fetch(new Request('https://example.com/den'), env);
 
-  assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), 'https://example.com/den.html');
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'den');
+  assert.deepEqual(calls.assetsFetch, ['/den.html']);
 });
 
 test('worker preserves existing frame-src CSP for den html path', async () => {
@@ -578,7 +581,7 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
-test('worker redirects root path to /den.html', async () => {
+test('worker serves root path through the den asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -592,9 +595,28 @@ test('worker redirects root path to /den.html', async () => {
 
   const response = await router.fetch(new Request('https://example.com/'), env);
 
-  assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), 'https://example.com/den.html');
-  assert.deepEqual(calls.assetsFetch, []);
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'den');
+  assert.deepEqual(calls.assetsFetch, ['/den.html']);
+});
+
+test('worker serves /index.html through the den asset alias', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('den', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/index.html'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'den');
+  assert.deepEqual(calls.assetsFetch, ['/den.html']);
 });
 
 // --- functions/api/hotspots.js HotspotStore class coverage ---
