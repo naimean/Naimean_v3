@@ -476,38 +476,6 @@
       outline-offset: -2px;
     }
 
-    .left-monitor-image-stack {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .left-monitor-state-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      background: #0a2f67;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-      opacity: 0;
-      transition: opacity 180ms ease;
-    }
-
-    .left-monitor-state-image.is-base {
-      opacity: 1;
-      z-index: 0;
-    }
-
-    .left-monitor-state-image.is-visible {
-      opacity: 1;
-      z-index: 1;
-    }
-
     .discord-widget-frame {
       width: 100%;
       height: calc(178% - 10px);
@@ -1405,13 +1373,6 @@
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
       const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
-      const LEFT_MONITOR_STATE_TO_IMAGE_URL = Object.freeze({
-        login: 'assets/images/L_Monitor/L_Monitor_Login.png',
-        tools: 'assets/images/L_Monitor/L_Monitor_Tools.png',
-        calendar: 'assets/images/L_Monitor/L_Monitor_Calendar.png',
-        mail: 'assets/images/L_Monitor/L_Monitor_Mail.png',
-        none: 'assets/images/L_Monitor/L_Monitor_None.png'
-      });
       const LEFT_MONITOR_SEGMENTS = Object.freeze([
         { state: 'login', label: 'Login' },
         { state: 'tools', label: 'Tools' },
@@ -1419,6 +1380,7 @@
         { state: 'mail', label: 'Mail' },
         { state: 'none', label: 'None' }
       ]);
+      const LEFT_MONITOR_STATES = new Set(LEFT_MONITOR_SEGMENTS.map(({ state }) => state));
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -1547,7 +1509,6 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
-      const leftMonitorStateImageElsByState = new Map();
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
@@ -1613,16 +1574,11 @@
       }
 
       function setLeftMonitorState(nextState) {
-        if (!(nextState in LEFT_MONITOR_STATE_TO_IMAGE_URL)) {
+        if (!LEFT_MONITOR_STATES.has(nextState)) {
           return;
         }
         leftMonitorSelectedState = nextState;
         syncLeftMonitorSelectionUi();
-        leftMonitorStateImageElsByState.forEach((imageEl, state) => {
-          const isBaseState = state === DEFAULT_LEFT_MONITOR_STATE;
-          imageEl.classList.toggle('is-base', isBaseState);
-          imageEl.classList.toggle('is-visible', !isBaseState && state === nextState);
-        });
       }
 
       function cancelAquariumPlaybackSequence() {
@@ -2742,7 +2698,6 @@
       function createOverlays() {
         overlayElementsById.clear();
         leftMonitorSegmentButtonsByState.clear();
-        leftMonitorStateImageElsByState.clear();
         aquariumOverlayEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
@@ -2857,25 +2812,6 @@
 
           if (overlay.id === 'overlay-left-monitor') {
             el.classList.add('calendar-monitor-overlay');
-            const imageStack = document.createElement('div');
-            imageStack.className = 'left-monitor-image-stack';
-            LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
-              const image = document.createElement('img');
-              image.className = 'left-monitor-state-image';
-              image.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[state];
-              image.setAttribute('aria-hidden', 'true');
-              image.loading = state === DEFAULT_LEFT_MONITOR_STATE ? 'eager' : 'lazy';
-              if (state === DEFAULT_LEFT_MONITOR_STATE) {
-                image.fetchPriority = 'high';
-              }
-              image.decoding = 'async';
-              image.dataset.state = state;
-              image.dataset.label = label;
-              leftMonitorStateImageElsByState.set(state, image);
-              imageStack.appendChild(image);
-            });
-            el.appendChild(imageStack);
-
             const selector = document.createElement('div');
             selector.className = 'left-monitor-selector';
             LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
