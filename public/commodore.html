@@ -445,9 +445,9 @@
         debugButton.textContent = enabled ? 'Debug On' : 'Debug';
       }
 
-      function setPoweredOn(enabled) {
-        monitorShadowEl?.classList.toggle('is-powered-on', enabled);
-        powerButtonEl?.classList.toggle('is-powered-on', enabled);
+      function setPoweredOn() {
+        monitorShadowEl?.classList.add('is-powered-on');
+        powerButtonEl?.classList.add('is-powered-on');
       }
 
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
@@ -476,12 +476,13 @@
         const hotspot = event.target.closest('.hotspot');
         if (!hotspot) return;
         if (hotspot.dataset.id === 'return-key') {
+          event.preventDefault();
           window.location.assign(DEN_URL);
           return;
         }
         if (hotspot.dataset.id === 'power-button') {
           event.preventDefault();
-          setPoweredOn(true);
+          setPoweredOn();
         }
       });
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
