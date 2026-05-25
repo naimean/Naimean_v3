@@ -2,6 +2,7 @@ const DEFAULT_HOTSPOTS = [
   { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 },
   { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
   { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+  { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 },
   { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
   { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
   { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 },
