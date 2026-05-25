@@ -213,6 +213,7 @@
     .screen-overlay.monitor-side-frame-overlay {
       overflow: hidden;
       pointer-events: none;
+      /* Frame art sits above the clipped screen content and its glass/reflection treatment. */
       z-index: 3;
     }
 
@@ -257,6 +258,7 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
+      /* Keep glass/reflection treatment above the screen content but below the separate frame PNG. */
       z-index: 3;
     }
 
@@ -275,6 +277,7 @@
         linear-gradient(90deg, rgba(7, 16, 37, 0.22) 0%, rgba(7, 16, 37, 0) 16%, rgba(7, 16, 37, 0) 84%, rgba(7, 16, 37, 0.26) 100%);
     }
 
+    /* These insets and clip-path samples trace the left frame's transparent inner border for a curved CRT opening. */
     .left-monitor-screen-window {
       inset: 17.1% 24.4% 29.3% 25.2%;
       clip-path: polygon(
@@ -310,6 +313,7 @@
       );
     }
 
+    /* These insets and clip-path samples trace the right frame's transparent inner border for a curved CRT opening. */
     .right-monitor-screen-window {
       inset: 29.2% 25.3% 17.2% 24.4%;
       clip-path: polygon(
@@ -1748,6 +1752,8 @@
       const RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-right-monitor-side-frame-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
+      const LEFT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1331, y: 1020, w: 280, h: 220 });
+      const RIGHT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1758, y: 1014, w: 288, h: 228 });
       HOTSPOT_READABLE_LABELS.set(COMMODORE_OVERLAY_CONTROL_ID, 'Commodore Screen');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
@@ -1755,6 +1761,7 @@
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         COMMODORE_OVERLAY_CONTROL_ID,
+        // Keep monitor screen controls fixed to the frame bounds so debug edits only move the shared frame anchor.
         LEFT_MONITOR_OVERLAY_CONTROL_ID,
         RIGHT_MONITOR_OVERLAY_CONTROL_ID,
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
@@ -1795,24 +1802,24 @@
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
         { id: COMMODORE_SHADOW_CONTROL_ID, x: 1682, y: 1095, w: 414, h: 198 },
         { id: COMMODORE_POWER_BUTTON_CONTROL_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
-        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, x: 1758, y: 1014, w: 288, h: 228 },
-        { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, x: 1758, y: 1014, w: 288, h: 228 },
+        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
-        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, x: 1331, y: 1020, w: 280, h: 220 },
-        { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, x: 1331, y: 1020, w: 280, h: 220 }
+        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS }
       ];
 
       // Overlay placeholders over transparent screen cutouts.
       const overlayDefaults = [
         { id: DISCORD_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: AQUARIUM_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
-        { id: 'overlay-left-monitor', x: 1331, y: 1020, w: 280, h: 220 },
-        { id: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID, x: 1331, y: 1020, w: 280, h: 220 },
+        { id: 'overlay-left-monitor', ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
         { id: COMMODORE_SHADOW_OVERLAY_ID, x: 1682, y: 1095, w: 414, h: 198 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: COMMODORE_POWER_BUTTON_OVERLAY_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
-        { id: 'overlay-right-monitor', x: 1758, y: 1014, w: 288, h: 228 },
-        { id: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID, x: 1758, y: 1014, w: 288, h: 228 },
+        { id: 'overlay-right-monitor', ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
       ].map((overlay) => {
         const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
