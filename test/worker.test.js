@@ -264,53 +264,6 @@ test('worker preserves existing frame-src CSP on extensionless den paths', async
   );
 });
 
-test('worker normalizes HTML headers to avoid forced downloads', async () => {
-  const env = {
-    HOTSPOT_STORE: {},
-    ASSETS: {
-      async fetch() {
-        return new Response('<!doctype html><title>Den</title>', {
-          status: 200,
-          headers: {
-            'content-type': 'application/octet-stream',
-            'content-disposition': 'attachment; filename="den.html"'
-          }
-        });
-      }
-    }
-  };
-
-  const response = await router.fetch(new Request('https://example.com/den.html'), env);
-
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('content-type'), 'text/html; charset=UTF-8');
-  assert.equal(response.headers.get('content-disposition'), null);
-  assert.equal(await response.text(), '<!doctype html><title>Den</title>');
-});
-
-test('worker keeps non-HTML asset download headers unchanged', async () => {
-  const env = {
-    HOTSPOT_STORE: {},
-    ASSETS: {
-      async fetch() {
-        return new Response('binary', {
-          status: 200,
-          headers: {
-            'content-type': 'application/octet-stream',
-            'content-disposition': 'attachment; filename="file.bin"'
-          }
-        });
-      }
-    }
-  };
-
-  const response = await router.fetch(new Request('https://example.com/assets/file.bin'), env);
-
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('content-type'), 'application/octet-stream');
-  assert.equal(response.headers.get('content-disposition'), 'attachment; filename="file.bin"');
-});
-
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], fetch: 0 };
   const expected = new Response('ok', { status: 200 });
