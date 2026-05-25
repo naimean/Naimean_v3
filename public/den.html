@@ -1408,6 +1408,8 @@
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const NOAHS_ARCADE_URL = '/noahs-arcade.html';
       const COMMODORE_URL = '/commodore';
+      const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
+      const COMMODORE_NAV_SOURCE_DEN = 'den';
       const CHAPEL_URL = '/chapel.html';
       const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
       const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
@@ -2645,6 +2647,15 @@
         window.location.href = isMobile ? CALENDAR_URL_MOBILE : CALENDAR_URL_DESKTOP;
       }
 
+      function navigateToCommodoreFromDen() {
+        try {
+          sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_DEN);
+        } catch (error) {
+          console.warn('Unable to persist Commodore navigation source.', error);
+        }
+        window.location.assign(COMMODORE_URL);
+      }
+
       function createFlipCard(isMonth) {
         const el = document.createElement('div');
         el.className = isMonth ? 'fc-month' : 'fc-digit';
@@ -2882,7 +2893,7 @@
               return;
             }
             if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
-              window.location.assign(COMMODORE_URL);
+              navigateToCommodoreFromDen();
               return;
             }
             if (spot.id === 'chapel') {
@@ -2890,7 +2901,7 @@
               return;
             }
             if (spot.id === COMMODORE_POWER_BUTTON_CONTROL_ID) {
-              window.location.assign(COMMODORE_URL);
+              navigateToCommodoreFromDen();
               return;
             }
             if (spot.id === FLIP_CLOCK_OVERLAY_CONTROL_ID) {
@@ -3117,7 +3128,7 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
-              window.location.assign(COMMODORE_URL);
+              navigateToCommodoreFromDen();
             });
             el.appendChild(button);
           }
