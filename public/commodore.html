@@ -262,6 +262,8 @@
       const debugButton = document.getElementById('debug-toggle-btn');
       const saveButton = document.getElementById('debug-save-btn');
       const layout = loadLayout();
+      let monitorShadowEl = null;
+      let powerButtonEl = null;
       let editState = null;
       let saveButtonResetTimer = null;
 
@@ -444,11 +446,13 @@
       }
 
       function setPoweredOn(enabled) {
-        overlayLayer.querySelector('[data-id="monitor-shadow"]')?.classList.toggle('is-powered-on', enabled);
-        overlayLayer.querySelector('[data-id="power-button"]')?.classList.toggle('is-powered-on', enabled);
+        monitorShadowEl?.classList.toggle('is-powered-on', enabled);
+        powerButtonEl?.classList.toggle('is-powered-on', enabled);
       }
 
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
+      monitorShadowEl = overlayLayer.querySelector('[data-id="monitor-shadow"]');
+      powerButtonEl = overlayLayer.querySelector('[data-id="power-button"]');
       renderLayout();
 
       overlayLayer.addEventListener('pointerdown', (event) => {
