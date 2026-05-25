@@ -39,6 +39,7 @@ test('HotspotStore GET returns default hotspots when storage is empty', async ()
   assert.equal(body.hotspots.length, 7);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
+  assert.deepEqual(body.hotspots[6], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
   assert.deepEqual(body.hotspots[2], { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 });
   assert.deepEqual(body.hotspots[4], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
   assert.deepEqual(body.hotspots[5], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
@@ -400,7 +401,9 @@ test('HotspotStore POST uses defaults when hotspots payload is a non-array', asy
   const body = await response.json();
 
   assert.equal(response.status, 200);
+  assert.equal(body.hotspots.length, 7);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+  assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
 });
 
 test('HotspotStore POST skips non-object and null entries in hotspots array', async () => {
@@ -754,7 +757,7 @@ test('functions/api/hotspots onRequest delegates POST requests', async () => {
 test('HotspotStore GET reports unknown load errors without message text', async () => {
   const state = {
     storage: {
-      async get() { throw null; },
+      async get() { throw {}; },
       async put() {}
     }
   };
@@ -770,7 +773,7 @@ test('HotspotStore POST reports unknown save errors without message text', async
   const state = {
     storage: {
       async get() { return undefined; },
-      async put() { throw undefined; }
+      async put() { throw {}; }
     }
   };
   const store = new HotspotStore(state);
@@ -787,7 +790,7 @@ test('HotspotStore POST reports unknown save errors without message text', async
   assert.deepEqual(await response.json(), { error: 'Failed to save hotspots: Unknown error' });
 });
 
-test('functions HotspotStore POST falls back to defaults for non-finite values', async () => {
+test('FunctionsHotspotStore POST falls back to defaults for non-finite values', async () => {
   const { state } = makeFunctionsState(undefined);
   const store = new FunctionsHotspotStore(state);
 
@@ -809,7 +812,7 @@ test('functions HotspotStore POST falls back to defaults for non-finite values',
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
 });
 
-test('functions HotspotStore POST uses defaults when hotspots payload is not an array', async () => {
+test('FunctionsHotspotStore POST uses defaults when hotspots payload is not an array', async () => {
   const { state } = makeFunctionsState(undefined);
   const store = new FunctionsHotspotStore(state);
 
@@ -823,7 +826,10 @@ test('functions HotspotStore POST uses defaults when hotspots payload is not an 
   const body = await response.json();
 
   assert.equal(response.status, 200);
+  assert.equal(body.hotspots.length, 6);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
+  assert.equal(body.hotspots.find((hotspot) => hotspot.id === 'overlay-left-monitor-control'), undefined);
 });
 
 test('functions/api/hotspots onRequest returns unknown error text when durable object throws non-Error', async () => {
