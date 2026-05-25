@@ -1385,12 +1385,6 @@
         { state: 'mail', label: 'Mail' },
         { state: 'none', label: 'None' }
       ]);
-      const LEFT_MONITOR_STATE_TO_LABEL = Object.freeze(
-        LEFT_MONITOR_SEGMENTS.reduce((lookup, { state, label }) => {
-          lookup[state] = label;
-          return lookup;
-        }, {})
-      );
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -1595,7 +1589,7 @@
         syncLeftMonitorSelectionUi();
         if (bigTvMonitorImageEl) {
           bigTvMonitorImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
-          const stateLabel = LEFT_MONITOR_STATE_TO_LABEL[nextState] || nextState;
+          const stateLabel = LEFT_MONITOR_SEGMENTS.find(({ state }) => state === nextState)?.label;
           bigTvMonitorImageEl.alt = `Big TV display: ${stateLabel} screen`;
         }
       }
@@ -2748,7 +2742,9 @@
             el.classList.add('discord-widget-overlay');
             const image = document.createElement('img');
             image.className = 'big-tv-monitor-state-image';
-            image.alt = `Big TV display: ${LEFT_MONITOR_STATE_TO_LABEL[DEFAULT_LEFT_MONITOR_STATE] || DEFAULT_LEFT_MONITOR_STATE} screen`;
+            image.alt = `Big TV display: ${
+              LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label
+            } screen`;
             image.loading = 'lazy';
             image.decoding = 'async';
             bigTvMonitorImageEl = image;
