@@ -355,7 +355,7 @@
   <button id="save-hotspots-btn" type="button" aria-label="Save chapel hotspot positions">Save</button>
   <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
     <div id="save-modal-inner">
-      <p id="save-modal-title">Copy the updated chapel hotspot config below</p>
+      <p id="save-modal-title">Copy the updated Chapel hotspot config below</p>
       <textarea id="save-modal-textarea" readonly spellcheck="false"></textarea>
       <div id="save-modal-actions">
         <button type="button" class="save-modal-btn primary" id="save-modal-copy-btn">Copy to clipboard</button>
@@ -718,7 +718,7 @@
             saveModalCopyButton.textContent = 'Copy to clipboard';
           }, 1500);
         } catch (error) {
-          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Please select the text and copy it manually with Ctrl+C or Cmd+C.'}`;
+          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Please select the text and copy it manually using your system copy command.'}`;
         }
       });
     })();
