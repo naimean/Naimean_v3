@@ -669,6 +669,12 @@
         0 calc(10px * var(--fc-scale)) calc(18px * var(--fc-scale)) rgba(0, 0, 0, 0.5),
         inset 0 calc(1px * var(--fc-scale)) 0 rgba(240, 216, 191, 0.2),
         inset 0 calc(-3px * var(--fc-scale)) 0 rgba(47, 28, 17, 0.62);
+      transform-origin: left center;
+      transform:
+        perspective(calc(500px * var(--fc-scale)))
+        rotateY(-18deg)
+        rotateX(3deg);
+      transform-style: preserve-3d;
       pointer-events: auto;
       overflow: hidden;
     }
@@ -681,6 +687,23 @@
       box-shadow:
         inset calc(2px * var(--fc-scale)) 0 0 rgba(255, 245, 231, 0.12),
         inset calc(-2px * var(--fc-scale)) 0 0 rgba(53, 34, 21, 0.24);
+      pointer-events: none;
+    }
+
+    .flip-clock-overlay::after {
+      content: '';
+      position: absolute;
+      top: calc(11px * var(--fc-scale));
+      right: 0;
+      width: calc(13px * var(--fc-scale));
+      height: calc(74px * var(--fc-scale));
+      border-radius: calc(2px * var(--fc-scale));
+      background:
+        linear-gradient(180deg, rgba(28, 18, 11, 0.08) 0%, rgba(28, 18, 11, 0.45) 100%),
+        linear-gradient(90deg, rgba(255, 226, 191, 0.2) 0%, rgba(77, 50, 32, 0.5) 100%);
+      box-shadow:
+        inset calc(1px * var(--fc-scale)) 0 0 rgba(255, 241, 220, 0.18),
+        inset calc(-1px * var(--fc-scale)) 0 0 rgba(37, 23, 14, 0.48);
       pointer-events: none;
     }
 
