@@ -467,6 +467,7 @@
       height: 100%;
       display: block;
       object-fit: cover;
+      background: #0a2f67;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -2828,7 +2829,8 @@
             image.alt = `Left monitor display: ${
               LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label || 'Unknown'
             } screen`;
-            image.loading = 'lazy';
+            image.loading = 'eager';
+            image.fetchPriority = 'high';
             image.decoding = 'async';
             leftMonitorStateImageEl = image;
             el.appendChild(image);
