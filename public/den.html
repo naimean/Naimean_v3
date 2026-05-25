@@ -1382,7 +1382,8 @@
       const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/notarickroll-piece-1.v20260424.mp4';
       const ZELDA_SECRET_AUDIO_URL = 'assets/audio/zelda-secret.v20260424.mp3';
-      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join-our-discord-button.svg';
+      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
+      const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
       const BIG_TV_PROMPT_SECRET_TEXT = 'You didnt say the magic word';
@@ -1562,6 +1563,8 @@
       let leftMonitorStaticVideoEl = null;
       let leftMonitorContentImageEl = null;
       let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
+      let discordButtonImgEl = null;
+      let discordButtonSelected = false;
       const leftMonitorSegmentButtonsByState = new Map();
       let rightMonitorFlickerTimeoutId = null;
       let leftMonitorFlickerTimeoutId = null;
@@ -1604,6 +1607,14 @@
         });
       }
 
+      function syncDiscordButtonUi() {
+        if (discordButtonImgEl) {
+          discordButtonImgEl.src = discordButtonSelected
+            ? DISCORD_BUTTON_GREEN_IMAGE_URL
+            : DISCORD_BUTTON_IMAGE_URL;
+        }
+      }
+
       function setLeftMonitorState(nextState) {
         if (!LEFT_MONITOR_STATES.has(nextState)) {
           return;
@@ -1612,6 +1623,10 @@
         if (leftMonitorContentImageEl) {
           const imageUrl = LEFT_MONITOR_IMAGE_URLS[nextState] || LEFT_MONITOR_IMAGE_URLS[DEFAULT_LEFT_MONITOR_STATE];
           leftMonitorContentImageEl.src = imageUrl;
+        }
+        if (nextState !== DEFAULT_LEFT_MONITOR_STATE) {
+          discordButtonSelected = false;
+          syncDiscordButtonUi();
         }
         syncLeftMonitorSelectionUi();
       }
@@ -2983,6 +2998,11 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
+              discordButtonSelected = !discordButtonSelected;
+              if (discordButtonSelected) {
+                setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
+              }
+              syncDiscordButtonUi();
               activateBigTvPromptMode();
             });
 
@@ -2992,6 +3012,7 @@
             img.alt = '';
             img.loading = 'lazy';
             img.decoding = 'async';
+            discordButtonImgEl = img;
             button.appendChild(img);
             el.appendChild(button);
 
