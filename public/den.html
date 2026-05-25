@@ -1258,6 +1258,7 @@
       const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
       const NOAHS_ARCADE_URL = '/noahs-arcade.html';
       const COMMODORE_URL = '/commodore';
+      const CHAPEL_URL = '/chapel.html';
       const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
       const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
       const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
@@ -1287,9 +1288,10 @@
         'whiteboard',
         ...WHITEBOARD_TASK_HOTSPOTS.map((spot) => spot.id)
       ]);
-      const HOTSPOT_READABLE_LABELS = new Map(
-        WHITEBOARD_TASK_HOTSPOTS.map(({ id, label }) => [id, label])
-      );
+      const HOTSPOT_READABLE_LABELS = new Map([
+        ['chapel', 'Chapel'],
+        ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, label }) => [id, label])
+      ]);
       const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
       const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set([
         'overlay-big-tv-control',
@@ -1382,6 +1384,7 @@
         { id: NOAHS_ARCADE_HOTSPOT_ID, x: 880, y: 320, w: 2050, h: 1280 },
         { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
         { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+        { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 },
         ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
@@ -2583,6 +2586,10 @@
             }
             if (spot.id === 'commodore-screen' || spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
               window.location.assign(COMMODORE_URL);
+              return;
+            }
+            if (spot.id === 'chapel') {
+              window.location.assign(CHAPEL_URL);
               return;
             }
             if (spot.id === FLIP_CLOCK_OVERLAY_CONTROL_ID) {
