@@ -1502,13 +1502,16 @@
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
-        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive;
+        const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        if (discordOverlayEl) {
+          discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
+        }
         if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility =
-            shouldShowBigTvVideoOverlay || promptActive ? 'hidden' : 'visible';
+          discordWidgetIframeEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
-          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvVideoOverlay);
+          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
         }
       }
 
