@@ -40,39 +40,6 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-function isHtmlRoute(pathname) {
-  if (pathname === '/' || pathname.endsWith('.html')) return true;
-  const lastSegment = pathname.split('/').pop() || '';
-  return lastSegment !== '' && !lastSegment.includes('.');
-}
-
-function normalizeHtmlAssetResponse(response, pathname) {
-  if (!isHtmlRoute(pathname)) return response;
-
-  const headers = new Headers(response.headers);
-  const contentType = headers.get('content-type') || '';
-  const contentDisposition = headers.get('content-disposition') || '';
-
-  let changed = false;
-  if (!/^\s*text\/html\b/i.test(contentType)) {
-    headers.set('content-type', 'text/html; charset=UTF-8');
-    changed = true;
-  }
-
-  if (/\battachment\b/i.test(contentDisposition)) {
-    headers.delete('content-disposition');
-    changed = true;
-  }
-
-  if (!changed) return response;
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
 function sanitizeHotspots(input) {
   if (!Array.isArray(input)) return DEFAULT_HOTSPOTS;
 
@@ -147,7 +114,6 @@ export default {
       return env.HOTSPOT_STORE.get(id).fetch(request);
     }
 
-    const assetResponse = await env.ASSETS.fetch(request);
-    return normalizeHtmlAssetResponse(assetResponse, url.pathname);
+    return env.ASSETS.fetch(request);
   }
 };
