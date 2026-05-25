@@ -2849,7 +2849,6 @@
               const image = document.createElement('img');
               image.className = 'left-monitor-state-image';
               image.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[state];
-              image.alt = '';
               image.setAttribute('aria-hidden', 'true');
               image.loading = state === DEFAULT_LEFT_MONITOR_STATE ? 'eager' : 'lazy';
               if (state === DEFAULT_LEFT_MONITOR_STATE) {
