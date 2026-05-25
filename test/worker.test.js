@@ -203,7 +203,7 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/other.html']);
 });
 
-test('worker serves /den through the den asset alias', async () => {
+test('worker serves /den through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -219,7 +219,7 @@ test('worker serves /den through the den asset alias', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), 'den');
-  assert.deepEqual(calls.assetsFetch, ['/den.html']);
+  assert.deepEqual(calls.assetsFetch, ['/index.html']);
 });
 
 test('worker preserves existing frame-src CSP for den html path', async () => {
@@ -252,7 +252,7 @@ test('worker preserves existing frame-src CSP for den html path', async () => {
   );
 });
 
-test('worker serves den html path through assets binding', async () => {
+test('worker serves den html path through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {
@@ -284,7 +284,7 @@ test('worker serves den html path through assets binding', async () => {
     csp,
     "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
   );
-  assert.deepEqual(calls.assetsFetch, ['/den.html']);
+  assert.deepEqual(calls.assetsFetch, ['/index.html']);
 });
 
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
@@ -581,7 +581,7 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
-test('worker serves root path through the den asset alias', async () => {
+test('worker serves root path through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -597,10 +597,10 @@ test('worker serves root path through the den asset alias', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), 'den');
-  assert.deepEqual(calls.assetsFetch, ['/den.html']);
+  assert.deepEqual(calls.assetsFetch, ['/index.html']);
 });
 
-test('worker serves /index.html through the den asset alias', async () => {
+test('worker serves /index.html through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -616,7 +616,7 @@ test('worker serves /index.html through the den asset alias', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), 'den');
-  assert.deepEqual(calls.assetsFetch, ['/den.html']);
+  assert.deepEqual(calls.assetsFetch, ['/index.html']);
 });
 
 // --- functions/api/hotspots.js HotspotStore class coverage ---
