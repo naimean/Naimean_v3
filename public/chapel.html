@@ -186,11 +186,11 @@
           console.warn(`Missing hotspot anchor(s): ${anchorStart}, ${anchorEnd}`);
           return null;
         }
-        const x = Math.max(0, Math.min(start.x, end.x) - padding);
-        const y = Math.max(0, Math.min(start.y, end.y) - padding);
-        const w = Math.abs(end.x - start.x) + (padding * 2);
-        const h = Math.abs(end.y - start.y) + (padding * 2);
-        return { x, y, w, h };
+        const left = Math.max(0, Math.min(start.x, end.x) - padding);
+        const top = Math.max(0, Math.min(start.y, end.y) - padding);
+        const width = Math.abs(end.x - start.x) + (padding * 2);
+        const height = Math.abs(end.y - start.y) + (padding * 2);
+        return { left, top, width, height };
       }
 
       function toPercentX(value) {
@@ -211,10 +211,10 @@
           button.className = 'hotspot';
           button.dataset.id = definition.id;
           button.setAttribute('aria-label', definition.label);
-          button.style.left = `${toPercentX(rect.x)}%`;
-          button.style.top = `${toPercentY(rect.y)}%`;
-          button.style.width = `${toPercentX(rect.w)}%`;
-          button.style.height = `${toPercentY(rect.h)}%`;
+          button.style.left = `${toPercentX(rect.left)}%`;
+          button.style.top = `${toPercentY(rect.top)}%`;
+          button.style.width = `${toPercentX(rect.width)}%`;
+          button.style.height = `${toPercentY(rect.height)}%`;
           if (definition.variant === 'power-button') {
             button.classList.add('power-button-visual');
           }
