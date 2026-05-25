@@ -2554,25 +2554,20 @@
           h2: container.querySelector('[data-key="h2"]'),
           m1: container.querySelector('[data-key="m1"]'),
           m2: container.querySelector('[data-key="m2"]'),
-          ampm: container.querySelector('[data-key="ampm"]'),
           dateBadge: container.querySelector('[data-key="date-badge"]')
         };
 
         function tick(animate) {
           const now = new Date();
           const hours24 = now.getHours();
-          const hh = String(hours24 % 12 || 12).padStart(2, ' ');
+          const hh = String(hours24).padStart(2, '0');
           const mm = String(now.getMinutes()).padStart(2, '0');
-          const ampm = hours24 >= 12 ? 'PM' : 'AM';
           const dateBadge = `${MONTH_NAMES[now.getMonth()].toUpperCase()} ${String(now.getDate()).padStart(2, '0')}`;
 
           setFlipCard(cards.h1, hh[0], animate);
           setFlipCard(cards.h2, hh[1], animate);
           setFlipCard(cards.m1, mm[0], animate);
           setFlipCard(cards.m2, mm[1], animate);
-          if (cards.ampm) {
-            cards.ampm.textContent = ampm;
-          }
           if (cards.dateBadge) {
             cards.dateBadge.textContent = dateBadge;
           }
@@ -2960,11 +2955,6 @@
             face.className = 'rc-face';
 
             const clockZone = makeZone('rc-clock-zone', 'Open Clock App', openClockApp);
-            const ampm = document.createElement('div');
-            ampm.className = 'rc-ampm';
-            ampm.dataset.key = 'ampm';
-            ampm.textContent = 'AM';
-
             const clockDigits = document.createElement('div');
             clockDigits.className = 'fc-digits';
             const h1 = createFlipCard(false); h1.dataset.key = 'h1';
@@ -2975,7 +2965,7 @@
             const m1 = createFlipCard(false); m1.dataset.key = 'm1';
             const m2 = createFlipCard(false); m2.dataset.key = 'm2';
             clockDigits.append(h1, h2, timeGap, m1, m2);
-            clockZone.append(ampm, clockDigits);
+            clockZone.append(clockDigits);
 
             const radioZone = makeZone('rc-radio-zone', 'Open Calendar App', openCalendarApp);
 
