@@ -61,6 +61,33 @@
       cursor: pointer;
     }
 
+    .power-button-visual {
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(78, 48, 21, 0.9);
+      background:
+        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 233, 192, 0.34),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.42),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+
+    .power-button-visual::before {
+      content: '';
+      position: absolute;
+      inset: 17% 13%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
+        linear-gradient(180deg, #ffbf71 0%, #f1702d 54%, #8b130c 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.25),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(95, 22, 9, 0.58);
+    }
+
     .label {
       display: none;
       position: absolute;
@@ -146,6 +173,12 @@
       background: rgba(0, 255, 128, 0.2);
     }
 
+    body.debug .power-button-visual {
+      background:
+        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
+      pointer-events: auto;
+    }
+
     body.debug .label,
     body.debug .resize-handle {
       display: block;
@@ -202,7 +235,7 @@
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
-        'power-button': { x: 376, y: 472, w: 34, h: 24, kind: 'hotspot', label: 'Power Button' }
+        'power-button': { x: 376, y: 472, w: 34, h: 24, kind: 'hotspot', label: 'Power Button', variant: 'power-button' }
       };
       const HANDLE_DIRS = ['nw', 'ne', 'sw', 'se'];
 
@@ -230,7 +263,8 @@
           w: clamp(Math.round(w), MIN_SIZE, DESIGN_WIDTH - safeX),
           h: clamp(Math.round(h), MIN_SIZE, DESIGN_HEIGHT - safeY),
           kind: fallback.kind,
-          label: fallback.label
+          label: fallback.label,
+          variant: fallback.variant || null
         };
       }
 
@@ -287,6 +321,10 @@
         if (config.kind === 'hotspot') {
           el.type = 'button';
           el.ariaLabel = config.label;
+        }
+        if (config.variant === 'power-button') {
+          el.classList.add('power-button-visual');
+          el.tabIndex = -1;
         }
 
         const label = document.createElement('span');

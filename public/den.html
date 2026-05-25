@@ -234,6 +234,47 @@
       -webkit-user-drag: none;
     }
 
+    .commodore-power-button-overlay {
+      overflow: visible;
+      z-index: 2;
+    }
+
+    .commodore-power-button-button {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 1px solid rgba(78, 48, 21, 0.9);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 233, 192, 0.34),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.42),
+        0 2px 6px rgba(0, 0, 0, 0.32);
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .commodore-power-button-button::before {
+      content: '';
+      position: absolute;
+      inset: 17% 13%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
+        linear-gradient(180deg, #ffbf71 0%, #f1702d 54%, #8b130c 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.25),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(95, 22, 9, 0.58);
+    }
+
+    body.debug .commodore-power-button-button {
+      pointer-events: none;
+    }
+
     .join-discord-button {
       width: 100%;
       height: 100%;
@@ -1357,8 +1398,12 @@
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
+      const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
+      const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
+      const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
+      HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         COMMODORE_OVERLAY_CONTROL_ID,
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
@@ -1368,6 +1413,7 @@
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
         { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
+        { controlId: COMMODORE_POWER_BUTTON_CONTROL_ID, overlayId: COMMODORE_POWER_BUTTON_OVERLAY_ID },
         { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
@@ -1389,6 +1435,7 @@
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
+        { id: COMMODORE_POWER_BUTTON_CONTROL_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
         { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, x: 1763, y: 1020, w: 278, h: 216 },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
         { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, x: 1322, y: 1028, w: 298, h: 206 }
@@ -1400,6 +1447,7 @@
         { id: AQUARIUM_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', x: 1278, y: 1002, w: 386, h: 258 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
+        { id: COMMODORE_POWER_BUTTON_OVERLAY_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
         { id: 'overlay-right-monitor', x: 1763, y: 1020, w: 278, h: 216 },
         { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
       ].map((overlay) => {
@@ -1505,13 +1553,16 @@
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
-        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive;
+        const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        if (discordOverlayEl) {
+          discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
+        }
         if (discordWidgetIframeEl) {
-          discordWidgetIframeEl.style.visibility =
-            shouldShowBigTvVideoOverlay || promptActive ? 'hidden' : 'visible';
+          discordWidgetIframeEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
-          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvVideoOverlay);
+          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
         }
       }
 
@@ -2592,6 +2643,10 @@
               window.location.assign(CHAPEL_URL);
               return;
             }
+            if (spot.id === COMMODORE_POWER_BUTTON_CONTROL_ID) {
+              window.location.assign(COMMODORE_URL);
+              return;
+            }
             if (spot.id === FLIP_CLOCK_OVERLAY_CONTROL_ID) {
               openClockApp();
               return;
@@ -2809,6 +2864,21 @@
             img.loading = 'lazy';
             img.decoding = 'async';
             el.appendChild(img);
+          }
+
+          if (overlay.id === COMMODORE_POWER_BUTTON_OVERLAY_ID) {
+            el.classList.add('commodore-power-button-overlay');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'commodore-power-button-button';
+            button.setAttribute('aria-label', 'Commodore power button');
+            button.title = 'Commodore power button';
+            button.addEventListener('pointerdown', (event) => event.stopPropagation());
+            button.addEventListener('click', (event) => {
+              event.stopPropagation();
+              window.location.assign(COMMODORE_URL);
+            });
+            el.appendChild(button);
           }
 
           if (overlay.id === 'overlay-right-monitor') {
