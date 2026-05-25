@@ -1673,7 +1673,10 @@
         if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return false;
         }
-        setNedryGateVideoSource(clipUrl);
+        const shrimpClipUrl = AQUARIUM_SHRIMP_CLIPS.includes(clipUrl)
+          ? clipUrl
+          : getRandomShrimpClipUrl();
+        setNedryGateVideoSource(shrimpClipUrl);
         nedryGateOverlayEl.classList.add('is-active');
         nedryGateVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
@@ -1684,12 +1687,12 @@
             console.warn('Unable to play aquarium clip.', error);
           }
           hideNedryGateOverlay();
-          setNedryGateVideoSource(NEDRY_GATE_VIDEO_URL);
+          setNedryGateVideoSource(getRandomShrimpClipUrl());
           return false;
         }
         const hasEnded = await waitForMediaPlaybackToEnd(nedryGateVideoEl);
         hideNedryGateOverlay();
-        setNedryGateVideoSource(NEDRY_GATE_VIDEO_URL);
+        setNedryGateVideoSource(getRandomShrimpClipUrl());
         return hasEnded && sequenceToken === aquariumSequenceToken;
       }
 
