@@ -125,8 +125,9 @@ export default {
 
     if (url.pathname === '/den') {
       const assetUrl = new URL('/den.html', url);
-      const assetReq = new Request(assetUrl.toString(), { method: request.method, headers: request.headers });
+      const assetReq = new Request(assetUrl.toString(), { method: 'GET' });
       const res = await env.ASSETS.fetch(assetReq);
+      if (!res.ok) return res;
       const newHeaders = new Headers(res.headers);
       newHeaders.set('content-type', HTML_HEADERS['content-type']);
       newHeaders.set('content-disposition', HTML_HEADERS['content-disposition']);
