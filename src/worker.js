@@ -28,8 +28,20 @@ const JSON_HEADERS = {
   'access-control-allow-headers': 'content-type'
 };
 
+const HTML_ROUTE_ALIASES = new Map([
+  ['/', '/den.html'],
+  ['/index.html', '/den.html'],
+  ['/den', '/den.html']
+]);
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
+}
+
+function rewriteRequestPath(request, pathname) {
+  const url = new URL(request.url);
+  url.pathname = pathname;
+  return new Request(url.toString(), request);
 }
 
 function clamp(value, min, max) {
@@ -106,20 +118,17 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/') {
-      return Response.redirect(new URL('/den.html', url).toString(), 301);
-    }
-
-    if (url.pathname === '/den') {
-      return Response.redirect(new URL('/den.html', url).toString(), 301);
-    }
-
     if (url.pathname === '/api/hotspots') {
       if (!env.HOTSPOT_STORE) {
         return json({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       }
       const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
       return env.HOTSPOT_STORE.get(id).fetch(request);
+    }
+
+    const aliasedPath = HTML_ROUTE_ALIASES.get(url.pathname);
+    if (aliasedPath) {
+      return env.ASSETS.fetch(rewriteRequestPath(request, aliasedPath));
     }
 
     return env.ASSETS.fetch(request);
