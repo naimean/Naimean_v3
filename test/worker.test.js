@@ -578,7 +578,7 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
-test('worker redirects root path to /den', async () => {
+test('worker redirects root path to /den.html', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
