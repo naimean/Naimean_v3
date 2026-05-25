@@ -312,9 +312,9 @@
     }
 
     .join-discord-button {
-      width: calc(100% + 10px);
+      width: calc(100% + 24px);
       height: 100%;
-      margin-inline: -5px;
+      margin-inline: -12px;
       padding: 0;
       border: 0;
       border-radius: 20px;
@@ -1403,6 +1403,7 @@
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
+      const COMMODORE_HITBOX_HORIZONTAL_INSET = 7;
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
@@ -2051,20 +2052,35 @@
       }
 
       function sourceHotspotsToRuntime(sourceHotspots) {
-        return sourceHotspots.map((spot) => ({
-          ...spot,
-          x: sourceHotspotXToRuntime(spot.id, spot.x)
-        }));
+        return sourceHotspots.map((spot) => {
+          const runtimeSpot = {
+            ...spot,
+            x: sourceHotspotXToRuntime(spot.id, spot.x)
+          };
+          if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+            runtimeSpot.x += COMMODORE_HITBOX_HORIZONTAL_INSET;
+            runtimeSpot.w = Math.max(20, runtimeSpot.w - (COMMODORE_HITBOX_HORIZONTAL_INSET * 2));
+          }
+          return runtimeSpot;
+        });
       }
 
       function runtimeHotspotsToSource(runtimeHotspots) {
-        return runtimeHotspots.map((spot) => ({
-          id: spot.id,
-          x: runtimeHotspotXToSource(spot.id, spot.x),
-          y: spot.y,
-          w: spot.w,
-          h: spot.h
-        }));
+        return runtimeHotspots.map((spot) => {
+          let sourceX = runtimeHotspotXToSource(spot.id, spot.x);
+          let sourceW = spot.w;
+          if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+            sourceX -= COMMODORE_HITBOX_HORIZONTAL_INSET;
+            sourceW += COMMODORE_HITBOX_HORIZONTAL_INSET * 2;
+          }
+          return {
+            id: spot.id,
+            x: sourceX,
+            y: spot.y,
+            w: sourceW,
+            h: spot.h
+          };
+        });
       }
 
       function sanitizeSourceHotspots(input) {
@@ -2123,6 +2139,14 @@
         if (controlHotspotId) {
           const controlledSpot = getRuntimeHotspotById(controlHotspotId);
           if (controlledSpot) {
+            if (overlayId === 'overlay-commodore-screen') {
+              return {
+                x: controlledSpot.x - COMMODORE_HITBOX_HORIZONTAL_INSET,
+                y: controlledSpot.y,
+                w: controlledSpot.w + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2),
+                h: controlledSpot.h
+              };
+            }
             return rectFromBounds(controlledSpot);
           }
         }
@@ -2137,6 +2161,15 @@
           const hotspotEl = document.getElementById(controlHotspotId);
           const overlayEl = overlayElementsById.get(overlayId);
           if (!hotspotEl || !overlayEl) return;
+          if (overlayId === 'overlay-commodore-screen') {
+            const hotspotLeft = parseFloat(hotspotEl.style.left);
+            const hotspotWidth = parseFloat(hotspotEl.style.width);
+            overlayEl.style.left = `${hotspotLeft - COMMODORE_HITBOX_HORIZONTAL_INSET}px`;
+            overlayEl.style.top = hotspotEl.style.top;
+            overlayEl.style.width = `${hotspotWidth + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)}px`;
+            overlayEl.style.height = hotspotEl.style.height;
+            return;
+          }
           overlayEl.style.left = hotspotEl.style.left;
           overlayEl.style.top = hotspotEl.style.top;
           overlayEl.style.width = hotspotEl.style.width;
