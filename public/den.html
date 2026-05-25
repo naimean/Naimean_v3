@@ -196,6 +196,7 @@
     }
 
     .screen-overlay.commodore-desk-overlay {
+
       overflow: hidden;
       pointer-events: none;
       z-index: 1;
@@ -463,35 +464,6 @@
       z-index: 1;
       transform: scale(2);
       transform-origin: top left;
-    }
-
-    .aquarium-embed-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      pointer-events: auto;
-      z-index: 1;
-      background: #000;
-      object-fit: cover;
-    }
-
-    .aquarium-video-hint {
-      position: absolute;
-      right: 12px;
-      bottom: 56px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      display: none;
-      pointer-events: none;
-      z-index: 2;
-      background: rgba(8, 10, 14, 0.82);
-      color: rgba(255, 255, 255, 0.94);
-      font: 600 12px/1.2 Arial, sans-serif;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     }
 
     .discord-static-overlay {
@@ -1325,32 +1297,10 @@
         'right-monitor'
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
-      const AQUARIUM_CLIP_DURATION_SECONDS = 10;
-      const AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS = 0.25;
-      const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
-      const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 0 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 10 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 20 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 30 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 40 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 50 },
-        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 60 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 0 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 10 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 20 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 30 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 40 },
-        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 50 }
+      const AQUARIUM_SHRIMP_CLIPS = Object.freeze([
+        'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4',
+        'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4'
       ]);
-      const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze(
-        AQUARIUM_SHRIMP_CLIP_CONFIGS
-          .filter((clip) => clip && typeof clip.filename === 'string' && clip.filename)
-          .map(({ filename, startSeconds = 0 }) => ({
-            src: `assets/video/shrimp/${filename}`,
-            startSeconds
-          }))
-      );
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
         'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
@@ -1505,13 +1455,9 @@
       const overlayElementsById = new Map();
       let discordWidgetIframeEl = null;
       let aquariumOverlayEl = null;
-      let aquariumClipVideoEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
-      let aquariumClipPlaybackTimeoutId = null;
-      let aquariumClipPlaybackResolve = null;
-      let aquariumPlaybackSequenceToken = 0;
-      let pendingAquariumSequenceOnLoad = false;
+      let aquariumSequenceToken = 0;
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
@@ -1553,11 +1499,7 @@
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
-        const aquariumEmbedActive = Boolean(
-          aquariumClipVideoEl &&
-          aquariumClipVideoEl.style.display !== 'none'
-        );
-        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive || aquariumEmbedActive;
+        const shouldShowBigTvVideoOverlay = aquariumActive || nedryGateActive;
         if (discordWidgetIframeEl) {
           discordWidgetIframeEl.style.visibility =
             shouldShowBigTvVideoOverlay || promptActive ? 'hidden' : 'visible';
@@ -1567,54 +1509,12 @@
         }
       }
 
-      function clearAquariumClipPlaybackTimeout() {
-        if (aquariumClipPlaybackTimeoutId !== null) {
-          window.clearTimeout(aquariumClipPlaybackTimeoutId);
-          aquariumClipPlaybackTimeoutId = null;
-        }
-        if (aquariumClipPlaybackResolve) {
-          aquariumClipPlaybackResolve(false);
-          aquariumClipPlaybackResolve = null;
-        }
-      }
-
       function cancelAquariumPlaybackSequence() {
-        aquariumPlaybackSequenceToken += 1;
-        clearAquariumClipPlaybackTimeout();
+        aquariumSequenceToken += 1;
       }
 
-      function getRandomAquariumLocalClip() {
-        if (AQUARIUM_LOCAL_CLIP_POOL.length === 0) {
-          return null;
-        }
-        return AQUARIUM_LOCAL_CLIP_POOL[
-          Math.floor(Math.random() * AQUARIUM_LOCAL_CLIP_POOL.length)
-        ];
-      }
-
-      function setAquariumClipPlayback({ shouldPlay = false, clip = null } = {}) {
-        if (!aquariumClipVideoEl) {
-          return;
-        }
-
-        if (shouldPlay) {
-          aquariumClipVideoEl.style.display = 'block';
-          if (clip?.src && aquariumClipVideoEl.dataset.clipSrc !== clip.src) {
-            aquariumClipVideoEl.src = clip.src;
-            aquariumClipVideoEl.dataset.clipSrc = clip.src;
-            aquariumClipVideoEl.load();
-          }
-          return;
-        }
-
-        aquariumClipVideoEl.pause();
-        aquariumClipVideoEl.style.display = 'none';
-        aquariumClipVideoEl.dataset.clipSrc = '';
-        try {
-          aquariumClipVideoEl.currentTime = 0;
-        } catch {
-          // Ignore resets before metadata is available.
-        }
+      function getRandomShrimpClipUrl() {
+        return AQUARIUM_SHRIMP_CLIPS[Math.floor(Math.random() * AQUARIUM_SHRIMP_CLIPS.length)];
       }
 
       function waitForMediaPlaybackToEnd(mediaEl) {
@@ -1645,127 +1545,10 @@
         });
       }
 
-      function waitForAquariumClipWindow(sequenceToken, clipStartSeconds = 0) {
-        return new Promise((resolve) => {
-          if (!aquariumClipVideoEl) {
-            resolve(false);
-            return;
-          }
-          clearAquariumClipPlaybackTimeout();
-          let clipWindowTimeoutId = null;
-          let clipEndSeconds = AQUARIUM_CLIP_DURATION_SECONDS;
-          const safeRequestedStart = Number.isFinite(Number(clipStartSeconds))
-            ? Math.max(0, Number(clipStartSeconds))
-            : 0;
-          const cleanup = () => {
-            if (aquariumClipVideoEl) {
-              aquariumClipVideoEl.pause();
-              aquariumClipVideoEl.removeEventListener('loadedmetadata', onClipLoad);
-              aquariumClipVideoEl.removeEventListener('timeupdate', onClipTimeUpdate);
-              aquariumClipVideoEl.removeEventListener('ended', onClipEnded);
-              aquariumClipVideoEl.removeEventListener('error', onClipError);
-            }
-            if (clipWindowTimeoutId !== null) {
-              window.clearTimeout(clipWindowTimeoutId);
-              clipWindowTimeoutId = null;
-            }
-            aquariumClipPlaybackTimeoutId = null;
-          };
-          const onClipError = () => {
-            if (aquariumClipPlaybackResolve) {
-              aquariumClipPlaybackResolve(false);
-            }
-          };
-          const onClipEnded = () => {
-            if (aquariumClipPlaybackResolve) {
-              aquariumClipPlaybackResolve(true);
-            }
-          };
-          const onClipTimeUpdate = () => {
-            if (!aquariumClipVideoEl) {
-              return;
-            }
-            if (
-              aquariumClipVideoEl.currentTime >=
-                clipEndSeconds - AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS &&
-              aquariumClipPlaybackResolve
-            ) {
-              aquariumClipPlaybackResolve(true);
-            }
-          };
-          const scheduleClipTimeout = () => {
-            if (!aquariumClipVideoEl) {
-              return;
-            }
-            if (clipWindowTimeoutId !== null) {
-              window.clearTimeout(clipWindowTimeoutId);
-            }
-            const remainingSeconds = Math.max(
-              AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS,
-              clipEndSeconds - aquariumClipVideoEl.currentTime
-            );
-            clipWindowTimeoutId = window.setTimeout(() => {
-              clipWindowTimeoutId = null;
-              if (aquariumClipPlaybackResolve) {
-                aquariumClipPlaybackResolve(true);
-              }
-            }, remainingSeconds * 1000);
-            aquariumClipPlaybackTimeoutId = clipWindowTimeoutId;
-          };
-          const startClipPlayback = () => {
-            if (!aquariumClipVideoEl) {
-              return;
-            }
-            const duration = Number.isFinite(aquariumClipVideoEl.duration) ? aquariumClipVideoEl.duration : 0;
-            const safeStartSeconds = duration > 0
-              ? Math.min(safeRequestedStart, Math.max(0, duration - AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS))
-              : safeRequestedStart;
-            clipEndSeconds = duration > 0
-              ? Math.min(duration, safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS)
-              : safeStartSeconds + AQUARIUM_CLIP_DURATION_SECONDS;
-            if (clipEndSeconds <= safeStartSeconds) {
-              aquariumClipPlaybackResolve(true);
-              return;
-            }
-            try {
-              aquariumClipVideoEl.currentTime = safeStartSeconds;
-            } catch {
-              // Ignore out-of-range seek attempts.
-            }
-            const playPromise = aquariumClipVideoEl.play();
-            scheduleClipTimeout();
-            if (playPromise?.catch) {
-              playPromise.catch((error) => {
-                if (error?.name !== 'AbortError') {
-                  console.warn('Unable to play aquarium local clip.', error);
-                }
-              });
-            }
-          };
-          const onClipLoad = () => {
-            startClipPlayback();
-          };
-          aquariumClipPlaybackResolve = (didFinish) => {
-            aquariumClipPlaybackResolve = null;
-            cleanup();
-            resolve(didFinish && sequenceToken === aquariumPlaybackSequenceToken);
-          };
-          aquariumClipVideoEl.addEventListener('loadedmetadata', onClipLoad);
-          aquariumClipVideoEl.addEventListener('timeupdate', onClipTimeUpdate);
-          aquariumClipVideoEl.addEventListener('ended', onClipEnded);
-          aquariumClipVideoEl.addEventListener('error', onClipError);
-          if (aquariumClipVideoEl.readyState >= HTMLMediaElement.HAVE_METADATA) {
-            startClipPlayback();
-          }
-        });
-      }
-
       function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
         }
-        clearAquariumClipPlaybackTimeout();
-        setAquariumClipPlayback();
         if (aquariumStaticVideoEl) {
           aquariumStaticVideoEl.pause();
           if (resetPlayback) {
@@ -1779,11 +1562,9 @@
         if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
           return false;
         }
-
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
-
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
@@ -1793,73 +1574,54 @@
           return false;
         }
         const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
-        return hasEnded && sequenceToken === aquariumPlaybackSequenceToken;
+        return hasEnded && sequenceToken === aquariumSequenceToken;
       }
 
-      async function playAquariumRandomClipPass(sequenceToken) {
-        if (!aquariumClipVideoEl || !aquariumStaticOverlayEl) {
+      async function playAquariumClipPass(sequenceToken, clipUrl) {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return false;
         }
-
-        const clip = getRandomAquariumLocalClip();
-        if (!clip?.src) {
-          return false;
-        }
-        aquariumStaticOverlayEl.classList.remove('is-active');
-        setAquariumClipPlayback({ shouldPlay: true, clip });
+        setNedryGateVideoSource(clipUrl);
+        nedryGateOverlayEl.classList.add('is-active');
+        nedryGateVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
-        const shouldContinue = await waitForAquariumClipWindow(
-          sequenceToken,
-          Math.max(0, Math.floor(clip.startSeconds || 0))
-        );
-        setAquariumClipPlayback();
-        return shouldContinue;
+        try {
+          await nedryGateVideoEl.play();
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play aquarium clip.', error);
+          }
+          hideNedryGateOverlay();
+          setNedryGateVideoSource(NEDRY_GATE_VIDEO_URL);
+          return false;
+        }
+        const hasEnded = await waitForMediaPlaybackToEnd(nedryGateVideoEl);
+        hideNedryGateOverlay();
+        setNedryGateVideoSource(NEDRY_GATE_VIDEO_URL);
+        return hasEnded && sequenceToken === aquariumSequenceToken;
       }
 
       async function playAquariumHotspotSequence() {
-        aquariumPlaybackSequenceToken += 1;
-        const sequenceToken = aquariumPlaybackSequenceToken;
-        clearAquariumClipPlaybackTimeout();
+        aquariumSequenceToken += 1;
+        const sequenceToken = aquariumSequenceToken;
         hideNedryGateOverlay();
-        setAquariumClipPlayback();
+        hideAquariumStaticOverlay();
 
         const firstStaticEnded = await playAquariumStaticPass(sequenceToken);
-        if (!firstStaticEnded || sequenceToken !== aquariumPlaybackSequenceToken) {
+        if (!firstStaticEnded || sequenceToken !== aquariumSequenceToken) {
           hideAquariumStaticOverlay();
           return;
         }
 
-        if (AQUARIUM_LOCAL_CLIP_POOL.length > 0) {
-          const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
-          if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
-            hideAquariumStaticOverlay();
-            return;
-          }
-        }
-
-        const secondStaticEnded = await playAquariumStaticPass(sequenceToken);
-        if (!secondStaticEnded || sequenceToken !== aquariumPlaybackSequenceToken) {
+        const clipUrl = getRandomShrimpClipUrl();
+        const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
+        if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
           hideAquariumStaticOverlay();
           return;
         }
 
+        await playAquariumStaticPass(sequenceToken);
         hideAquariumStaticOverlay();
-      }
-
-      function playAquariumHotspotSequenceWhenReady() {
-        if (document.readyState === 'complete') {
-          pendingAquariumSequenceOnLoad = false;
-          playAquariumHotspotSequence();
-          return;
-        }
-        if (pendingAquariumSequenceOnLoad) {
-          return;
-        }
-        pendingAquariumSequenceOnLoad = true;
-        window.addEventListener('load', () => {
-          pendingAquariumSequenceOnLoad = false;
-          playAquariumHotspotSequence();
-        }, { once: true });
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
@@ -2830,7 +2592,7 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              playAquariumHotspotSequenceWhenReady();
+              playAquariumHotspotSequence();
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
@@ -2858,7 +2620,6 @@
         overlayElementsById.clear();
         discordWidgetIframeEl = null;
         aquariumOverlayEl = null;
-        aquariumClipVideoEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         bigTvPromptOverlayEl = null;
@@ -2870,7 +2631,6 @@
         rightMonitorStaticVideoEl = null;
         leftMonitorStaticOverlayEl = null;
         leftMonitorStaticVideoEl = null;
-        clearAquariumClipPlaybackTimeout();
         nedryGateOverlayEl = null;
         nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -2904,19 +2664,6 @@
           if (overlay.id === AQUARIUM_OVERLAY_ID) {
             aquariumOverlayEl = el;
             el.classList.add('aquarium-video-overlay');
-
-            aquariumClipVideoEl = document.createElement('video');
-            aquariumClipVideoEl.className = 'aquarium-embed-video';
-            aquariumClipVideoEl.title = 'Naimean Aquarium Local Clip';
-            aquariumClipVideoEl.preload = 'auto';
-            aquariumClipVideoEl.muted = true;
-            aquariumClipVideoEl.defaultMuted = true;
-            aquariumClipVideoEl.playsInline = true;
-            aquariumClipVideoEl.setAttribute('playsinline', '');
-            aquariumClipVideoEl.setAttribute('webkit-playsinline', '');
-            aquariumClipVideoEl.controls = false;
-            aquariumClipVideoEl.loop = false;
-            el.appendChild(aquariumClipVideoEl);
 
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
