@@ -266,6 +266,13 @@
       let cabinets = [];
       let urlOverrides = parseOverrides();
 
+      function getCabinetUrl(cabinet) {
+        const override = normalizeUrl(urlOverrides[cabinet.name]);
+        if (override) return override;
+        const fallback = normalizeUrl(cabinet.url);
+        return fallback || '';
+      }
+
       function renderJumpOptions() {
         jump.innerHTML = '<option value="">Jump to cabinet…</option>';
         cabinets.forEach((cabinet, index) => {
@@ -288,9 +295,16 @@
           heading.textContent = cabinet.name;
           card.appendChild(heading);
 
-          const defaultText = document.createElement('p');
-          defaultText.textContent = `Default URL: ${cabinet.url || 'No URL configured'}`;
-          card.appendChild(defaultText);
+          const activeUrl = getCabinetUrl(cabinet);
+          const activeText = document.createElement('p');
+          activeText.textContent = `Current URL: ${activeUrl || 'No URL configured'}`;
+          card.appendChild(activeText);
+
+          if (normalizeUrl(urlOverrides[cabinet.name])) {
+            const defaultText = document.createElement('p');
+            defaultText.textContent = `Default URL: ${cabinet.url || 'No URL configured'}`;
+            card.appendChild(defaultText);
+          }
 
           const label = document.createElement('label');
           const inputId = `cabinet-url-${index}`;
