@@ -370,11 +370,11 @@
       const HOTSPOT_PADDING_DESIGN_PX = 4;
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
-      const anchorPoints = {
+      const ANCHOR_POINTS = {
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
         commodoreButtonsBottomRight: { x: 478, y: 2620 }
       };
-      const hotspots = [
+      const HOTSPOTS = [
         {
           id: 'chapel-commodore-power-button',
           label: 'Commodore power button',
@@ -408,8 +408,8 @@
       }
 
       function rectFromAnchors(anchorStart, anchorEnd, padding = 0) {
-        const start = anchorPoints[anchorStart];
-        const end = anchorPoints[anchorEnd];
+        const start = ANCHOR_POINTS[anchorStart];
+        const end = ANCHOR_POINTS[anchorEnd];
         if (!start || !end) {
           console.warn(`Missing hotspot anchor(s): ${anchorStart}, ${anchorEnd}`);
           return null;
@@ -463,7 +463,7 @@
 
       function renderHotspots() {
         overlayLayer.replaceChildren();
-        hotspots.forEach((definition) => {
+        HOTSPOTS.forEach((definition) => {
           const rect = getHotspotRect(definition);
           if (!rect) return;
           const button = document.createElement('button');
@@ -560,8 +560,8 @@
           return;
         }
         const rect = JSON.parse(pendingRect);
-        const anchorStart = anchorPoints[debugEditDefinition.anchors[0]];
-        const anchorEnd = anchorPoints[debugEditDefinition.anchors[1]];
+        const anchorStart = ANCHOR_POINTS[debugEditDefinition.anchors[0]];
+        const anchorEnd = ANCHOR_POINTS[debugEditDefinition.anchors[1]];
         const innerLeft = clamp(Math.round(rect.left + HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.width);
         const innerTop = clamp(Math.round(rect.top + HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.height);
         const innerRight = clamp(Math.round(rect.left + rect.width - HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.width);
@@ -592,10 +592,10 @@
       }
 
       function serializeHotspotConfig() {
-        const anchorEntries = Object.entries(anchorPoints)
+        const anchorEntries = Object.entries(ANCHOR_POINTS)
           .map(([name, point]) => `  ${name}: { x: ${Math.round(point.x)}, y: ${Math.round(point.y)} }`)
           .join(',\n');
-        const hotspotEntries = hotspots
+        const hotspotEntries = HOTSPOTS
           .map((definition) => {
             const lines = [
               '  {',
@@ -643,7 +643,7 @@
         const handle = event.target.closest('.resize-handle');
         if (handle) {
           const hotspotElement = handle.closest('.hotspot');
-          const definition = hotspots.find((entry) => entry.id === hotspotElement?.dataset.id);
+          const definition = HOTSPOTS.find((entry) => entry.id === hotspotElement?.dataset.id);
           if (definition && hotspotElement) {
             beginDebugEdit(event, definition, hotspotElement, 'resize', handle.dataset.direction || null);
           }
@@ -652,7 +652,7 @@
 
         const hotspotElement = event.target.closest('.hotspot');
         if (!hotspotElement) return;
-        const definition = hotspots.find((entry) => entry.id === hotspotElement.dataset.id);
+        const definition = HOTSPOTS.find((entry) => entry.id === hotspotElement.dataset.id);
         if (!definition) return;
         beginDebugEdit(event, definition, hotspotElement, 'move');
       }
@@ -714,7 +714,7 @@
             saveModalCopyButton.textContent = 'Copy to clipboard';
           }, 1500);
         } catch (error) {
-          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Unknown error'}`;
+          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Please copy manually from the text area.'}`;
         }
       });
     })();
