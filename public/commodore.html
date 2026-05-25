@@ -95,6 +95,33 @@
       cursor: pointer;
     }
 
+    .greenscreen-text {
+      position: absolute;
+      display: grid;
+      align-content: flex-start;
+      justify-items: flex-start;
+      gap: 2px;
+      padding: 8px;
+      color: #72ff72;
+      font-family: "Courier New", Courier, monospace;
+      font-size: calc(4px * 3);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.35px;
+      text-shadow:
+        0 0 2px rgba(120, 255, 120, 0.8),
+        0 0 6px rgba(64, 190, 64, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .greenscreen-text.is-powered-on {
+      opacity: 1;
+    }
+
     .power-button-visual {
       overflow: hidden;
       border-radius: 999px;
@@ -400,6 +427,12 @@
       const POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
       const DEN_URL = '/den.html';
+      const COMMODORE_BOOT_TEXT = [
+        '**** COMMODORE 64 BASIC V2 ****',
+        '64K RAM SYSTEM  38911 BASIC BYTES FREE',
+        '',
+        'READY.'
+      ];
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 146, y: 118, w: 150, h: 70, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -413,6 +446,7 @@
       const layout = loadLayout();
       let monitorShadowEl = null;
       let powerButtonEl = null;
+      let greenscreenTextEl = null;
       let editState = null;
       let saveButtonResetTimer = null;
       let isPoweredOn = loadPowerState();
@@ -544,6 +578,13 @@
           el.style.width = `${(rect.w / DESIGN_WIDTH) * 100}%`;
           el.style.height = `${(rect.h / DESIGN_HEIGHT) * 100}%`;
         });
+        if (greenscreenTextEl) {
+          const screenRect = layout['monitor-shadow'];
+          greenscreenTextEl.style.left = `${(screenRect.x / DESIGN_WIDTH) * 100}%`;
+          greenscreenTextEl.style.top = `${(screenRect.y / DESIGN_HEIGHT) * 100}%`;
+          greenscreenTextEl.style.width = `${(screenRect.w / DESIGN_WIDTH) * 100}%`;
+          greenscreenTextEl.style.height = `${(screenRect.h / DESIGN_HEIGHT) * 100}%`;
+        }
       }
 
       function startEdit(event, type, dir, editableEl) {
@@ -624,12 +665,21 @@
             monitorShadowEl.classList.add(animate ? 'is-powering-on' : 'is-powered-on');
           }
         }
+        greenscreenTextEl?.classList.toggle('is-powered-on', isPoweredOn);
         powerButtonEl?.classList.toggle('is-powered-on', isPoweredOn);
       }
 
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
       monitorShadowEl = overlayLayer.querySelector('[data-id="monitor-shadow"]');
       powerButtonEl = overlayLayer.querySelector('[data-id="power-button"]');
+      greenscreenTextEl = document.createElement('div');
+      greenscreenTextEl.className = 'greenscreen-text';
+      COMMODORE_BOOT_TEXT.forEach((line) => {
+        const lineEl = document.createElement('span');
+        lineEl.textContent = line;
+        greenscreenTextEl.appendChild(lineEl);
+      });
+      overlayLayer.appendChild(greenscreenTextEl);
       renderLayout();
       applyPowerState();
       monitorShadowEl?.addEventListener('animationend', (event) => {
