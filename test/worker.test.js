@@ -558,23 +558,23 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
-test('worker serves root path through ASSETS binding', async () => {
+test('worker redirects root path to /den', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
     ASSETS: {
       async fetch(request) {
         calls.assetsFetch.push(new URL(request.url).pathname);
-        return new Response('index', { status: 200 });
+        return new Response('den', { status: 200 });
       }
     }
   };
 
   const response = await router.fetch(new Request('https://example.com/'), env);
 
-  assert.equal(response.status, 200);
-  assert.equal(await response.text(), 'index');
-  assert.deepEqual(calls.assetsFetch, ['/']);
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), 'https://example.com/den');
+  assert.deepEqual(calls.assetsFetch, []);
 });
 
 // --- functions/api/hotspots.js HotspotStore class coverage ---
