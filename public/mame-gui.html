@@ -300,12 +300,6 @@
           activeText.textContent = `Current URL: ${activeUrl || 'No URL configured'}`;
           card.appendChild(activeText);
 
-          if (normalizeUrl(urlOverrides[cabinet.name])) {
-            const defaultText = document.createElement('p');
-            defaultText.textContent = `Default URL: ${cabinet.url || 'No URL configured'}`;
-            card.appendChild(defaultText);
-          }
-
           const label = document.createElement('label');
           const inputId = `cabinet-url-${index}`;
           label.setAttribute('for', inputId);
