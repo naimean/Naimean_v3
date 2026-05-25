@@ -1405,9 +1405,9 @@
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
+      HOTSPOT_READABLE_LABELS.set(COMMODORE_OVERLAY_CONTROL_ID, 'Commodore Screen');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
-        COMMODORE_OVERLAY_CONTROL_ID,
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
         'overlaymonitorscreencontrol'
       ]);
@@ -2385,11 +2385,12 @@
       function updateHotspotLabel(el) {
         const label = el.querySelector('.hotspot-label');
         if (!label) return;
+        const readableLabel = el.dataset.label || el.id;
         const x = Math.round(parseFloat(el.style.left));
         const y = Math.round(parseFloat(el.style.top));
         const w = Math.round(parseFloat(el.style.width));
         const h = Math.round(parseFloat(el.style.height));
-        label.textContent = `${el.id} (${x}, ${y}) ${w}×${h}`;
+        label.textContent = `${readableLabel} (${x}, ${y}) ${w}×${h}`;
       }
 
       // ── Flip Clock helpers ────────────────────────────────
@@ -2634,11 +2635,13 @@
           el.style.top = `${spot.y}px`;
           el.style.width = `${spot.w}px`;
           el.style.height = `${spot.h}px`;
+          el.dataset.label = readableLabel;
           el.setAttribute('aria-label', readableLabel);
+          el.title = readableLabel;
 
           const label = document.createElement('span');
           label.className = 'hotspot-label';
-          label.textContent = `${spot.id} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
+          label.textContent = `${readableLabel} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
           el.appendChild(label);
 
           addResizeHandles(el);
