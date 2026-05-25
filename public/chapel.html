@@ -152,8 +152,9 @@
   </main>
   <script>
     (() => {
-      const DEFAULT_IMAGE_DIMENSIONS = { width: 993, height: 3709 };
-      const HOTSPOT_PADDING = 4;
+      const DEFAULT_IMAGE_WIDTH = 993;
+      const DEFAULT_IMAGE_HEIGHT = 3709;
+      const HOTSPOT_PADDING_DESIGN_PX = 4;
       const ANCHOR_POINTS = {
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
         commodoreButtonsBottomRight: { x: 478, y: 2620 }
@@ -169,8 +170,8 @@
       const overlayLayer = document.getElementById('overlay-layer');
       const sceneImage = document.getElementById('scene-image');
       const imageDimensions = {
-        width: sceneImage?.naturalWidth || DEFAULT_IMAGE_DIMENSIONS.width,
-        height: sceneImage?.naturalHeight || DEFAULT_IMAGE_DIMENSIONS.height
+        width: sceneImage?.naturalWidth || DEFAULT_IMAGE_WIDTH,
+        height: sceneImage?.naturalHeight || DEFAULT_IMAGE_HEIGHT
       };
 
       function rectFromAnchors(anchorStart, anchorEnd, padding = 0) {
@@ -198,7 +199,7 @@
       function renderHotspots() {
         overlayLayer.replaceChildren();
         HOTSPOTS.forEach((definition) => {
-          const rect = rectFromAnchors(definition.anchors[0], definition.anchors[1], HOTSPOT_PADDING);
+          const rect = rectFromAnchors(definition.anchors[0], definition.anchors[1], HOTSPOT_PADDING_DESIGN_PX);
           if (!rect) return;
           const button = document.createElement('button');
           button.type = 'button';
@@ -222,8 +223,8 @@
         renderHotspots();
       } else {
         sceneImage?.addEventListener('load', () => {
-          imageDimensions.width = sceneImage.naturalWidth || DEFAULT_IMAGE_DIMENSIONS.width;
-          imageDimensions.height = sceneImage.naturalHeight || DEFAULT_IMAGE_DIMENSIONS.height;
+          imageDimensions.width = sceneImage.naturalWidth || DEFAULT_IMAGE_WIDTH;
+          imageDimensions.height = sceneImage.naturalHeight || DEFAULT_IMAGE_HEIGHT;
           renderHotspots();
         }, { once: true });
         sceneImage?.addEventListener('error', renderHotspots, { once: true });
