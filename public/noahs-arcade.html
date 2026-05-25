@@ -162,14 +162,37 @@
       font-size: 0.9rem;
     }
 
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
     .back-link {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 16px;
       color: var(--accent-2);
       text-decoration: none;
       font-weight: 700;
+    }
+
+    .mame-gui-button {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 10px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mame-gui-button:hover,
+    .mame-gui-button:focus-visible {
+      border-color: var(--accent);
+      outline: none;
     }
 
     .editor-panel {
@@ -277,7 +300,10 @@
 </head>
 <body>
   <main>
+  <div class="top-actions">
     <a class="back-link" href="/den.html">← Back to the den</a>
+    <button type="button" class="mame-gui-button" id="toggle-url-editor" aria-expanded="false">MAME GUI</button>
+  </div>
 
     <section class="hero">
       <p class="eyebrow">Now entering</p>
@@ -316,6 +342,7 @@
       const saveButton = document.getElementById('save-urls');
       const resetButton = document.getElementById('reset-urls');
       const editorStatus = document.getElementById('editor-status');
+      const toggleEditorButton = document.getElementById('toggle-url-editor');
       const URL_OVERRIDES_KEY = 'naimean.arcade.urlOverrides';
 
       function parseOverrides() {
@@ -341,6 +368,22 @@
 
       let cabinets = [];
       let urlOverrides = parseOverrides();
+      let editorOpen = false;
+
+      function getCabinetHost(url) {
+        if (!url) return 'No URL configured';
+        try {
+          return new URL(url, window.location.origin).hostname || 'No URL configured';
+        } catch (error) {
+          return 'No URL configured';
+        }
+      }
+
+      function setEditorOpenState(open) {
+        editorOpen = open;
+        editor.hidden = !editorOpen;
+        toggleEditorButton.setAttribute('aria-expanded', editorOpen ? 'true' : 'false');
+      }
 
       function getCabinetUrl(cabinet) {
         const override = normalizeUrl(urlOverrides[cabinet.name]);
@@ -385,7 +428,7 @@
           copy.appendChild(title);
 
           const tag = document.createElement('p');
-          tag.textContent = cabinet.tag || url || 'No URL configured';
+          tag.textContent = getCabinetHost(url);
           copy.appendChild(tag);
 
           card.appendChild(copy);
@@ -462,17 +505,21 @@
         status.hidden = true;
         grid.hidden = false;
         count.textContent = `${cabinets.length} cabinets`;
-        editor.hidden = false;
+        setEditorOpenState(false);
 
         renderCabinetGrid();
         renderUrlEditor();
         setEditorStatus('Saved URL updates are applied automatically.');
+        toggleEditorButton.addEventListener('click', () => {
+          setEditorOpenState(!editorOpen);
+        });
         saveButton.addEventListener('click', saveUrlOverrides);
         resetButton.addEventListener('click', resetUrlOverrides);
       } catch (error) {
         status.textContent = error.message;
         count.textContent = '';
         editor.hidden = true;
+        toggleEditorButton.disabled = true;
       }
     })();
   </script>
