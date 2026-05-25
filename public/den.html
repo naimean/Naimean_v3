@@ -1428,8 +1428,10 @@
       const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
-      const COMMODORE_HITBOX_HORIZONTAL_INSET = 7; // Shrinks Commodore click area while preserving overlay artwork width.
+      const COMMODORE_HITBOX_HORIZONTAL_INSET = 37; // Shrinks Commodore click area while preserving overlay artwork width.
+      const COMMODORE_HITBOX_VERTICAL_INSET = 25; // Shrinks Commodore click area while preserving overlay artwork height.
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
+      const COMMODORE_MIN_SOURCE_HITBOX_HEIGHT = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_VERTICAL_INSET * 2);
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
@@ -2092,6 +2094,9 @@
             runtimeSpot.w = Math.max(COMMODORE_MIN_SOURCE_HITBOX_WIDTH, runtimeSpot.w);
             runtimeSpot.x += COMMODORE_HITBOX_HORIZONTAL_INSET;
             runtimeSpot.w -= COMMODORE_HITBOX_HORIZONTAL_INSET * 2;
+            runtimeSpot.h = Math.max(COMMODORE_MIN_SOURCE_HITBOX_HEIGHT, runtimeSpot.h);
+            runtimeSpot.y += COMMODORE_HITBOX_VERTICAL_INSET;
+            runtimeSpot.h -= COMMODORE_HITBOX_VERTICAL_INSET * 2;
           }
           return runtimeSpot;
         });
@@ -2100,20 +2105,27 @@
       function runtimeHotspotsToSource(runtimeHotspots) {
         return runtimeHotspots.map((spot) => {
           let sourceX = runtimeHotspotXToSource(spot.id, spot.x);
+          let sourceY = spot.y;
           let sourceW = spot.w;
+          let sourceH = spot.h;
           if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
             sourceX -= COMMODORE_HITBOX_HORIZONTAL_INSET;
             sourceW = Math.max(
               COMMODORE_MIN_SOURCE_HITBOX_WIDTH,
               sourceW + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)
             );
+            sourceY -= COMMODORE_HITBOX_VERTICAL_INSET;
+            sourceH = Math.max(
+              COMMODORE_MIN_SOURCE_HITBOX_HEIGHT,
+              sourceH + (COMMODORE_HITBOX_VERTICAL_INSET * 2)
+            );
           }
           return {
             id: spot.id,
             x: sourceX,
-            y: spot.y,
+            y: sourceY,
             w: sourceW,
-            h: spot.h
+            h: sourceH
           };
         });
       }
@@ -2131,13 +2143,16 @@
           const minWidth = fallback.id === COMMODORE_OVERLAY_CONTROL_ID
             ? COMMODORE_MIN_SOURCE_HITBOX_WIDTH
             : MIN_HOTSPOT_SIZE;
+          const minHeight = fallback.id === COMMODORE_OVERLAY_CONTROL_ID
+            ? COMMODORE_MIN_SOURCE_HITBOX_HEIGHT
+            : MIN_HOTSPOT_SIZE;
           if (!entry) return { ...fallback };
           return {
             id: fallback.id,
             x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
             y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
             w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
-            h: isFiniteNumber(entry.h) ? Math.max(MIN_HOTSPOT_SIZE, Math.round(entry.h)) : fallback.h
+            h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
           };
         });
       }
@@ -2180,9 +2195,9 @@
             if (overlayId === 'overlay-commodore-screen') {
               return {
                 x: controlledSpot.x - COMMODORE_HITBOX_HORIZONTAL_INSET,
-                y: controlledSpot.y,
+                y: controlledSpot.y - COMMODORE_HITBOX_VERTICAL_INSET,
                 w: controlledSpot.w + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2),
-                h: controlledSpot.h
+                h: controlledSpot.h + (COMMODORE_HITBOX_VERTICAL_INSET * 2)
               };
             }
             return rectFromBounds(controlledSpot);
@@ -2201,11 +2216,13 @@
           if (!hotspotEl || !overlayEl) return;
           if (overlayId === 'overlay-commodore-screen') {
             const hotspotLeft = parseFloat(hotspotEl.style.left);
+            const hotspotTop = parseFloat(hotspotEl.style.top);
             const hotspotWidth = parseFloat(hotspotEl.style.width);
+            const hotspotHeight = parseFloat(hotspotEl.style.height);
             overlayEl.style.left = `${hotspotLeft - COMMODORE_HITBOX_HORIZONTAL_INSET}px`;
-            overlayEl.style.top = hotspotEl.style.top;
+            overlayEl.style.top = `${hotspotTop - COMMODORE_HITBOX_VERTICAL_INSET}px`;
             overlayEl.style.width = `${hotspotWidth + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)}px`;
-            overlayEl.style.height = hotspotEl.style.height;
+            overlayEl.style.height = `${hotspotHeight + (COMMODORE_HITBOX_VERTICAL_INSET * 2)}px`;
             return;
           }
           overlayEl.style.left = hotspotEl.style.left;
