@@ -152,12 +152,8 @@
   </main>
   <script>
     (() => {
-      const DESIGN_SIZE = { width: 993, height: 3709 };
+      const IMAGE_DESIGN_SIZE = { width: 993, height: 3709 };
       const ANCHOR_POINTS = {
-        sceneTopLeft: { x: 0, y: 0 },
-        sceneTopRight: { x: 993, y: 0 },
-        sceneBottomLeft: { x: 0, y: 3709 },
-        sceneBottomRight: { x: 993, y: 3709 },
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
         commodoreButtonsBottomRight: { x: 478, y: 2620 }
       };
@@ -183,11 +179,11 @@
       }
 
       function toPercentX(value) {
-        return (value / DESIGN_SIZE.width) * 100;
+        return (value / IMAGE_DESIGN_SIZE.width) * 100;
       }
 
       function toPercentY(value) {
-        return (value / DESIGN_SIZE.height) * 100;
+        return (value / IMAGE_DESIGN_SIZE.height) * 100;
       }
 
       function renderHotspots() {
