@@ -449,22 +449,28 @@
     .left-monitor-selector {
       position: absolute;
       inset: 0;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
       z-index: 2;
     }
 
     .left-monitor-segment {
-      flex: 1 1 20%;
       border: 0;
       margin: 0;
       padding: 0;
       background: transparent;
       cursor: pointer;
-      border-left: 1px solid rgba(216, 236, 255, 0.35);
+      border-right: 1px solid rgba(216, 236, 255, 0.35);
+      border-bottom: 1px solid rgba(216, 236, 255, 0.35);
     }
 
-    .left-monitor-segment:first-child {
-      border-left: 0;
+    .left-monitor-segment:nth-child(even) {
+      border-right: 0;
+    }
+
+    .left-monitor-segment:nth-child(n+3) {
+      border-bottom: 0;
     }
 
     .left-monitor-segment:hover,
@@ -1375,13 +1381,12 @@
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
       const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
       const LEFT_MONITOR_SEGMENTS = Object.freeze([
-        { state: 'login', label: 'Login' },
-        { state: 'tools', label: 'Tools' },
-        { state: 'calendar', label: 'Calendar' },
-        { state: 'mail', label: 'Mail' },
-        { state: 'none', label: 'None' }
+        { state: 'login',    label: 'Login',    quadrant: 'NW' },
+        { state: 'tools',    label: 'Tools',    quadrant: 'NE' },
+        { state: 'calendar', label: 'Calendar', quadrant: 'SW' },
+        { state: 'mail',     label: 'Mail',     quadrant: 'SE' }
       ]);
-      const LEFT_MONITOR_STATES = new Set(LEFT_MONITOR_SEGMENTS.map(({ state }) => state));
+      const LEFT_MONITOR_STATES = new Set([...LEFT_MONITOR_SEGMENTS.map(({ state }) => state), 'none']);
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -2855,17 +2860,18 @@
             el.classList.add('calendar-monitor-overlay');
             const selector = document.createElement('div');
             selector.className = 'left-monitor-selector';
-            LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
+            LEFT_MONITOR_SEGMENTS.forEach(({ state, label, quadrant }) => {
               const segment = document.createElement('button');
               segment.type = 'button';
               segment.className = 'left-monitor-segment';
-              segment.setAttribute('aria-label', `Toggle ${label} on left monitor`);
+              segment.dataset.quadrant = quadrant;
+              segment.setAttribute('aria-label', `Toggle ${label} (${quadrant}) on left monitor`);
               segment.setAttribute('aria-pressed', 'false');
               segment.addEventListener('pointerdown', (event) => event.stopPropagation());
               segment.addEventListener('click', (event) => {
                 event.stopPropagation();
                 setLeftMonitorState(
-                  state === leftMonitorSelectedState && state !== DEFAULT_LEFT_MONITOR_STATE
+                  state === leftMonitorSelectedState
                     ? DEFAULT_LEFT_MONITOR_STATE
                     : state
                 );
