@@ -453,6 +453,17 @@
       z-index: 2;
     }
 
+    .left-monitor-content-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
     .left-monitor-segment {
       flex: 1 1 20%;
       border: 0;
@@ -1383,6 +1394,13 @@
       ]);
       const LEFT_MONITOR_STATES = new Set(LEFT_MONITOR_SEGMENTS.map(({ state }) => state));
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
+      const LEFT_MONITOR_IMAGE_URLS = Object.freeze({
+        login: 'assets/images/L_Monitor_Login.png',
+        tools: 'assets/images/L_Monitor_Tools.png',
+        calendar: 'assets/images/L_Monitor_Calendar.png',
+        mail: 'assets/images/L_Monitor_Mail.png',
+        none: 'assets/images/L_Monitor_None.png'
+      });
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
@@ -1531,6 +1549,7 @@
       let rightMonitorStaticVideoEl = null;
       let leftMonitorStaticOverlayEl = null;
       let leftMonitorStaticVideoEl = null;
+      let leftMonitorContentImageEl = null;
       let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
       const leftMonitorSegmentButtonsByState = new Map();
       let rightMonitorFlickerTimeoutId = null;
@@ -1579,6 +1598,10 @@
           return;
         }
         leftMonitorSelectedState = nextState;
+        if (leftMonitorContentImageEl) {
+          const imageUrl = LEFT_MONITOR_IMAGE_URLS[nextState] || LEFT_MONITOR_IMAGE_URLS[DEFAULT_LEFT_MONITOR_STATE];
+          leftMonitorContentImageEl.src = imageUrl;
+        }
         syncLeftMonitorSelectionUi();
       }
 
@@ -2709,6 +2732,7 @@
         rightMonitorStaticVideoEl = null;
         leftMonitorStaticOverlayEl = null;
         leftMonitorStaticVideoEl = null;
+        leftMonitorContentImageEl = null;
         nedryGateOverlayEl = null;
         nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -2811,6 +2835,12 @@
 
           if (overlay.id === 'overlay-left-monitor') {
             el.classList.add('calendar-monitor-overlay');
+            leftMonitorContentImageEl = document.createElement('img');
+            leftMonitorContentImageEl.className = 'left-monitor-content-image';
+            leftMonitorContentImageEl.alt = '';
+            leftMonitorContentImageEl.loading = 'lazy';
+            leftMonitorContentImageEl.decoding = 'async';
+            el.appendChild(leftMonitorContentImageEl);
             const selector = document.createElement('div');
             selector.className = 'left-monitor-selector';
             LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
