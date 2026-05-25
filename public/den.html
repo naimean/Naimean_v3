@@ -1328,12 +1328,16 @@
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
       const AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS = 0.25;
       const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
-      const AQUARIUM_SHRIMP_CLIP_FILENAMES = Object.freeze([]);
+      const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([]);
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze(
-        AQUARIUM_SHRIMP_CLIP_FILENAMES.map((filename) => ({
-          src: `assets/video/shrimp/${filename}`,
-          startSeconds: 0
-        }))
+        AQUARIUM_SHRIMP_CLIP_CONFIGS.flatMap(({ filename, startSeconds = 0 } = {}) =>
+          typeof filename === 'string' && filename
+            ? [{
+                src: `assets/video/shrimp/${filename}`,
+                startSeconds
+              }]
+            : []
+        )
       );
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
@@ -1787,7 +1791,7 @@
 
         const clip = getRandomAquariumLocalClip();
         if (!clip?.src) {
-          return false;
+          return true;
         }
         aquariumStaticOverlayEl.classList.remove('is-active');
         setAquariumClipPlayback({ shouldPlay: true, clip });
