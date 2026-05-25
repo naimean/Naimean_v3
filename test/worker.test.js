@@ -36,14 +36,14 @@ test('HotspotStore GET returns default hotspots when storage is empty', async ()
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('content-type'), 'application/json; charset=UTF-8');
-  assert.equal(body.hotspots.length, 7);
+  assert.equal(body.hotspots.length, 8);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
-  assert.deepEqual(body.hotspots[6], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
   assert.deepEqual(body.hotspots[2], { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 });
-  assert.deepEqual(body.hotspots[4], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
-  assert.deepEqual(body.hotspots[5], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
-  assert.deepEqual(body.hotspots[6], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
+  assert.deepEqual(body.hotspots[3], { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 });
+  assert.deepEqual(body.hotspots[5], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
+  assert.deepEqual(body.hotspots[6], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
+  assert.deepEqual(body.hotspots[7], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
 });
 
 test('HotspotStore POST rejects invalid JSON', async () => {
@@ -85,13 +85,14 @@ test('HotspotStore POST sanitizes, clamps and stores hotspot payloads', async ()
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
-  assert.equal(body.hotspots.length, 7);
+  assert.equal(body.hotspots.length, 8);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
   assert.deepEqual(body.hotspots[2], { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 });
-  assert.deepEqual(body.hotspots[4], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
-  assert.deepEqual(body.hotspots[5], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
-  assert.deepEqual(body.hotspots[6], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
+  assert.deepEqual(body.hotspots[3], { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 });
+  assert.deepEqual(body.hotspots[5], { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 });
+  assert.deepEqual(body.hotspots[6], { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 });
+  assert.deepEqual(body.hotspots[7], { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 });
 
   assert.equal(calls.put.length, 1);
   assert.equal(calls.put[0].key, 'hotspots');
@@ -383,7 +384,7 @@ test('HotspotStore POST uses defaults when hotspots payload is null', async () =
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.hotspots.length, 7);
+  assert.equal(body.hotspots.length, 8);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
 });
 
@@ -401,7 +402,7 @@ test('HotspotStore POST uses defaults when hotspots payload is a non-array', asy
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.hotspots.length, 7);
+  assert.equal(body.hotspots.length, 8);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
 });
@@ -611,8 +612,9 @@ test('functions HotspotStore GET returns default hotspots when storage is empty'
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.hotspots.length, 6);
+  assert.equal(body.hotspots.length, 7);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+  assert.deepEqual(body.hotspots[3], { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 });
 });
 
 test('functions HotspotStore GET returns saved hotspots when storage has data', async () => {
@@ -669,7 +671,7 @@ test('functions HotspotStore POST sanitizes and stores hotspot payloads', async 
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
-  assert.equal(body.hotspots.length, 6);
+  assert.equal(body.hotspots.length, 7);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 50, y: 60, w: 500, h: 600 });
   assert.equal(calls.put.length, 1);
   assert.equal(calls.put[0].key, 'hotspots');
@@ -826,7 +828,7 @@ test('FunctionsHotspotStore POST uses defaults when hotspots payload is not an a
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.hotspots.length, 6);
+  assert.equal(body.hotspots.length, 7);
   assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
   assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
   assert.equal(body.hotspots.find((hotspot) => hotspot.id === 'overlay-left-monitor-control'), undefined);
