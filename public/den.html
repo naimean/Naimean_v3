@@ -243,7 +243,7 @@
       width: 100%;
       height: 100%;
       padding: 0;
-      border: 1px solid rgba(78, 48, 21, 0.9);
+      border: 1px solid rgba(110, 78, 43, 0.55);
       border-radius: 999px;
       background:
         linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
@@ -264,12 +264,28 @@
       border-radius: 999px;
       background:
         radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
-        linear-gradient(180deg, #ffbf71 0%, #f1702d 54%, #8b130c 100%);
+        radial-gradient(circle at center, rgba(255, 194, 106, 0.98) 0%, rgba(241, 112, 45, 0.95) 48%, rgba(139, 19, 12, 0.7) 74%, rgba(139, 19, 12, 0) 100%);
       box-shadow:
         inset 0 1px 1px rgba(255, 255, 255, 0.25),
         inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(95, 22, 9, 0.58);
+        0 0 10px 2px rgba(255, 116, 29, 0.7),
+        0 0 16px 4px rgba(255, 102, 0, 0.28);
       animation: commodore-power-pulse 1.6s ease-in-out infinite;
+    }
+
+    .commodore-power-button-button::after {
+      content: '';
+      position: absolute;
+      inset: 31% 35%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 35% 28%, rgba(228, 255, 232, 0.95) 0%, rgba(228, 255, 232, 0) 35%),
+        linear-gradient(180deg, #96ff9a 0%, #2ce45c 55%, #0d6817 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.28),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+        0 0 7px 1px rgba(74, 255, 118, 0.55);
+      pointer-events: none;
     }
 
     @keyframes commodore-power-pulse {
@@ -277,18 +293,16 @@
         box-shadow:
           inset 0 1px 1px rgba(255, 255, 255, 0.25),
           inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-          0 0 0 1px rgba(95, 22, 9, 0.58),
-          0 0 18px 8px #ff6600,
-          0 0 2px 1px #fff;
+          0 0 11px 2px rgba(255, 122, 33, 0.8),
+          0 0 18px 5px rgba(255, 102, 0, 0.26);
         filter: brightness(1);
       }
       50% {
         box-shadow:
           inset 0 1px 1px rgba(255, 255, 255, 0.25),
           inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-          0 0 0 1px rgba(95, 22, 9, 0.58),
-          0 0 24px 12px #ff6600,
-          0 0 2px 1px #fff;
+          0 0 12px 3px rgba(255, 140, 48, 0.92),
+          0 0 21px 6px rgba(255, 102, 0, 0.34);
         filter: brightness(1.12);
       }
     }
@@ -462,7 +476,16 @@
       outline-offset: -2px;
     }
 
+    .left-monitor-image-stack {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
     .left-monitor-state-image {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       display: block;
@@ -471,7 +494,17 @@
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
-      position: relative;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .left-monitor-state-image.is-base {
+      opacity: 1;
+      z-index: 0;
+    }
+
+    .left-monitor-state-image.is-visible {
+      opacity: 1;
       z-index: 1;
     }
 
@@ -1514,7 +1547,7 @@
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
       const overlayElementsById = new Map();
-      let leftMonitorStateImageEl = null;
+      const leftMonitorStateImageElsByState = new Map();
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
@@ -1585,11 +1618,11 @@
         }
         leftMonitorSelectedState = nextState;
         syncLeftMonitorSelectionUi();
-        if (leftMonitorStateImageEl) {
-          leftMonitorStateImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
-          const stateLabel = LEFT_MONITOR_SEGMENTS.find(({ state }) => state === nextState)?.label || 'Unknown';
-          leftMonitorStateImageEl.alt = `Left monitor display: ${stateLabel} screen`;
-        }
+        leftMonitorStateImageElsByState.forEach((imageEl, state) => {
+          const isBaseState = state === DEFAULT_LEFT_MONITOR_STATE;
+          imageEl.classList.toggle('is-base', isBaseState);
+          imageEl.classList.toggle('is-visible', !isBaseState && state === nextState);
+        });
       }
 
       function cancelAquariumPlaybackSequence() {
@@ -2709,7 +2742,7 @@
       function createOverlays() {
         overlayElementsById.clear();
         leftMonitorSegmentButtonsByState.clear();
-        leftMonitorStateImageEl = null;
+        leftMonitorStateImageElsByState.clear();
         aquariumOverlayEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
@@ -2824,16 +2857,24 @@
 
           if (overlay.id === 'overlay-left-monitor') {
             el.classList.add('calendar-monitor-overlay');
-            const image = document.createElement('img');
-            image.className = 'left-monitor-state-image';
-            image.alt = `Left monitor display: ${
-              LEFT_MONITOR_SEGMENTS.find(({ state }) => state === DEFAULT_LEFT_MONITOR_STATE)?.label || 'Unknown'
-            } screen`;
-            image.loading = 'eager';
-            image.fetchPriority = 'high';
-            image.decoding = 'async';
-            leftMonitorStateImageEl = image;
-            el.appendChild(image);
+            const imageStack = document.createElement('div');
+            imageStack.className = 'left-monitor-image-stack';
+            LEFT_MONITOR_SEGMENTS.forEach(({ state, label }) => {
+              const image = document.createElement('img');
+              image.className = 'left-monitor-state-image';
+              image.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[state];
+              image.setAttribute('aria-hidden', 'true');
+              image.loading = state === DEFAULT_LEFT_MONITOR_STATE ? 'eager' : 'lazy';
+              if (state === DEFAULT_LEFT_MONITOR_STATE) {
+                image.fetchPriority = 'high';
+              }
+              image.decoding = 'async';
+              image.dataset.state = state;
+              image.dataset.label = label;
+              leftMonitorStateImageElsByState.set(state, image);
+              imageStack.appendChild(image);
+            });
+            el.appendChild(imageStack);
 
             const selector = document.createElement('div');
             selector.className = 'left-monitor-selector';
@@ -2841,12 +2882,16 @@
               const segment = document.createElement('button');
               segment.type = 'button';
               segment.className = 'left-monitor-segment';
-              segment.setAttribute('aria-label', `Set ${label} on big TV`);
+              segment.setAttribute('aria-label', `Toggle ${label} on left monitor`);
               segment.setAttribute('aria-pressed', 'false');
               segment.addEventListener('pointerdown', (event) => event.stopPropagation());
               segment.addEventListener('click', (event) => {
                 event.stopPropagation();
-                setLeftMonitorState(state);
+                setLeftMonitorState(
+                  state === leftMonitorSelectedState && state !== DEFAULT_LEFT_MONITOR_STATE
+                    ? DEFAULT_LEFT_MONITOR_STATE
+                    : state
+                );
               });
               leftMonitorSegmentButtonsByState.set(state, segment);
               selector.appendChild(segment);
