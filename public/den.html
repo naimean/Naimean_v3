@@ -1328,28 +1328,29 @@
       const AQUARIUM_CLIP_DURATION_SECONDS = 10;
       const AQUARIUM_CLIP_TIMEOUT_FLOOR_SECONDS = 0.25;
       const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
-      const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze([
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 0 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 10 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 20 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 30 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 40 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 50 },
-        { src: 'assets/video/joinourdiscord.v20260424.mp4', startSeconds: 60 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 0 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 10 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 20 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 30 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 40 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 50 },
-        { src: 'assets/video/shrimp/notarickroll-piece-1.v20260424.mp4', startSeconds: 60 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 0 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 10 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 20 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 30 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 40 },
-        { src: 'assets/video/shrimp/notarickroll-piece-2.v20260424.mp4', startSeconds: 50 }
+      const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 0 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 10 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 20 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 30 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 40 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 50 },
+        { filename: 'notarickroll-piece-1.v20260424.mp4', startSeconds: 60 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 0 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 10 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 20 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 30 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 40 },
+        { filename: 'notarickroll-piece-2.v20260424.mp4', startSeconds: 50 }
       ]);
+      const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze(
+        AQUARIUM_SHRIMP_CLIP_CONFIGS
+          .filter((clip) => clip && typeof clip.filename === 'string' && clip.filename)
+          .map(({ filename, startSeconds = 0 }) => ({
+            src: `assets/video/shrimp/${filename}`,
+            startSeconds
+          }))
+      );
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
         'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
@@ -1583,6 +1584,9 @@
       }
 
       function getRandomAquariumLocalClip() {
+        if (AQUARIUM_LOCAL_CLIP_POOL.length === 0) {
+          return null;
+        }
         return AQUARIUM_LOCAL_CLIP_POOL[
           Math.floor(Math.random() * AQUARIUM_LOCAL_CLIP_POOL.length)
         ];
@@ -1825,10 +1829,12 @@
           return;
         }
 
-        const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
-        if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
-          hideAquariumStaticOverlay();
-          return;
+        if (AQUARIUM_LOCAL_CLIP_POOL.length > 0) {
+          const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
+          if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
+            hideAquariumStaticOverlay();
+            return;
+          }
         }
 
         const secondStaticEnded = await playAquariumStaticPass(sequenceToken);
