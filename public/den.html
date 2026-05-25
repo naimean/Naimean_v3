@@ -211,9 +211,34 @@
     }
 
     .screen-overlay.monitor-side-frame-overlay {
-      overflow: hidden;
+      overflow: visible;
       pointer-events: none;
       z-index: 2;
+    }
+
+    .screen-overlay.monitor-side-frame-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--monitor-frame-radius, 12px);
+      border: var(--monitor-frame-border, 8px) solid rgba(20, 25, 33, 0.96);
+      box-shadow:
+        inset 0 0 0 1px rgba(222, 238, 255, 0.28),
+        inset 0 2px 10px rgba(230, 240, 255, 0.18),
+        inset 0 -14px 18px rgba(0, 0, 0, 0.52),
+        0 8px 16px rgba(0, 0, 0, 0.35);
+      background: transparent;
+      pointer-events: none;
+    }
+
+    #overlay-left-monitor-side-frame {
+      --monitor-frame-radius: 14px;
+      --monitor-frame-border: 9px;
+    }
+
+    #overlay-right-monitor-side-frame {
+      --monitor-frame-radius: 12px;
+      --monitor-frame-border: 7px;
     }
 
     .screen-overlay.join-discord-overlay,
@@ -247,18 +272,6 @@
     }
 
     .commodore-desk-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      object-position: center;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-
-    .monitor-side-frame-image {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -1496,8 +1509,6 @@
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
       const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
-      const LEFT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/L_Monitor_Object_Composite.v20260525.png';
-      const RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/R_Monitor_Object_Composite.v20260525.png';
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
       const BIG_TV_PROMPT_SECRET_TEXT = 'You didnt say the magic word';
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
@@ -3171,15 +3182,6 @@
 
           if (overlay.id === LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID || overlay.id === RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID) {
             el.classList.add('monitor-side-frame-overlay');
-            const img = document.createElement('img');
-            img.className = 'monitor-side-frame-image';
-            img.src = overlay.id === LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID
-              ? LEFT_MONITOR_SIDE_FRAME_IMAGE_URL
-              : RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL;
-            img.alt = '';
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            el.appendChild(img);
           }
 
           if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
