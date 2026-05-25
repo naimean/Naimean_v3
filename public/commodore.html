@@ -284,6 +284,7 @@
       const DESIGN_HEIGHT = 557;
       const MIN_SIZE = 12;
       const STORAGE_KEY = 'commodore.editor.layout.v1';
+      const POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
       const DEN_URL = '/den.html';
       const DEFAULT_LAYOUT = {
@@ -301,6 +302,7 @@
       let powerButtonEl = null;
       let editState = null;
       let saveButtonResetTimer = null;
+      let isPoweredOn = loadPowerState();
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -338,6 +340,22 @@
             next[id] = { ...fallback };
           });
           return next;
+        }
+      }
+
+      function loadPowerState() {
+        try {
+          return sessionStorage.getItem(POWER_STATE_STORAGE_KEY) === 'true';
+        } catch {
+          return false;
+        }
+      }
+
+      function savePowerState() {
+        try {
+          sessionStorage.setItem(POWER_STATE_STORAGE_KEY, String(isPoweredOn));
+        } catch (error) {
+          console.warn('Unable to save Commodore power state.', error);
         }
       }
 
@@ -480,15 +498,16 @@
         debugButton.textContent = enabled ? 'Debug On' : 'Debug';
       }
 
-      function setPoweredOn() {
-        monitorShadowEl?.classList.add('is-powered-on');
-        powerButtonEl?.classList.add('is-powered-on');
+      function applyPowerState() {
+        monitorShadowEl?.classList.toggle('is-powered-on', isPoweredOn);
+        powerButtonEl?.classList.toggle('is-powered-on', isPoweredOn);
       }
 
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
       monitorShadowEl = overlayLayer.querySelector('[data-id="monitor-shadow"]');
       powerButtonEl = overlayLayer.querySelector('[data-id="power-button"]');
       renderLayout();
+      applyPowerState();
 
       overlayLayer.addEventListener('pointerdown', (event) => {
         if (!document.body.classList.contains('debug')) return;
@@ -517,7 +536,9 @@
         }
         if (hotspot.dataset.id === 'power-button') {
           event.preventDefault();
-          setPoweredOn();
+          isPoweredOn = !isPoweredOn;
+          applyPowerState();
+          savePowerState();
         }
       });
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
