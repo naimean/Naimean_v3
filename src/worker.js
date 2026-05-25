@@ -115,6 +115,10 @@ export default {
       return Response.redirect(new URL('/den', url).toString(), 301);
     }
 
+    if (url.pathname === '/den.html') {
+      return Response.redirect(new URL('/den', url).toString(), 301);
+    }
+
     if (url.pathname === '/api/hotspots') {
       if (!env.HOTSPOT_STORE) {
         return json({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
