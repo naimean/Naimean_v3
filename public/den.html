@@ -1403,7 +1403,9 @@
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
+      const MIN_HOTSPOT_SIZE = 20;
       const COMMODORE_HITBOX_HORIZONTAL_INSET = 7;
+      const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
@@ -2058,8 +2060,9 @@
             x: sourceHotspotXToRuntime(spot.id, spot.x)
           };
           if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+            runtimeSpot.w = Math.max(COMMODORE_MIN_SOURCE_HITBOX_WIDTH, runtimeSpot.w);
             runtimeSpot.x += COMMODORE_HITBOX_HORIZONTAL_INSET;
-            runtimeSpot.w = Math.max(20, runtimeSpot.w - (COMMODORE_HITBOX_HORIZONTAL_INSET * 2));
+            runtimeSpot.w -= COMMODORE_HITBOX_HORIZONTAL_INSET * 2;
           }
           return runtimeSpot;
         });
@@ -2071,7 +2074,10 @@
           let sourceW = spot.w;
           if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
             sourceX -= COMMODORE_HITBOX_HORIZONTAL_INSET;
-            sourceW += COMMODORE_HITBOX_HORIZONTAL_INSET * 2;
+            sourceW = Math.max(
+              COMMODORE_MIN_SOURCE_HITBOX_WIDTH,
+              sourceW + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)
+            );
           }
           return {
             id: spot.id,
@@ -2093,13 +2099,16 @@
 
         return defaultHotspots.map((fallback) => {
           const entry = entriesById.get(fallback.id);
+          const minWidth = fallback.id === COMMODORE_OVERLAY_CONTROL_ID
+            ? COMMODORE_MIN_SOURCE_HITBOX_WIDTH
+            : MIN_HOTSPOT_SIZE;
           if (!entry) return { ...fallback };
           return {
             id: fallback.id,
             x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
             y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
-            w: isFiniteNumber(entry.w) ? Math.max(20, Math.round(entry.w)) : fallback.w,
-            h: isFiniteNumber(entry.h) ? Math.max(20, Math.round(entry.h)) : fallback.h
+            w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
+            h: isFiniteNumber(entry.h) ? Math.max(MIN_HOTSPOT_SIZE, Math.round(entry.h)) : fallback.h
           };
         });
       }
