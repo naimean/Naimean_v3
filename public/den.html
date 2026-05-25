@@ -1568,6 +1568,9 @@
       }
 
       function getRandomAquariumLocalClip() {
+        if (AQUARIUM_LOCAL_CLIP_POOL.length === 0) {
+          return null;
+        }
         return AQUARIUM_LOCAL_CLIP_POOL[
           Math.floor(Math.random() * AQUARIUM_LOCAL_CLIP_POOL.length)
         ];
