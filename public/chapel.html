@@ -53,6 +53,7 @@
     .hotspot {
       position: absolute;
       border: 0;
+      padding: 0;
       background: transparent;
       cursor: pointer;
       pointer-events: auto;
@@ -488,8 +489,8 @@
       function getOverlayMetrics() {
         const rect = overlayLayer.getBoundingClientRect();
         return {
-          width: rect.width || overlayLayer.offsetWidth || 1,
-          height: rect.height || overlayLayer.offsetHeight || 1
+          width: rect.width || sceneImage?.clientWidth || overlayLayer.offsetWidth || 0,
+          height: rect.height || sceneImage?.clientHeight || overlayLayer.offsetHeight || 0
         };
       }
 
@@ -512,6 +513,9 @@
           return;
         }
         const metrics = getOverlayMetrics();
+        if (!metrics.width || !metrics.height) {
+          return;
+        }
         const dx = ((event.clientX - debugEditStartX) / metrics.width) * imageDimensions.width;
         const dy = ((event.clientY - debugEditStartY) / metrics.height) * imageDimensions.height;
         const rect = { ...debugEditOrigRect };
@@ -714,7 +718,7 @@
             saveModalCopyButton.textContent = 'Copy to clipboard';
           }, 1500);
         } catch (error) {
-          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Please copy manually from the text area.'}`;
+          debugStatus.textContent = `Clipboard copy failed: ${error?.message || 'Please select the text and copy it manually with Ctrl+C or Cmd+C.'}`;
         }
       });
     })();
