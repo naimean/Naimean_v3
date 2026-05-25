@@ -203,23 +203,54 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/other.html']);
 });
 
-test('worker redirects /den.html to /den', async () => {
+test('worker redirects /den to /den.html', async () => {
   const env = {
     HOTSPOT_STORE: {},
     ASSETS: {
       async fetch() {
-        throw new Error('ASSETS should not be called for /den.html');
+        throw new Error('ASSETS should not be called for /den');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/den'), env);
+
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), 'https://example.com/den.html');
+});
+
+test('worker preserves existing frame-src CSP for den html path', async () => {
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      },
+      get() {
+        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
+      }
+    },
+    ASSETS: {
+      async fetch() {
+        return new Response('den page', {
+          status: 200,
+          headers: {
+            'content-security-policy': "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+          }
+        });
       }
     }
   };
 
   const response = await router.fetch(new Request('https://example.com/den.html'), env);
-
-  assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), 'https://example.com/den');
+  const csp = response.headers.get('content-security-policy');
+  assert.equal(
+    csp,
+    "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
+  );
 });
 
-test('worker preserves existing frame-src CSP for den path', async () => {
+test('worker serves den html path through assets binding', async () => {
+  const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {
       idFromName() {
@@ -230,7 +261,8 @@ test('worker preserves existing frame-src CSP for den path', async () => {
       }
     },
     ASSETS: {
-      async fetch() {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
         return new Response('den page', {
           status: 200,
           headers: {
@@ -241,43 +273,15 @@ test('worker preserves existing frame-src CSP for den path', async () => {
     }
   };
 
-  const response = await router.fetch(new Request('https://example.com/den'), env);
+  const response = await router.fetch(new Request('https://example.com/den.html'), env);
   const csp = response.headers.get('content-security-policy');
+
+  assert.equal(response.status, 200);
   assert.equal(
     csp,
     "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
   );
-});
-
-test('worker preserves existing frame-src CSP on extensionless den paths', async () => {
-  const env = {
-    HOTSPOT_STORE: {
-      idFromName() {
-        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
-      },
-      get() {
-        throw new Error('HOTSPOT_STORE should not be used for non-api requests');
-      }
-    },
-    ASSETS: {
-      async fetch() {
-        return new Response('den page', {
-          status: 200,
-          headers: {
-            'content-security-policy': "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
-          }
-        });
-      }
-    }
-  };
-
-  const response = await router.fetch(new Request('https://example.com/den'), env);
-  const csp = response.headers.get('content-security-policy');
-
-  assert.equal(
-    csp,
-    "default-src 'self'; frame-src https://discord.com https://discordapp.com;"
-  );
+  assert.deepEqual(calls.assetsFetch, ['/den.html']);
 });
 
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
@@ -574,7 +578,7 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
-test('worker redirects root path to /den', async () => {
+test('worker redirects root path to /den.html', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -589,7 +593,7 @@ test('worker redirects root path to /den', async () => {
   const response = await router.fetch(new Request('https://example.com/'), env);
 
   assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), 'https://example.com/den');
+  assert.equal(response.headers.get('location'), 'https://example.com/den.html');
   assert.deepEqual(calls.assetsFetch, []);
 });
 
