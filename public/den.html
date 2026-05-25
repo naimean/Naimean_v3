@@ -1381,12 +1381,13 @@
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
       const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
       const LEFT_MONITOR_SEGMENTS = Object.freeze([
+        // Order matches CSS grid flow (row-first): NW, NE, SW, SE
         { state: 'login',    label: 'Login',    quadrant: 'NW' },
         { state: 'tools',    label: 'Tools',    quadrant: 'NE' },
         { state: 'calendar', label: 'Calendar', quadrant: 'SW' },
         { state: 'mail',     label: 'Mail',     quadrant: 'SE' }
       ]);
-      const LEFT_MONITOR_STATES = new Set([...LEFT_MONITOR_SEGMENTS.map(({ state }) => state), 'none']);
+      const LEFT_MONITOR_STATES = new Set([...LEFT_MONITOR_SEGMENTS.map(({ state }) => state), 'none']); // 'none' is valid but has no rendered segment
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
