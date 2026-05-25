@@ -2,15 +2,4071 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting...</title>
-  <meta http-equiv="refresh" content="0; url='/den.html'" />
-  <link rel="canonical" href="/den.html" />
-  <script>
-    window.location.replace('/den.html');
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Den Scene</title>
+  <style>
+    :root {
+      --design-height: 2160;
+      --tile-width: 3840;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      color: #fff;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* Viewport is the camera frame shown on screen. */
+    #viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      cursor: grab;
+    }
+
+    #viewport.dragging {
+      cursor: grabbing;
+    }
+
+    /* Stage keeps all scene layers in the fixed 3840x2160 coordinate world space. */
+    #stage {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      height: calc(var(--design-height) * 1px);
+      transform-origin: top left;
+      will-change: transform;
+    }
+
+    /* World slides horizontally under the camera. */
+    #world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: #000;
+      will-change: transform;
+    }
+
+    .layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #scene-layer {
+      z-index: 3;
+    }
+
+    .scene-tile {
+      position: absolute;
+      top: 0;
+      width: calc(var(--tile-width) * 1px);
+      height: calc(var(--design-height) * 1px);
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* Hotspots use fixed absolute coordinates in design-space pixels. */
+    #hotspot-layer {
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      pointer-events: auto;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #9fe7ff;
+    }
+
+    .hotspot-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: translateY(-100%);
+      padding: 4px 8px;
+      font-size: 24px;
+      line-height: 1;
+      white-space: nowrap;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      opacity: 0;
+    }
+
+    @media (pointer: coarse), (max-width: 900px) {
+      .hotspot-label {
+        padding: 8px 12px;
+        font-size: 36px;
+      }
+    }
+
+    /* Placeholder screens for TV and desk monitors. */
+    #screen-overlay-layer {
+      z-index: 4;
+    }
+
+    .screen-overlay {
+      position: absolute;
+      background: transparent;
+      border: 0;
+      pointer-events: none;
+    }
+
+    .screen-overlay.discord-widget-overlay {
+      position: absolute;
+      overflow: hidden;
+      border-radius: 6px;
+      pointer-events: auto;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse at 50% 42%, rgba(88, 101, 242, 0.2) 0%, rgba(25, 31, 60, 0.92) 100%),
+        #0f1224;
+      box-shadow:
+        0 18px 36px -14px rgba(0, 0, 0, 0.72),
+        0 2px 8px rgba(0, 0, 0, 0.55),
+        -16px -6px 28px -24px rgba(255, 192, 128, 0.4),
+        18px -10px 34px -26px rgba(112, 162, 255, 0.38),
+        inset 0 -180px 180px -150px rgba(0, 0, 0, 0.78),
+        inset -40px 0 56px -48px rgba(0, 0, 0, 0.52),
+        inset 42px 0 56px -48px rgba(0, 0, 0, 0.46),
+        inset 0 1px 0 rgba(210, 224, 255, 0.16),
+        inset 0 0 0 1px rgba(84, 93, 126, 0.46);
+    }
+
+    .screen-overlay.discord-widget-overlay::before,
+    .screen-overlay.discord-widget-overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .screen-overlay.discord-widget-overlay::before {
+      background:
+        radial-gradient(78% 42% at 16% 12%, rgba(255, 230, 196, 0.22) 0%, rgba(255, 230, 196, 0) 68%),
+        radial-gradient(84% 54% at 88% 16%, rgba(184, 216, 255, 0.22) 0%, rgba(184, 216, 255, 0) 70%),
+        radial-gradient(130% 46% at 50% 0%, rgba(241, 247, 255, 0.26) 0%, rgba(241, 247, 255, 0.08) 24%, rgba(241, 247, 255, 0) 58%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 30%);
+      mix-blend-mode: screen;
+      opacity: 0.82;
+    }
+
+    .screen-overlay.discord-widget-overlay::after {
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0) 16%, rgba(0, 0, 0, 0) 84%, rgba(0, 0, 0, 0.36) 100%),
+        radial-gradient(160% 118% at 50% 56%, rgba(0, 0, 0, 0) 48%, rgba(0, 0, 0, 0.48) 100%);
+      opacity: 0.86;
+    }
+
+    .screen-overlay.aquarium-video-overlay {
+      overflow: hidden;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      visibility: hidden;
+      background: #040506;
+      transition: opacity 120ms ease, visibility 0s linear 120ms;
+    }
+
+    .screen-overlay.aquarium-video-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition-delay: 0s;
+    }
+
+    .screen-overlay.commodore-desk-overlay {
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .screen-overlay.commodore-shadow-overlay {
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(120% 72% at 52% 66%, rgb(6, 8, 14) 0%, rgb(9, 12, 18) 54%, rgb(10, 12, 20) 100%);
+      mix-blend-mode: normal;
+      opacity: 1;
+    }
+
+    .screen-overlay.monitor-side-frame-overlay {
+      overflow: hidden;
+      pointer-events: none;
+      /* Frame art sits above the clipped screen content and its glass/reflection treatment. */
+      z-index: 3;
+    }
+
+    .monitor-side-frame-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .screen-overlay.join-discord-overlay,
+    .screen-overlay.calendar-monitor-overlay {
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
+    }
+
+    .monitor-screen-window {
+      position: absolute;
+      overflow: hidden;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      isolation: isolate;
+      background:
+        radial-gradient(ellipse at 50% 38%, rgba(246, 251, 255, 0.98) 0%, rgba(194, 224, 255, 0.9) 42%, rgba(80, 129, 198, 0.92) 76%, rgba(18, 41, 90, 0.96) 100%),
+        linear-gradient(180deg, #cae5ff 0%, #4f79c1 65%, #1a3c7b 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(214, 234, 255, 0.42),
+        inset 0 -18px 30px rgba(4, 14, 40, 0.5);
+    }
+
+    .monitor-screen-window::before,
+    .monitor-screen-window::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      /* Keep glass/reflection treatment above the screen content but below the separate frame PNG. */
+      z-index: 3;
+    }
+
+    .monitor-screen-window::before {
+      background:
+        radial-gradient(95% 42% at 50% 4%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 62%),
+        radial-gradient(32% 30% at 14% 14%, rgba(255, 246, 228, 0.24) 0%, rgba(255, 246, 228, 0) 75%),
+        radial-gradient(34% 32% at 86% 16%, rgba(190, 224, 255, 0.2) 0%, rgba(190, 224, 255, 0) 78%);
+      mix-blend-mode: screen;
+      opacity: 0.78;
+    }
+
+    .monitor-screen-window::after {
+      background:
+        radial-gradient(140% 120% at 50% 54%, rgba(0, 0, 0, 0) 58%, rgba(2, 8, 18, 0.34) 100%),
+        linear-gradient(90deg, rgba(7, 16, 37, 0.22) 0%, rgba(7, 16, 37, 0) 16%, rgba(7, 16, 37, 0) 84%, rgba(7, 16, 37, 0.26) 100%);
+    }
+
+    /* These insets and clip-path samples trace the left frame's transparent inner border for a curved CRT opening. */
+    .left-monitor-screen-window {
+      inset: 17.1% 24.4% 29.3% 25.2%;
+      clip-path: polygon(
+        46.7% 0%,
+        40% 0.2%,
+        30% 0.4%,
+        20% 0.7%,
+        10% 1.6%,
+        1.4% 10%,
+        0.5% 20%,
+        0.3% 30%,
+        0% 40%,
+        0.1% 50%,
+        0.1% 60%,
+        0.5% 70%,
+        1.3% 80%,
+        2.3% 90%,
+        40% 100%,
+        61.6% 100%,
+        98.1% 90%,
+        98.8% 80%,
+        99.6% 70%,
+        99.9% 60%,
+        100% 40%,
+        99.9% 30%,
+        99.5% 20%,
+        98.7% 10%,
+        90% 1.5%,
+        80% 0.7%,
+        70% 0.4%,
+        60% 0.2%,
+        48.5% 0%
+      );
+    }
+
+    /* These insets and clip-path samples trace the right frame's transparent inner border for a curved CRT opening. */
+    .right-monitor-screen-window {
+      inset: 29.2% 25.3% 17.2% 24.4%;
+      clip-path: polygon(
+        38.5% 0%,
+        40% 0%,
+        50% 0%,
+        60.1% 0%,
+        70% 0.5%,
+        80% 1.5%,
+        90% 3.1%,
+        97.8% 10%,
+        98.8% 20%,
+        99.5% 30%,
+        99.9% 40%,
+        100% 50%,
+        100% 60%,
+        99.9% 70%,
+        99.5% 80%,
+        98.7% 90%,
+        53.4% 100%,
+        51.6% 100%,
+        1.3% 90%,
+        0.5% 80%,
+        0.1% 70%,
+        0% 60%,
+        0% 50%,
+        0.1% 40%,
+        0.4% 30%,
+        1.2% 20%,
+        1.9% 10%,
+        10% 2.6%,
+        20% 1.3%,
+        30% 0.4%
+      );
+    }
+
+    #overlay-left-monitor,
+    #overlay-commodore-screen,
+    #overlay-right-monitor {
+      z-index: 1;
+    }
+
+    #overlay-commodore-shadow {
+      z-index: 0;
+    }
+
+    #overlay-left-monitor-side-frame,
+    #overlay-right-monitor-side-frame {
+      z-index: 2;
+    }
+
+    .commodore-desk-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .commodore-power-button-overlay {
+      overflow: visible;
+      z-index: 2;
+    }
+
+    .commodore-power-button-button {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 1px solid rgba(110, 78, 43, 0.55);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 233, 192, 0.34),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.42),
+        0 2px 6px rgba(0, 0, 0, 0.32);
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      overflow: hidden;
+      transition: transform 160ms ease, filter 180ms ease, box-shadow 220ms ease;
+    }
+
+    .commodore-power-button-button::before {
+      content: '';
+      position: absolute;
+      inset: 17% 13%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
+        radial-gradient(circle at center, rgba(255, 194, 106, 0.98) 0%, rgba(241, 112, 45, 0.95) 48%, rgba(139, 19, 12, 0.7) 74%, rgba(139, 19, 12, 0) 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.25),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+        0 0 2px 0 rgba(255, 116, 29, 0.18),
+        0 0 4px 0 rgba(255, 102, 0, 0.12);
+    }
+
+    .commodore-power-button-button::after {
+      content: '';
+      position: absolute;
+      inset: 31% 35%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 35% 28%, rgba(228, 255, 232, 0.45) 0%, rgba(228, 255, 232, 0) 35%),
+        linear-gradient(180deg, #89af8c 0%, #426944 55%, #1a2b1a 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.28),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+        0 0 3px 0 rgba(74, 255, 118, 0.2);
+      pointer-events: none;
+      filter: brightness(0.7) saturate(0.55);
+    }
+
+    .commodore-power-button-button.is-powering-on {
+      pointer-events: none;
+      animation: commodore-power-button-press var(--commodore-power-on-duration, 1500ms) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+    }
+
+    .commodore-power-button-button.is-powering-on::before {
+      animation: commodore-power-switch-on var(--commodore-power-on-duration, 1500ms) cubic-bezier(0.16, 0.88, 0.32, 1) forwards;
+    }
+
+    .commodore-power-button-button.is-powering-on::after {
+      animation: commodore-led-switch-on var(--commodore-power-on-duration, 1500ms) steps(12, end) forwards;
+    }
+
+    @keyframes commodore-power-button-press {
+      0% {
+        transform: translateY(0) scale(1);
+      }
+
+      22% {
+        transform: translateY(1px) scale(0.965);
+      }
+
+      56% {
+        transform: translateY(0.5px) scale(0.985);
+      }
+
+      100% {
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes commodore-power-switch-on {
+      0% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 2px 0 rgba(255, 116, 29, 0.18),
+          0 0 4px 0 rgba(255, 102, 0, 0.12);
+        filter: brightness(0.8) saturate(0.72);
+      }
+
+      45% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 9px 2px rgba(255, 139, 56, 0.65),
+          0 0 14px 4px rgba(255, 108, 17, 0.32);
+        filter: brightness(1.1) saturate(1.02);
+      }
+
+      100% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 13px 3px rgba(255, 149, 67, 0.9),
+          0 0 22px 6px rgba(255, 126, 38, 0.42);
+        filter: brightness(1.24) saturate(1.15);
+      }
+    }
+
+    @keyframes commodore-led-switch-on {
+      0% {
+        filter: brightness(0.7) saturate(0.55);
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.28),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+          0 0 3px 0 rgba(74, 255, 118, 0.2);
+      }
+
+      35% {
+        filter: brightness(0.9) saturate(0.75);
+      }
+
+      58% {
+        filter: brightness(0.82) saturate(0.64);
+      }
+
+      76% {
+        filter: brightness(1.22) saturate(1.14);
+      }
+
+      100% {
+        filter: brightness(1.34) saturate(1.25);
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.28),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+          0 0 7px 1px rgba(74, 255, 118, 0.55);
+      }
+    }
+
+    @keyframes commodore-power-glow {
+      0% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 11px 2px rgba(255, 124, 44, 0.72),
+          0 0 18px 5px rgba(255, 108, 17, 0.26);
+        transform: scale(0.98);
+        filter: brightness(1) saturate(1);
+      }
+
+      35% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 15px 4px rgba(255, 149, 67, 0.92),
+          0 0 24px 7px rgba(255, 126, 38, 0.44);
+        transform: scale(1.02);
+        filter: brightness(1.14) saturate(1.1);
+      }
+
+      65% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 13px 3px rgba(255, 172, 90, 0.82),
+          0 0 22px 6px rgba(255, 140, 54, 0.36);
+        transform: scale(1);
+        filter: brightness(1.08) saturate(1.04);
+      }
+
+      100% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 11px 2px rgba(255, 124, 44, 0.72),
+          0 0 18px 5px rgba(255, 108, 17, 0.26);
+        transform: scale(0.98);
+        filter: brightness(1) saturate(1);
+      }
+    }
+
+    @keyframes commodore-led-flicker {
+      0%,
+      20%,
+      26%,
+      59%,
+      63%,
+      100% {
+        opacity: 1;
+        filter: brightness(1);
+      }
+
+      22% {
+        opacity: 0.88;
+        filter: brightness(1.16);
+      }
+
+      24% {
+        opacity: 0.94;
+        filter: brightness(0.94);
+      }
+
+      61% {
+        opacity: 0.9;
+        filter: brightness(1.12);
+      }
+    }
+
+    body.debug .commodore-power-button-button {
+      pointer-events: none;
+    }
+
+    .join-discord-button {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .join-discord-button:focus-visible {
+      outline: 4px solid rgba(255, 255, 255, 0.9);
+      outline-offset: 4px;
+    }
+
+    .join-discord-button-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .overlay-static-layer {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .overlay-static-layer.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .overlay-static-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
+    }
+
+    .big-tv-prompt-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background:
+        radial-gradient(120% 90% at 50% 50%, rgba(0, 24, 0, 0.7) 0%, rgba(0, 7, 0, 0.96) 100%),
+        #001103;
+      color: #4dff91;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: clamp(10px, 3.5%, 24px);
+      box-sizing: border-box;
+      font: 700 clamp(110px, calc(27.5% + 50px), 230px) / 1.25 'Courier New', monospace;
+      text-shadow: 0 0 8px rgba(77, 255, 145, 0.65);
+      transition: opacity 120ms ease;
+    }
+
+    .big-tv-prompt-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .big-tv-prompt-content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.36em;
+    }
+
+    .big-tv-prompt-secret {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .big-tv-prompt-line {
+      display: flex;
+      align-items: baseline;
+      gap: 0.08em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .big-tv-prompt-caret {
+      animation: prompt-caret-blink 1s steps(1, end) infinite;
+    }
+
+    .big-tv-prompt-submit {
+      margin-top: 0.2em;
+      border: 1px solid rgba(77, 255, 145, 0.85);
+      background: rgba(4, 22, 7, 0.72);
+      color: #4dff91;
+      font: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2em 0.55em;
+      cursor: pointer;
+    }
+
+    .big-tv-prompt-submit:hover {
+      background: rgba(10, 40, 14, 0.9);
+    }
+
+    .big-tv-prompt-submit:focus-visible {
+      outline: 2px solid rgba(139, 255, 177, 0.95);
+      outline-offset: 2px;
+    }
+
+    @keyframes prompt-caret-blink {
+      0%, 45% {
+        opacity: 1;
+      }
+      46%, 100% {
+        opacity: 0;
+      }
+    }
+
+    .left-monitor-selector {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      z-index: 2;
+    }
+
+    .left-monitor-content-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .left-monitor-segment {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      border-right: 1px solid rgba(216, 236, 255, 0.35);
+      border-bottom: 1px solid rgba(216, 236, 255, 0.35);
+    }
+
+    .left-monitor-segment:nth-child(even) {
+      border-right: 0;
+    }
+
+    .left-monitor-segment:nth-child(n+3) {
+      border-bottom: 0;
+    }
+
+    .left-monitor-segment:hover,
+    .left-monitor-segment.is-selected {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .left-monitor-segment:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: -2px;
+    }
+
+    .discord-widget-frame {
+      width: 100%;
+      height: calc(178% - 10px);
+      border: 0;
+      display: block;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+      transform: scale(2);
+      transform-origin: top left;
+    }
+
+    .discord-static-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 2;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .discord-static-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .discord-static-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #040506;
+    }
+
+    .nedry-gate-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 3;
+      background: #040506;
+      transition: opacity 120ms ease;
+    }
+
+    .nedry-gate-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nedry-gate-video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      background: #040506;
+    }
+
+    /* Effects always on top. */
+    #effects-layer {
+      z-index: 50;
+      background: transparent;
+      mix-blend-mode: normal;
+    }
+
+    /* ── Retro Desk Clock Overlay ──────────────────────────── */
+    .flip-clock-overlay {
+      --fc-scale: 0.72;
+      --fc-card-height: calc(56px * var(--fc-scale));
+      --fc-digit-width: calc(38px * var(--fc-scale));
+      --fc-digit-font-size: calc(64px * var(--fc-scale));
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: calc(6px * var(--fc-scale));
+      padding: calc(8px * var(--fc-scale)) calc(9px * var(--fc-scale)) calc(9px * var(--fc-scale));
+      background:
+        linear-gradient(180deg, rgba(222, 171, 124, 0.16) 0%, rgba(222, 171, 124, 0) 22%),
+        linear-gradient(180deg, #8d6542 0%, #6f4b31 42%, #4f3423 100%);
+      border-radius: calc(11px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(228, 182, 140, 0.24);
+      box-shadow:
+        0 calc(10px * var(--fc-scale)) calc(18px * var(--fc-scale)) rgba(0, 0, 0, 0.5),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(240, 216, 191, 0.2),
+        inset 0 calc(-3px * var(--fc-scale)) 0 rgba(47, 28, 17, 0.62);
+      transform-origin: left center;
+      transform:
+        perspective(calc(500px * var(--fc-scale)))
+        rotateY(-7deg)
+        rotateX(-6deg);
+      transform-style: preserve-3d;
+      pointer-events: auto;
+      overflow: hidden;
+    }
+
+    .flip-clock-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow:
+        inset calc(2px * var(--fc-scale)) 0 0 rgba(255, 245, 231, 0.12),
+        inset calc(-2px * var(--fc-scale)) 0 0 rgba(53, 34, 21, 0.24);
+      pointer-events: none;
+    }
+
+    .flip-clock-overlay::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(9px * var(--fc-scale));
+      border-radius: calc(11px * var(--fc-scale)) calc(11px * var(--fc-scale)) 0 0;
+      background:
+        linear-gradient(180deg, rgba(210, 160, 110, 0.55) 0%, rgba(120, 80, 42, 0.12) 100%);
+      box-shadow:
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 244, 228, 0.28);
+      pointer-events: none;
+    }
+
+    .rc-top {
+      display: flex;
+      align-items: center;
+      gap: calc(10px * var(--fc-scale));
+      min-height: calc(18px * var(--fc-scale));
+      padding: 0 calc(1px * var(--fc-scale));
+    }
+
+    .rc-speaker {
+      flex: 1;
+      min-height: calc(11px * var(--fc-scale));
+      border-radius: calc(999px * var(--fc-scale));
+      background:
+        radial-gradient(circle, rgba(255, 240, 220, 0.46) 0 calc(0.9px * var(--fc-scale)), transparent calc(1.1px * var(--fc-scale))),
+        linear-gradient(180deg, rgba(72, 46, 28, 0.3) 0%, rgba(248, 224, 194, 0.1) 100%);
+      background-size: calc(6px * var(--fc-scale)) calc(6px * var(--fc-scale)), auto;
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(87, 57, 35, 0.35);
+      box-shadow: inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 244, 232, 0.18);
+      opacity: 0.96;
+    }
+
+    .rc-knob {
+      position: relative;
+      flex: 0 0 auto;
+      width: calc(11px * var(--fc-scale));
+      height: calc(11px * var(--fc-scale));
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.14) 0 12%, transparent 13% 100%),
+        linear-gradient(180deg, #504640 0%, #181716 100%);
+      box-shadow:
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 255, 255, 0.12),
+        0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.28);
+    }
+
+    .rc-knob::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: calc(2px * var(--fc-scale));
+      height: calc(2px * var(--fc-scale));
+      background: rgba(240, 230, 220, 0.58);
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+    }
+
+    .rc-knob-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .rc-face {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      flex: 1;
+      gap: calc(8px * var(--fc-scale));
+      padding: calc(8px * var(--fc-scale)) calc(9px * var(--fc-scale)) calc(7px * var(--fc-scale));
+      border-radius: calc(7px * var(--fc-scale));
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 16%),
+        linear-gradient(180deg, #1f2022 0%, #08090a 100%);
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(228, 231, 230, 0.48);
+      box-shadow:
+        inset 0 0 0 calc(1px * var(--fc-scale)) rgba(7, 8, 9, 0.92),
+        inset 0 calc(1px * var(--fc-scale)) 0 rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .rc-face::after {
+      content: '';
+      position: absolute;
+      inset: calc(2px * var(--fc-scale));
+      border-radius: calc(5px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .rc-zone {
+      position: relative;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      margin: 0;
+      border-radius: calc(8px * var(--fc-scale));
+      cursor: pointer;
+      transition: background 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .rc-zone:hover { background: rgba(255, 255, 255, 0.04); }
+    .rc-zone:active { background: rgba(255, 255, 255, 0.08); }
+    .rc-zone:focus-visible {
+      outline: max(1px, calc(2px * var(--fc-scale))) solid rgba(255, 255, 255, 0.5);
+      outline-offset: calc(2px * var(--fc-scale));
+    }
+
+    .rc-clock-zone {
+      flex: 0 0 46%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-left: calc(4px * var(--fc-scale));
+      min-width: 0;
+    }
+
+    .rc-ampm {
+      margin-bottom: calc(1px * var(--fc-scale));
+      padding-left: calc(4px * var(--fc-scale));
+      font-size: calc(8px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: rgba(205, 208, 210, 0.82);
+      text-transform: uppercase;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-digits {
+      display: flex;
+      align-items: center;
+      gap: calc(4px * var(--fc-scale));
+    }
+
+    .rc-time-gap {
+      position: relative;
+      width: calc(10px * var(--fc-scale));
+      flex: 0 0 auto;
+    }
+
+    .rc-time-gap::before,
+    .rc-time-gap::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      width: calc(2px * var(--fc-scale));
+      height: calc(2px * var(--fc-scale));
+      border-radius: 999px;
+      background: rgba(241, 244, 246, 0.85);
+      transform: translateX(-50%);
+      box-shadow: 0 0 calc(2px * var(--fc-scale)) rgba(255, 255, 255, 0.18);
+    }
+
+    .rc-time-gap::before { top: 35%; }
+    .rc-time-gap::after { top: 62%; }
+
+    .fc-digit {
+      position: relative;
+      width: var(--fc-digit-width);
+      height: var(--fc-card-height);
+      overflow: hidden;
+      background: transparent;
+      border: 0;
+      border-radius: calc(2px * var(--fc-scale));
+      box-shadow: none;
+      pointer-events: none;
+    }
+
+    .fc-digit .fc-top,
+    .fc-digit .fc-bot {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 50%;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .fc-digit .fc-top {
+      top: 0;
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.09);
+    }
+
+    .fc-digit .fc-bot {
+      bottom: 0;
+    }
+
+    .fc-digit .fc-num {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: var(--fc-card-height);
+      line-height: var(--fc-card-height);
+      text-align: center;
+      font-size: var(--fc-digit-font-size);
+      font-weight: 900;
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      letter-spacing: -0.05em;
+      color: #f6f7f8;
+      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.72);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-digit .fc-top .fc-num { top: 0; }
+    .fc-digit .fc-bot .fc-num { bottom: 0; }
+
+    .fc-flap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      overflow: hidden;
+      z-index: 4;
+      transform-origin: bottom center;
+      background: linear-gradient(180deg, rgba(58, 60, 64, 0.92) 0%, rgba(16, 17, 20, 0.98) 100%);
+      border-bottom: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .fc-flap .fc-num {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--fc-card-height);
+      line-height: var(--fc-card-height);
+      text-align: center;
+      font-size: var(--fc-digit-font-size);
+      font-weight: 900;
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      letter-spacing: -0.05em;
+      color: #f6f7f8;
+      text-shadow: 0 calc(1px * var(--fc-scale)) calc(2px * var(--fc-scale)) rgba(0, 0, 0, 0.72);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .rc-radio-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: calc(2px * var(--fc-scale)) calc(2px * var(--fc-scale)) calc(1px * var(--fc-scale)) calc(6px * var(--fc-scale));
+      min-width: 0;
+      border-left: max(1px, calc(1px * var(--fc-scale))) solid rgba(242, 243, 241, 0.12);
+      color: rgba(245, 243, 235, 0.9);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .rc-model {
+      align-self: flex-start;
+      font-size: calc(8px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: rgba(220, 221, 219, 0.72);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .rc-date-badge {
+      position: absolute;
+      right: calc(6px * var(--fc-scale));
+      top: calc(10px * var(--fc-scale));
+      padding: calc(1px * var(--fc-scale)) calc(3px * var(--fc-scale));
+      border-radius: calc(2px * var(--fc-scale));
+      border: max(1px, calc(1px * var(--fc-scale))) solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: calc(6px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: rgba(210, 212, 210, 0.62);
+      text-transform: uppercase;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .rc-scale-block {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: calc(6px * var(--fc-scale));
+      margin-top: calc(3px * var(--fc-scale));
+      padding-right: calc(10px * var(--fc-scale));
+    }
+
+    .rc-scale-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: calc(4px * var(--fc-scale));
+      padding-right: calc(4px * var(--fc-scale));
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .rc-band {
+      flex: 0 0 calc(12px * var(--fc-scale));
+      font-size: calc(8px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: rgba(223, 224, 223, 0.86);
+    }
+
+    .rc-frequencies {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: end;
+      gap: calc(4px * var(--fc-scale));
+      flex: 1;
+      padding-top: calc(9px * var(--fc-scale));
+      font-size: calc(7px * var(--fc-scale));
+      line-height: 1;
+      color: rgba(228, 228, 224, 0.74);
+    }
+
+    .rc-frequencies::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: calc(8px * var(--fc-scale));
+      background:
+        repeating-linear-gradient(90deg,
+          rgba(255, 255, 255, 0.9) 0 calc(1px * var(--fc-scale)),
+          transparent calc(1px * var(--fc-scale)) calc(6px * var(--fc-scale)));
+      opacity: 0.66;
+    }
+
+    .rc-unit {
+      flex: 0 0 auto;
+      font-size: calc(6px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(216, 216, 212, 0.56);
+    }
+
+    .rc-selector-line {
+      position: absolute;
+      top: calc(1px * var(--fc-scale));
+      bottom: calc(3px * var(--fc-scale));
+      left: var(--rc-tuning-position, 84%);
+      transform: translateX(-50%);
+      width: calc(2px * var(--fc-scale));
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffe0d4 0%, #f4aea2 45%, #ffe1d4 100%);
+      box-shadow: 0 0 calc(6px * var(--fc-scale)) rgba(255, 165, 147, 0.28);
+      pointer-events: none;
+    }
+
+    .rc-selector-dot {
+      position: absolute;
+      top: calc(8px * var(--fc-scale));
+      bottom: calc(8px * var(--fc-scale));
+      left: var(--rc-tuning-position, 84%);
+      transform: translateX(-50%);
+      width: calc(8px * var(--fc-scale));
+      border: 0;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 25%, #ffb6a8 0 32%, #f65244 33% 100%);
+      box-shadow: 0 0 calc(8px * var(--fc-scale)) rgba(255, 82, 67, 0.55);
+      cursor: ew-resize;
+      touch-action: none;
+      z-index: 5;
+    }
+
+    .rc-selector-label {
+      align-self: flex-end;
+      font-size: calc(6px * var(--fc-scale));
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: rgba(214, 214, 208, 0.36);
+      text-transform: uppercase;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .rc-brand {
+      align-self: flex-end;
+      margin-top: auto;
+      font-size: calc(10px * var(--fc-scale));
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: -0.01em;
+      color: rgba(242, 242, 238, 0.92);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .fc-flap-p1 {
+      animation: fc-fold 0.18s ease-in forwards;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .fc-flap-p2 {
+      transform: perspective(100px) rotateX(90deg);
+      animation: fc-unfold 0.18s ease-out forwards;
+    }
+
+    @keyframes fc-fold {
+      from { transform: perspective(100px) rotateX(0deg); }
+      to   { transform: perspective(100px) rotateX(-90deg); }
+    }
+
+    @keyframes fc-unfold {
+      from { transform: perspective(100px) rotateX(90deg); }
+      to   { transform: perspective(100px) rotateX(0deg); }
+    }
+
+    /* Debug mode (toggle with `~`). */
+    body.debug .hotspot {
+      border-color: rgba(65, 229, 255, 0.95);
+      background: rgba(65, 229, 255, 0.12);
+    }
+
+    .hotspot.overlay-control-hotspot {
+      pointer-events: none;
+    }
+
+    body.debug .hotspot.overlay-control-hotspot {
+      pointer-events: auto;
+    }
+
+    body.debug .hotspot.overlay-control-hotspot.locked-debug-hotspot {
+      pointer-events: none;
+    }
+
+    body.debug .hotspot-label {
+      opacity: 1;
+      border-color: rgba(65, 229, 255, 0.95);
+      background: rgba(8, 20, 30, 0.9);
+    }
+
+    body.debug .hotspot.locked-debug-hotspot {
+      border-color: transparent;
+      background: transparent;
+      cursor: default;
+    }
+
+    body.debug .hotspot.locked-debug-hotspot .hotspot-label {
+      opacity: 0;
+    }
+
+    body.debug .screen-overlay {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    #debug-toggle-btn {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 1000;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    #debug-toggle-btn:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 2px;
+    }
+
+    body.lite-rendering #stage,
+    body.lite-rendering #world {
+      will-change: auto;
+    }
+
+    body.lite-rendering #effects-layer {
+      display: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Debug-mode hotspot drag/resize editing */
+    body.debug .hotspot {
+      cursor: move;
+    }
+
+    .resize-handle {
+      position: absolute;
+      background: rgba(65, 229, 255, 0.18);
+      border: 1px solid rgba(65, 229, 255, 0.65);
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      touch-action: none;
+      z-index: 2;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+    }
+
+    body.debug .resize-handle {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.debug .hotspot.locked-debug-hotspot .resize-handle {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .resize-n, .resize-s {
+      left: 50%;
+      transform: translateX(-50%);
+      width: 56px;
+      height: 28px;
+    }
+
+    .resize-e, .resize-w {
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 56px;
+    }
+
+    .resize-ne, .resize-nw, .resize-se, .resize-sw {
+      width: 40px;
+      height: 40px;
+    }
+
+    .resize-n  { top: -14px;    cursor: n-resize; }
+    .resize-s  { bottom: -14px; cursor: s-resize; }
+    .resize-e  { right: -14px;  cursor: e-resize; }
+    .resize-w  { left: -14px;   cursor: w-resize; }
+    .resize-ne { top: -20px;   right: -20px; cursor: ne-resize; }
+    .resize-nw { top: -20px;   left: -20px;  cursor: nw-resize; }
+    .resize-se { bottom: -20px; right: -20px; cursor: se-resize; }
+    .resize-sw { bottom: -20px; left: -20px; cursor: sw-resize; }
+
+    /* Save button (sits to the left of Debug button) */
+    #save-hotspots-btn {
+      position: fixed;
+      right: 68px;
+      bottom: 12px;
+      z-index: 1000;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    body:not(.debug) #save-hotspots-btn {
+      display: none;
+    }
+
+    body.debug #save-hotspots-btn {
+      display: block;
+    }
+
+    #save-hotspots-btn:focus-visible {
+      outline: 2px solid rgba(65, 229, 255, 0.95);
+      outline-offset: 2px;
+    }
+
+    #save-hotspots-btn:disabled {
+      cursor: progress;
+      opacity: 0.75;
+    }
+
+    /* Save output modal */
+    #save-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+    }
+
+    #save-modal.hidden {
+      display: none;
+    }
+
+    #save-modal-inner {
+      background: #0e1520;
+      border: 1px solid rgba(65, 229, 255, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 90vw;
+      width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #save-modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(65, 229, 255, 0.95);
+      margin: 0;
+    }
+
+    #save-modal-textarea {
+      flex: 1;
+      min-height: 240px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #cce8ff;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      padding: 10px;
+      resize: vertical;
+    }
+
+    #save-modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .save-modal-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .save-modal-btn.primary {
+      background: rgba(65, 229, 255, 0.2);
+      border-color: rgba(65, 229, 255, 0.6);
+      color: rgba(65, 229, 255, 1);
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="/den.html">/den.html</a>...</p>
+  <div id="viewport" aria-label="Den side-scrolling scene">
+    <div id="stage">
+      <div id="world">
+        <div class="layer" id="scene-layer" aria-hidden="true"></div>
+        <div class="layer" id="hotspot-layer" aria-label="Interactive hotspots"></div>
+        <div class="layer" id="screen-overlay-layer" aria-hidden="true"></div>
+        <div class="layer" id="effects-layer" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+  <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
+  <button id="save-hotspots-btn" type="button" aria-label="Save hotspot positions">Save</button>
+  <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
+    <div id="save-modal-inner">
+      <p id="save-modal-title">Unable to save to the server — copy the code below to update source manually</p>
+      <textarea id="save-modal-textarea" readonly spellcheck="false"></textarea>
+      <div id="save-modal-actions">
+        <button type="button" class="save-modal-btn primary" id="save-modal-copy-btn">Copy to clipboard</button>
+        <button type="button" class="save-modal-btn" id="save-modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const DESIGN_HEIGHT = 2160;
+      const TILE_WIDTH = 3840;
+      const SCENE_OFFSET_X = TILE_WIDTH;
+      const DESK_CENTER_X = SCENE_OFFSET_X + 1920;
+      const WHEEL_SCROLL_MULTIPLIER = 2.2;
+      const LINE_SCROLL_PIXELS = 40;
+      const DOM_DELTA_LINE = 1;
+      const DOM_DELTA_PAGE = 2;
+      const DRAG_START_THRESHOLD_PX = 8;
+      const CAMERA_SMOOTHING_FACTOR = 0.22;
+      const CAMERA_SETTLE_EPSILON = 0.05;
+      const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
+      const HOTSPOT_API_PATH = '/api/hotspots';
+      const SAVE_RESULT_FLASH_KEY = 'den_hotspot_save_result';
+      const LEGACY_HOTSPOT_API_PATH = '/api/data';
+      const LEGACY_HOTSPOT_RECORD_TITLE = 'den-hotspots-v3';
+      const SAVE_BUTTON_RESET_MS = 2000;
+      const COMMODORE_POWER_ON_ANIMATION_MS = 1500;
+      const SAVE_RETRY_ATTEMPTS = 3;
+      const SAVE_RETRY_DELAY_MS = 350;
+      const TOUCH_MOMENTUM_DECAY = 0.004;
+      const TOUCH_MOMENTUM_MIN_VELOCITY = 0.02;
+      const NOAHS_ARCADE_URL = '/noahs-arcade.html';
+      const COMMODORE_URL = '/commodore.html';
+      const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
+      const COMMODORE_NAV_SOURCE_DEN = 'den';
+      const CHAPEL_URL = '/chapel.html';
+      const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
+      const FIRST_TILE_HOTSPOT_IDS = new Set([NOAHS_ARCADE_HOTSPOT_ID]);
+      const DESKTOP_DRAG_SCROLL_MULTIPLIER = 1;
+      const MOBILE_DRAG_SCROLL_MULTIPLIER = 2;
+      const MICROSOFT_WHITEBOARD_URL = 'https://whiteboard.cloud.microsoft/?lng=en-us&ref=oib-8ad27b9b-cce3-40c7-b658-b40c8163d34a';
+      const SERVICE_NOW_ASSIGNED_WORK_URL =
+        'https://recoverycoa.service-now.com/now/nav/ui/classic/params/target/incident_list.do?sysparm_query=stateNOT%20IN6%2C7%2C8%5Eassigned_to%3D7fc866ea1b1d7110153886a7624bcbc0&sysparm_first_row=1';
+      const WHITEBOARD_HOTSPOT_URLS = Object.freeze({
+        whiteboard: MICROSOFT_WHITEBOARD_URL,
+        'rca-board': MICROSOFT_WHITEBOARD_URL,
+        'cap-ex': 'https://app.smartsheet.com/b/form/70b07591b76a4289bc6f5d5e1aabac91',
+        'snow-tickets': SERVICE_NOW_ASSIGNED_WORK_URL,
+        'ntst-cases':
+          'https://support.netsmartconnect.com/solutionsupport?id=ntst_csm_cases&table=sn_customerservice_case&view=app_support&fixed_query=active%3Dtrue%5Econtact%3Djavascript%3Ags.getUserID()&o=sys_updated_on&d=desc',
+        'jira-board': 'https://teamrca.atlassian.net/jira/software/projects/CA/boards/77?jql=assignee%20%3D%206228f47414cd2400690bf259',
+        'change-mgmt': SERVICE_NOW_ASSIGNED_WORK_URL
+      });
+      const WHITEBOARD_TASK_HOTSPOTS = [
+        { id: 'cap-ex', label: 'Cap-Ex', x: 772, y: 462, w: 402, h: 120 },
+        { id: 'snow-tickets', label: 'SNOW Tickets', x: 772, y: 614, w: 402, h: 120 },
+        { id: 'ntst-cases', label: 'NTST Cases', x: 772, y: 766, w: 402, h: 120 },
+        { id: 'jira-board', label: 'JIRA Board', x: 772, y: 918, w: 402, h: 120 },
+        { id: 'change-mgmt', label: 'Change Mgmt', x: 772, y: 1070, w: 402, h: 120 }
+      ];
+      const WHITEBOARD_HOTSPOT_IDS = new Set([
+        'rca-board',
+        'whiteboard',
+        ...WHITEBOARD_TASK_HOTSPOTS.map((spot) => spot.id)
+      ]);
+      const HOTSPOT_READABLE_LABELS = new Map([
+        ['chapel', 'Chapel'],
+        ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, label }) => [id, label])
+      ]);
+      const AQUARIUM_HOTSPOT_IDS = new Set(['aquarium']);
+      const NEDRY_GATE_TRIGGER_HOTSPOT_IDS = new Set([
+        'overlay-big-tv-control',
+        'right-monitor'
+      ]);
+      const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const AQUARIUM_SHRIMP_CLIPS = Object.freeze([
+        'assets/video/shrimp/star-shrimp-clip-01.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-02.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-03.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-04.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-05.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-06.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-07.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-08.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-09.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-10.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-11.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-12.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-13.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-14.v20260525.mp4',
+        'assets/video/shrimp/star-shrimp-clip-15.v20260525.mp4'
+      ]);
+      const RADIO_TUNING_AUDIO_URLS = [
+        'assets/audio/frequency_search.mp3',
+        'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
+        'assets/audio/freesound_community-static-poppy-light-107792.mp3',
+        'assets/audio/freesound_community-high-pitch-large-102845.mp3'
+      ];
+      const RADIO_TUNING_STATION_POSITIONS = [0.06, 0.2, 0.36, 0.52, 0.68, 0.84, 0.95];
+      const RADIO_TUNING_STATION_WIDTH = 0.06;
+      const RADIO_TUNING_MOVEMENT_DECAY_ACTIVE = 0.45;
+      const RADIO_TUNING_MOVEMENT_DECAY_IDLE = 0.8;
+      const RADIO_TUNING_MOVEMENT_GAIN = 18;
+      const RADIO_TUNING_MOVEMENT_FLOOR = 0.2;
+      const RADIO_TUNING_WOBBLE_SPEED = 0.015;
+      const RADIO_TUNING_WOBBLE_POSITION_FACTOR = 15;
+      const RADIO_TUNING_WOBBLE_DEPTH = 0.08;
+      const RADIO_TUNING_PLAYBACK_RATE_BASE = 0.84;
+      const RADIO_TUNING_PLAYBACK_RATE_STATION_GAIN = 0.24;
+      const RADIO_TUNING_PLAYBACK_RATE_MIN = 0.72;
+      const RADIO_TUNING_PLAYBACK_RATE_MAX = 1.28;
+      const RADIO_TUNING_VOLUME_BASE = 0.14;
+      const RADIO_TUNING_VOLUME_STATION_GAIN = 0.74;
+      const RADIO_TUNING_VOLUME_MOVEMENT_GAIN = 0.1;
+      const RADIO_TUNING_VOLUME_MIN = 0.08;
+      const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
+      const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/notarickroll-piece-1.v20260424.mp4';
+      const ZELDA_SECRET_AUDIO_URL = 'assets/audio/zelda-secret.v20260424.mp3';
+      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
+      const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
+      const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
+      const LEFT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/L_Frame.png';
+      const RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/R_Frame.png';
+      const BIG_TV_PROMPT_PREFIX = 'Z:>';
+      const BIG_TV_PROMPT_SECRET_TEXT = 'You didnt say the magic word';
+      const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
+      const MONITOR_STATIC_MIN_DURATION_MS = 1000;
+      const MONITOR_STATIC_MAX_DURATION_MS = 2000;
+      const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
+      const MONITOR_CONTENT_MAX_DURATION_MS = 5000;
+      const LEFT_MONITOR_SEGMENTS = Object.freeze([
+        // Order matches CSS grid flow (row-first): NW, NE, SW, SE
+        { state: 'tools',    label: 'Tools',    quadrant: 'NW' },
+        { state: 'login',    label: 'Login',    quadrant: 'NE' },
+        { state: 'calendar', label: 'Calendar', quadrant: 'SW' },
+        { state: 'mail',     label: 'Mail',     quadrant: 'SE' }
+      ]);
+      const LEFT_MONITOR_STATES = new Set([...LEFT_MONITOR_SEGMENTS.map(({ state }) => state), 'none']); // 'none' is valid but has no rendered segment
+      const DEFAULT_LEFT_MONITOR_STATE = 'none';
+      const LEFT_MONITOR_IMAGE_URLS = Object.freeze({
+        login: 'assets/images/L_Monitor_Login.png',
+        tools: 'assets/images/L_Monitor_Tools.png',
+        calendar: 'assets/images/L_Monitor_Calendar.png',
+        mail: 'assets/images/L_Monitor_Mail.png',
+        none: 'assets/images/L_Monitor_None.png'
+      });
+      const NOTES_URL = 'notes.html';
+      const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
+      const DISCORD_OVERLAY_ID = 'overlay-big-tv';
+      const AQUARIUM_OVERLAY_ID = 'overlay-aquarium-video';
+      const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
+      const CLOCK_URL_WINDOWS = 'ms-clock://';
+      const CLOCK_URL_IOS = 'clock://';
+      const CALENDAR_URL_DESKTOP = 'outlookcal://';
+      const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
+      const WORLD_WIDTH_SEGMENTS = 3;
+      const SCENE_TILE_IMAGE_URLS = [
+        'assets/images/den_arcade.PNG',
+        'assets/images/den_computer.png',
+        'assets/images/den_chapel.png'
+      ];
+      const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
+      const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
+      const COMMODORE_SHADOW_OVERLAY_ID = 'overlay-commodore-shadow';
+      const COMMODORE_SHADOW_CONTROL_ID = 'overlay-commodore-shadow-control';
+      const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
+      const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
+      const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
+      const COMMODORE_HITBOX_HORIZONTAL_INSET = 40; // Shrinks Commodore click area while preserving overlay artwork width.
+      const COMMODORE_HITBOX_VERTICAL_INSET = 70; // Shrinks Commodore click area while preserving overlay artwork height.
+      const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
+      const COMMODORE_MIN_SOURCE_HITBOX_HEIGHT = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_VERTICAL_INSET * 2);
+      const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
+      const LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID = 'overlay-left-monitor-side-frame';
+      const LEFT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-left-monitor-side-frame-control';
+      const RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID = 'overlay-right-monitor-side-frame';
+      const RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-right-monitor-side-frame-control';
+      const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
+      const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
+      const LEFT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1331, y: 1020, w: 280, h: 220 });
+      const RIGHT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1758, y: 1014, w: 288, h: 228 });
+      HOTSPOT_READABLE_LABELS.set(COMMODORE_OVERLAY_CONTROL_ID, 'Commodore Screen');
+      HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
+      HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
+      HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Left Monitor Side Frame');
+      HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
+      const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
+        COMMODORE_OVERLAY_CONTROL_ID,
+        // Keep monitor screen controls fixed to the frame bounds so debug edits only move the shared frame anchor.
+        LEFT_MONITOR_OVERLAY_CONTROL_ID,
+        RIGHT_MONITOR_OVERLAY_CONTROL_ID,
+        'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
+        'overlaymonitorscreencontrol'
+      ]);
+      const MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS = new Map([
+        ['overlay-left-monitor', LEFT_MONITOR_SIDE_FRAME_CONTROL_ID],
+        ['overlay-right-monitor', RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID]
+      ]);
+      const OVERLAY_CONTROL_BINDINGS = [
+        { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
+        { controlId: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, overlayId: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID },
+        { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
+        { controlId: COMMODORE_SHADOW_CONTROL_ID, overlayId: COMMODORE_SHADOW_OVERLAY_ID },
+        { controlId: COMMODORE_POWER_BUTTON_CONTROL_ID, overlayId: COMMODORE_POWER_BUTTON_OVERLAY_ID },
+        { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
+        { controlId: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, overlayId: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID },
+        { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
+      ];
+      const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
+        OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [controlId, overlayId])
+      );
+      const OVERLAY_ID_TO_CONTROL_ID = new Map(
+        OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [overlayId, controlId])
+      );
+
+      // Fixed pixel hotspots in design-space coordinates.
+      // Edit x/y/w/h values as artwork alignment is refined.
+      const defaultHotspots = [
+        { id: NOAHS_ARCADE_HOTSPOT_ID, x: 880, y: 320, w: 2050, h: 1280 },
+        { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
+        { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+        { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 },
+        ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
+        { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+        { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
+        { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
+        { id: COMMODORE_SHADOW_CONTROL_ID, x: 1682, y: 1095, w: 414, h: 198 },
+        { id: COMMODORE_POWER_BUTTON_CONTROL_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
+        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
+        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS }
+      ];
+
+      // Overlay placeholders over transparent screen cutouts.
+      const overlayDefaults = [
+        { id: DISCORD_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
+        { id: AQUARIUM_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
+        { id: 'overlay-left-monitor', ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: COMMODORE_SHADOW_OVERLAY_ID, x: 1682, y: 1095, w: 414, h: 198 },
+        { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
+        { id: COMMODORE_POWER_BUTTON_OVERLAY_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
+        { id: 'overlay-right-monitor', ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
+      ].map((overlay) => {
+        const adjustedOverlay = { ...overlay, x: overlay.x + SCENE_OFFSET_X };
+        if (overlay.id === DISCORD_OVERLAY_ID || overlay.id === AQUARIUM_OVERLAY_ID) {
+          adjustedOverlay.x += 1;
+          adjustedOverlay.y += 1;
+          adjustedOverlay.w = Math.max(0, adjustedOverlay.w - 2);
+          adjustedOverlay.h = Math.max(0, adjustedOverlay.h - 2);
+        }
+        return adjustedOverlay;
+      });
+
+      const viewport = document.getElementById('viewport');
+      const stage = document.getElementById('stage');
+      const world = document.getElementById('world');
+      const sceneLayer = document.getElementById('scene-layer');
+      const hotspotLayer = document.getElementById('hotspot-layer');
+      const screenOverlayLayer = document.getElementById('screen-overlay-layer');
+      const debugStatus = document.getElementById('debug-status');
+      const debugToggleButton = document.getElementById('debug-toggle-btn');
+      const saveBtn = document.getElementById('save-hotspots-btn');
+      const saveModal = document.getElementById('save-modal');
+      const saveModalTitle = document.getElementById('save-modal-title');
+      const saveModalTextarea = document.getElementById('save-modal-textarea');
+      const isIOSDevice =
+        /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
+        (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+      const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+      const useLiteRendering = isIOSDevice || hasCoarsePointer;
+
+      const worldWidth = WORLD_WIDTH_SEGMENTS * TILE_WIDTH;
+      const worldHeight = DESIGN_HEIGHT;
+
+      let scale = 1;
+      let visibleWidth = worldWidth;
+      let maxCameraX = 0;
+      let cameraX = 0;
+      let targetCameraX = 0;
+      let isDragging = false;
+      let isPointerDown = false;
+      let activePointerId = null;
+      let pointerStartX = 0;
+      let lastPointerX = 0;
+      let hasInitializedCamera = false;
+      let dragStartedOnHotspot = false;
+      let suppressHotspotClickUntil = 0;
+      let cameraAnimationFrameId = null;
+      let activePointerType = '';
+      let lastPointerMoveTime = 0;
+      let dragVelocityX = 0;
+      let momentumAnimationFrameId = null;
+      let momentumVelocityX = 0;
+      let lastMomentumTimestamp = 0;
+      let saveButtonResetTimeoutId = null;
+      let hotspotApiMode = 'primary';
+      let flipClockIntervalId = null;
+      let flipClockAlignTimeoutId = null;
+      const overlayElementsById = new Map();
+      let aquariumOverlayEl = null;
+      let aquariumStaticOverlayEl = null;
+      let aquariumStaticVideoEl = null;
+      let aquariumSequenceToken = 0;
+      let bigTvPromptOverlayEl = null;
+      let bigTvPromptSecretEl = null;
+      let bigTvPromptInputEl = null;
+      let bigTvPromptSubmitButtonEl = null;
+      let isBigTvPromptActive = false;
+      let bigTvPromptInputValue = '';
+      let bigTvPromptSequenceToken = 0;
+      let nedryGateOverlayEl = null;
+      let nedryGateVideoEl = null;
+      let zeldaSecretAudioEl = null;
+      let flipClockRadioTuningAudioEl = null;
+      const flipClockRadioTuningAudioElsByUrl = new Map();
+      let flipClockRadioTuningAudioCycle = [];
+      let rightMonitorStaticOverlayEl = null;
+      let rightMonitorStaticVideoEl = null;
+      let leftMonitorStaticOverlayEl = null;
+      let leftMonitorStaticVideoEl = null;
+      let leftMonitorContentImageEl = null;
+      let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
+      let discordButtonImgEl = null;
+      let discordButtonSelected = false;
+      let commodorePowerButtonEl = null;
+      let commodorePowerOnTimeoutId = null;
+      let isCommodorePoweringOn = false;
+      const leftMonitorSegmentButtonsByState = new Map();
+      let rightMonitorFlickerTimeoutId = null;
+      let leftMonitorFlickerTimeoutId = null;
+      // Debug hotspot editing state
+      let debugEditType = null; // 'move' | 'resize'
+      let debugEditEl = null;
+      let debugEditDir = null;
+      let debugEditStartX = 0;
+      let debugEditStartY = 0;
+      let debugEditOrigRect = null; // { left, top, w, h } in design-space px
+
+      let hotspots = sourceHotspotsToRuntime(defaultHotspots);
+
+      function sourceHotspotXToRuntime(id, x) {
+        return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x + SCENE_OFFSET_X;
+      }
+
+      function runtimeHotspotXToSource(id, x) {
+        return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
+      }
+
+      function syncBigTvContentVisibility() {
+        const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
+        const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
+        const promptActive = isBigTvPromptActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive;
+        const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        if (discordOverlayEl) {
+          discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
+        }
+        if (aquariumOverlayEl) {
+          aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
+        }
+      }
+
+      function syncLeftMonitorSelectionUi() {
+        leftMonitorSegmentButtonsByState.forEach((button, state) => {
+          button.classList.toggle('is-selected', state === leftMonitorSelectedState);
+          button.setAttribute('aria-pressed', state === leftMonitorSelectedState ? 'true' : 'false');
+        });
+      }
+
+      function syncDiscordButtonUi() {
+        if (discordButtonImgEl) {
+          discordButtonImgEl.src = discordButtonSelected
+            ? DISCORD_BUTTON_GREEN_IMAGE_URL
+            : DISCORD_BUTTON_IMAGE_URL;
+        }
+      }
+
+      function setLeftMonitorState(nextState) {
+        if (!LEFT_MONITOR_STATES.has(nextState)) {
+          return;
+        }
+        leftMonitorSelectedState = nextState;
+        if (leftMonitorContentImageEl) {
+          const imageUrl = LEFT_MONITOR_IMAGE_URLS[nextState] || LEFT_MONITOR_IMAGE_URLS[DEFAULT_LEFT_MONITOR_STATE];
+          leftMonitorContentImageEl.src = imageUrl;
+        }
+        if (nextState !== DEFAULT_LEFT_MONITOR_STATE) {
+          discordButtonSelected = false;
+          syncDiscordButtonUi();
+        }
+        syncLeftMonitorSelectionUi();
+      }
+
+      function cancelAquariumPlaybackSequence() {
+        aquariumSequenceToken += 1;
+      }
+
+      function getRandomShrimpClipUrl() {
+        return AQUARIUM_SHRIMP_CLIPS[Math.floor(Math.random() * AQUARIUM_SHRIMP_CLIPS.length)];
+      }
+
+      function waitForMediaPlaybackToEnd(mediaEl) {
+        return new Promise((resolve) => {
+          const onEnded = () => {
+            cleanup();
+            resolve(true);
+          };
+          const onError = () => {
+            cleanup();
+            resolve(false);
+          };
+          const onPause = () => {
+            if (mediaEl.ended) {
+              return;
+            }
+            cleanup();
+            resolve(false);
+          };
+          const cleanup = () => {
+            mediaEl.removeEventListener('ended', onEnded);
+            mediaEl.removeEventListener('error', onError);
+            mediaEl.removeEventListener('pause', onPause);
+          };
+          mediaEl.addEventListener('ended', onEnded);
+          mediaEl.addEventListener('error', onError);
+          mediaEl.addEventListener('pause', onPause);
+        });
+      }
+
+      function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
+        if (aquariumStaticOverlayEl) {
+          aquariumStaticOverlayEl.classList.remove('is-active');
+        }
+        if (aquariumStaticVideoEl) {
+          aquariumStaticVideoEl.pause();
+          if (resetPlayback) {
+            aquariumStaticVideoEl.currentTime = 0;
+          }
+        }
+        syncBigTvContentVisibility();
+      }
+
+      async function playAquariumStaticPass(sequenceToken) {
+        if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
+          return false;
+        }
+        aquariumStaticOverlayEl.classList.add('is-active');
+        aquariumStaticVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+        try {
+          await aquariumStaticVideoEl.play();
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play aquarium static overlay.', error);
+          }
+          return false;
+        }
+        const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
+        return hasEnded && sequenceToken === aquariumSequenceToken;
+      }
+
+      async function playAquariumClipPass(sequenceToken, clipUrl) {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
+          return false;
+        }
+        const shrimpClipUrl = AQUARIUM_SHRIMP_CLIPS.includes(clipUrl)
+          ? clipUrl
+          : getRandomShrimpClipUrl();
+        setNedryGateVideoSource(shrimpClipUrl);
+        nedryGateOverlayEl.classList.add('is-active');
+        nedryGateVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+        try {
+          await nedryGateVideoEl.play();
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play aquarium clip.', error);
+          }
+          hideNedryGateOverlay();
+          setNedryGateVideoSource(getRandomShrimpClipUrl());
+          return false;
+        }
+        const hasEnded = await waitForMediaPlaybackToEnd(nedryGateVideoEl);
+        hideNedryGateOverlay();
+        setNedryGateVideoSource(getRandomShrimpClipUrl());
+        return hasEnded && sequenceToken === aquariumSequenceToken;
+      }
+
+      async function playAquariumHotspotSequence() {
+        aquariumSequenceToken += 1;
+        const sequenceToken = aquariumSequenceToken;
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+
+        const firstStaticEnded = await playAquariumStaticPass(sequenceToken);
+        if (!firstStaticEnded || sequenceToken !== aquariumSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        const clipUrl = getRandomShrimpClipUrl();
+        const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
+        if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        await playAquariumStaticPass(sequenceToken);
+        hideAquariumStaticOverlay();
+      }
+
+      function hideNedryGateOverlay({ resetPlayback = true } = {}) {
+        hideBigTvPromptOverlay({ clearInput: false });
+        if (nedryGateOverlayEl) {
+          nedryGateOverlayEl.classList.remove('is-active');
+        }
+        if (nedryGateVideoEl) {
+          nedryGateVideoEl.pause();
+          if (resetPlayback) {
+            nedryGateVideoEl.currentTime = 0;
+          }
+        }
+        syncBigTvContentVisibility();
+      }
+
+      function activateBigTvPromptMode() {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
+          return;
+        }
+
+        cancelAquariumPlaybackSequence();
+        stopZeldaSecretAudioPlayback();
+        hideAquariumStaticOverlay();
+        hideNedryGateOverlay();
+        playBigTvPromptIntroSequence();
+      }
+
+      function getRandomMonitorStaticDurationMs() {
+        return MONITOR_STATIC_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_STATIC_MAX_DURATION_MS - MONITOR_STATIC_MIN_DURATION_MS + 1)
+        );
+      }
+
+      function getRandomMonitorContentDurationMs() {
+        return MONITOR_CONTENT_MIN_DURATION_MS + Math.floor(
+          Math.random() * (MONITOR_CONTENT_MAX_DURATION_MS - MONITOR_CONTENT_MIN_DURATION_MS + 1)
+        );
+      }
+
+      function clearMonitorFlickerTimeouts() {
+        if (rightMonitorFlickerTimeoutId !== null) {
+          clearTimeout(rightMonitorFlickerTimeoutId);
+          rightMonitorFlickerTimeoutId = null;
+        }
+        if (leftMonitorFlickerTimeoutId !== null) {
+          clearTimeout(leftMonitorFlickerTimeoutId);
+          leftMonitorFlickerTimeoutId = null;
+        }
+      }
+
+      function setMonitorStaticVisibility(staticOverlayEl, staticVideoEl, shouldShowStatic) {
+        if (!staticOverlayEl) {
+          return;
+        }
+        staticOverlayEl.classList.toggle('is-active', shouldShowStatic);
+        if (!staticVideoEl) {
+          return;
+        }
+        if (shouldShowStatic) {
+          staticVideoEl.currentTime = 0;
+          const playPromise = staticVideoEl.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {});
+          }
+          return;
+        }
+        staticVideoEl.pause();
+        staticVideoEl.currentTime = 0;
+      }
+
+      function scheduleRightMonitorFlicker(shouldShowStaticNext) {
+        if (!isBigTvPromptActive) {
+          rightMonitorFlickerTimeoutId = null;
+          return;
+        }
+        setMonitorStaticVisibility(
+          rightMonitorStaticOverlayEl,
+          rightMonitorStaticVideoEl,
+          shouldShowStaticNext
+        );
+        rightMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleRightMonitorFlicker(!shouldShowStaticNext),
+          shouldShowStaticNext ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function scheduleLeftMonitorFlicker(shouldShowStaticNext) {
+        if (!isBigTvPromptActive) {
+          leftMonitorFlickerTimeoutId = null;
+          return;
+        }
+        setMonitorStaticVisibility(
+          leftMonitorStaticOverlayEl,
+          leftMonitorStaticVideoEl,
+          shouldShowStaticNext
+        );
+        leftMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleLeftMonitorFlicker(!shouldShowStaticNext),
+          shouldShowStaticNext ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function startMonitorFlickerLoops() {
+        clearMonitorFlickerTimeouts();
+        const rightStartsStatic = Math.random() < 0.5;
+        const leftStartsStatic = Math.random() < 0.5;
+        setMonitorStaticVisibility(
+          rightMonitorStaticOverlayEl,
+          rightMonitorStaticVideoEl,
+          rightStartsStatic
+        );
+        setMonitorStaticVisibility(
+          leftMonitorStaticOverlayEl,
+          leftMonitorStaticVideoEl,
+          leftStartsStatic
+        );
+        rightMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleRightMonitorFlicker(!rightStartsStatic),
+          rightStartsStatic ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+        leftMonitorFlickerTimeoutId = window.setTimeout(
+          () => scheduleLeftMonitorFlicker(!leftStartsStatic),
+          leftStartsStatic ? getRandomMonitorStaticDurationMs() : getRandomMonitorContentDurationMs()
+        );
+      }
+
+      function stopMonitorFlickerLoops() {
+        clearMonitorFlickerTimeouts();
+        setMonitorStaticVisibility(rightMonitorStaticOverlayEl, rightMonitorStaticVideoEl, false);
+        setMonitorStaticVisibility(leftMonitorStaticOverlayEl, leftMonitorStaticVideoEl, false);
+      }
+
+      function updateBigTvPromptInput() {
+        if (!bigTvPromptInputEl) {
+          return;
+        }
+        bigTvPromptInputEl.textContent = bigTvPromptInputValue;
+      }
+
+      function showBigTvPromptOverlay() {
+        if (!bigTvPromptOverlayEl) {
+          return;
+        }
+        isBigTvPromptActive = true;
+        bigTvPromptInputValue = '';
+        updateBigTvPromptInput();
+        if (bigTvPromptSecretEl) {
+          bigTvPromptSecretEl.textContent = BIG_TV_PROMPT_SECRET_TEXT;
+        }
+        bigTvPromptOverlayEl.classList.add('is-active');
+        syncBigTvContentVisibility();
+        startMonitorFlickerLoops();
+      }
+
+      function hideBigTvPromptOverlay({ clearInput = true } = {}) {
+        isBigTvPromptActive = false;
+        if (bigTvPromptOverlayEl) {
+          bigTvPromptOverlayEl.classList.remove('is-active');
+        }
+        if (clearInput) {
+          bigTvPromptInputValue = '';
+          updateBigTvPromptInput();
+        }
+        stopMonitorFlickerLoops();
+        syncBigTvContentVisibility();
+      }
+
+      function setNedryGateVideoSource(sourceUrl) {
+        if (!nedryGateVideoEl) {
+          return;
+        }
+        if (nedryGateVideoEl.getAttribute('src') === sourceUrl) {
+          return;
+        }
+        nedryGateVideoEl.setAttribute('src', sourceUrl);
+        nedryGateVideoEl.src = sourceUrl;
+        nedryGateVideoEl.load();
+      }
+
+      async function playBigTvStaticPass(sequenceToken) {
+        if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
+          return false;
+        }
+        aquariumStaticOverlayEl.classList.add('is-active');
+        aquariumStaticVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+        try {
+          await aquariumStaticVideoEl.play();
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play big TV static overlay.', error);
+          }
+          return false;
+        }
+        const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
+        return hasEnded && sequenceToken === bigTvPromptSequenceToken;
+      }
+
+      async function playBigTvVideoPass(sequenceToken, sourceUrl) {
+        if (!nedryGateOverlayEl || !nedryGateVideoEl) {
+          return false;
+        }
+        setNedryGateVideoSource(sourceUrl);
+        nedryGateOverlayEl.classList.add('is-active');
+        nedryGateVideoEl.currentTime = 0;
+        syncBigTvContentVisibility();
+        try {
+          await nedryGateVideoEl.play();
+        } catch (error) {
+          if (error?.name !== 'AbortError') {
+            console.warn('Unable to play big TV overlay video.', error);
+          }
+          return false;
+        }
+        const hasEnded = await waitForMediaPlaybackToEnd(nedryGateVideoEl);
+        hideNedryGateOverlay();
+        setNedryGateVideoSource(NEDRY_GATE_VIDEO_URL);
+        return hasEnded && sequenceToken === bigTvPromptSequenceToken;
+      }
+
+      function getZeldaSecretAudioElement() {
+        if (!zeldaSecretAudioEl) {
+          zeldaSecretAudioEl = new Audio(ZELDA_SECRET_AUDIO_URL);
+          zeldaSecretAudioEl.preload = 'auto';
+        }
+        return zeldaSecretAudioEl;
+      }
+
+      function stopZeldaSecretAudioPlayback() {
+        if (!zeldaSecretAudioEl) {
+          return;
+        }
+        zeldaSecretAudioEl.pause();
+        zeldaSecretAudioEl.currentTime = 0;
+      }
+
+      async function playBigTvPromptIntroSequence() {
+        bigTvPromptSequenceToken += 1;
+        const sequenceToken = bigTvPromptSequenceToken;
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+
+        const firstStaticEnded = await playBigTvStaticPass(sequenceToken);
+        if (!firstStaticEnded || sequenceToken !== bigTvPromptSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        const nedryGateEnded = await playBigTvVideoPass(sequenceToken, NEDRY_GATE_VIDEO_URL);
+        if (!nedryGateEnded || sequenceToken !== bigTvPromptSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        const secondStaticEnded = await playBigTvStaticPass(sequenceToken);
+        if (sequenceToken !== bigTvPromptSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        if (!secondStaticEnded) {
+          console.warn('Big TV second static pass failed; showing prompt anyway.');
+        }
+        showBigTvPromptOverlay();
+      }
+
+      async function playBigTvPromptSuccessSequence() {
+        bigTvPromptSequenceToken += 1;
+        const sequenceToken = bigTvPromptSequenceToken;
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+
+        const zeldaAudio = getZeldaSecretAudioElement();
+        stopZeldaSecretAudioPlayback();
+        const zeldaPlayPromise = zeldaAudio.play();
+        if (zeldaPlayPromise && typeof zeldaPlayPromise.catch === 'function') {
+          zeldaPlayPromise.catch((error) => {
+            if (error?.name !== 'AbortError') {
+              console.warn('Unable to play Zelda secret audio.', error);
+            }
+          });
+        }
+        const zeldaEndedPromise = waitForMediaPlaybackToEnd(zeldaAudio);
+        const staticEnded = await playBigTvStaticPass(sequenceToken);
+        const zeldaEnded = await zeldaEndedPromise;
+
+        if (sequenceToken !== bigTvPromptSequenceToken) {
+          hideAquariumStaticOverlay();
+          stopZeldaSecretAudioPlayback();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        stopZeldaSecretAudioPlayback();
+        if (!staticEnded || !zeldaEnded) {
+          return;
+        }
+
+        await playBigTvVideoPass(sequenceToken, BIG_TV_RICKROLL_VIDEO_URL);
+      }
+
+      function submitBigTvPrompt() {
+        if (!isBigTvPromptActive) {
+          return;
+        }
+        const submittedValue = bigTvPromptInputValue.trim().toLowerCase();
+        bigTvPromptInputValue = '';
+        updateBigTvPromptInput();
+        if (submittedValue === BIG_TV_PROMPT_ACCEPTED_VALUE) {
+          playBigTvPromptSuccessSequence();
+        }
+      }
+
+      function handleBigTvPromptTyping(event) {
+        if (!isBigTvPromptActive) {
+          return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+          return;
+        }
+        if (event.key === 'Escape') {
+          hideBigTvPromptOverlay();
+          return;
+        }
+        if (event.key === 'Backspace') {
+          event.preventDefault();
+          bigTvPromptInputValue = bigTvPromptInputValue.slice(0, -1);
+          updateBigTvPromptInput();
+          return;
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          submitBigTvPrompt();
+          return;
+        }
+        if (event.key.length === 1) {
+          event.preventDefault();
+          bigTvPromptInputValue += event.key;
+          updateBigTvPromptInput();
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(value, max));
+      }
+
+      function isFiniteNumber(value) {
+        return typeof value === 'number' && Number.isFinite(value);
+      }
+
+      function sourceHotspotsToRuntime(sourceHotspots) {
+        return sourceHotspots.map((spot) => {
+          const runtimeSpot = {
+            ...spot,
+            x: sourceHotspotXToRuntime(spot.id, spot.x)
+          };
+          if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+            runtimeSpot.w = Math.max(COMMODORE_MIN_SOURCE_HITBOX_WIDTH, runtimeSpot.w);
+            runtimeSpot.x += COMMODORE_HITBOX_HORIZONTAL_INSET;
+            runtimeSpot.w -= COMMODORE_HITBOX_HORIZONTAL_INSET * 2;
+            runtimeSpot.h = Math.max(COMMODORE_MIN_SOURCE_HITBOX_HEIGHT, runtimeSpot.h);
+            runtimeSpot.y += COMMODORE_HITBOX_VERTICAL_INSET;
+            runtimeSpot.h -= COMMODORE_HITBOX_VERTICAL_INSET * 2;
+          }
+          return runtimeSpot;
+        });
+      }
+
+      function runtimeHotspotsToSource(runtimeHotspots) {
+        return runtimeHotspots.map((spot) => {
+          let sourceX = runtimeHotspotXToSource(spot.id, spot.x);
+          let sourceY = spot.y;
+          let sourceW = spot.w;
+          let sourceH = spot.h;
+          if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+            sourceX -= COMMODORE_HITBOX_HORIZONTAL_INSET;
+            sourceW = Math.max(
+              COMMODORE_MIN_SOURCE_HITBOX_WIDTH,
+              sourceW + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)
+            );
+            sourceY -= COMMODORE_HITBOX_VERTICAL_INSET;
+            sourceH = Math.max(
+              COMMODORE_MIN_SOURCE_HITBOX_HEIGHT,
+              sourceH + (COMMODORE_HITBOX_VERTICAL_INSET * 2)
+            );
+          }
+          return {
+            id: spot.id,
+            x: sourceX,
+            y: sourceY,
+            w: sourceW,
+            h: sourceH
+          };
+        });
+      }
+
+      function sanitizeSourceHotspots(input) {
+        if (!Array.isArray(input)) return null;
+        const entriesById = new Map();
+        input.forEach((entry) => {
+          if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string') return;
+          entriesById.set(entry.id, entry);
+        });
+
+        return defaultHotspots.map((fallback) => {
+          const entry = entriesById.get(fallback.id);
+          const minWidth = fallback.id === COMMODORE_OVERLAY_CONTROL_ID
+            ? COMMODORE_MIN_SOURCE_HITBOX_WIDTH
+            : MIN_HOTSPOT_SIZE;
+          const minHeight = fallback.id === COMMODORE_OVERLAY_CONTROL_ID
+            ? COMMODORE_MIN_SOURCE_HITBOX_HEIGHT
+            : MIN_HOTSPOT_SIZE;
+          if (!entry) return { ...fallback };
+          return {
+            id: fallback.id,
+            x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
+            y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
+            w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
+            h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
+          };
+        });
+      }
+
+      function getSavedHotspotsFromDom() {
+        const saved = [];
+        hotspotLayer.querySelectorAll('.hotspot').forEach((el) => {
+          saved.push({
+            id: el.id,
+            x: Math.round(parseFloat(el.style.left)),
+            y: Math.round(parseFloat(el.style.top)),
+            w: Math.round(parseFloat(el.style.width)),
+            h: Math.round(parseFloat(el.style.height))
+          });
+        });
+        return saved;
+      }
+
+      function getRuntimeHotspotById(id) {
+        return hotspots.find((spot) => spot.id === id) || null;
+      }
+
+      function rectFromBounds(bounds) {
+        return {
+          x: bounds.x,
+          y: bounds.y,
+          w: bounds.w,
+          h: bounds.h
+        };
+      }
+
+      function getOverlayRect(overlayId) {
+        let controlHotspotId = OVERLAY_ID_TO_CONTROL_ID.get(overlayId);
+        if (MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.has(overlayId)) {
+          controlHotspotId = MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.get(overlayId);
+        }
+        if (!controlHotspotId && overlayId === AQUARIUM_OVERLAY_ID) {
+          controlHotspotId = DISCORD_OVERLAY_CONTROL_ID;
+        }
+        if (controlHotspotId) {
+          const controlledSpot = getRuntimeHotspotById(controlHotspotId);
+          if (controlledSpot) {
+            if (overlayId === 'overlay-commodore-screen') {
+              return {
+                x: controlledSpot.x - COMMODORE_HITBOX_HORIZONTAL_INSET,
+                y: controlledSpot.y - COMMODORE_HITBOX_VERTICAL_INSET,
+                w: controlledSpot.w + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2),
+                h: controlledSpot.h + (COMMODORE_HITBOX_VERTICAL_INSET * 2)
+              };
+            }
+            return rectFromBounds(controlledSpot);
+          }
+        }
+
+        const fallback = overlayDefaults.find((overlay) => overlay.id === overlayId);
+        if (!fallback) return null;
+        return rectFromBounds(fallback);
+      }
+
+      function syncControlledOverlaysFromHotspots() {
+        OVERLAY_CONTROL_TO_OVERLAY_ID.forEach((overlayId, controlHotspotId) => {
+          const effectiveControlHotspotId =
+            MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.get(overlayId) ?? controlHotspotId;
+          const hotspotEl = document.getElementById(effectiveControlHotspotId);
+          const overlayEl = overlayElementsById.get(overlayId);
+          if (!hotspotEl || !overlayEl) return;
+          if (overlayId === 'overlay-commodore-screen') {
+            const hotspotLeft = parseFloat(hotspotEl.style.left);
+            const hotspotTop = parseFloat(hotspotEl.style.top);
+            const hotspotWidth = parseFloat(hotspotEl.style.width);
+            const hotspotHeight = parseFloat(hotspotEl.style.height);
+            overlayEl.style.left = `${hotspotLeft - COMMODORE_HITBOX_HORIZONTAL_INSET}px`;
+            overlayEl.style.top = `${hotspotTop - COMMODORE_HITBOX_VERTICAL_INSET}px`;
+            overlayEl.style.width = `${hotspotWidth + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)}px`;
+            overlayEl.style.height = `${hotspotHeight + (COMMODORE_HITBOX_VERTICAL_INSET * 2)}px`;
+            return;
+          }
+          overlayEl.style.left = hotspotEl.style.left;
+          overlayEl.style.top = hotspotEl.style.top;
+          overlayEl.style.width = hotspotEl.style.width;
+          overlayEl.style.height = hotspotEl.style.height;
+        });
+        const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        const aquariumOverlayEl = overlayElementsById.get(AQUARIUM_OVERLAY_ID);
+        if (discordOverlayEl && aquariumOverlayEl) {
+          aquariumOverlayEl.style.left = discordOverlayEl.style.left;
+          aquariumOverlayEl.style.top = discordOverlayEl.style.top;
+          aquariumOverlayEl.style.width = discordOverlayEl.style.width;
+          aquariumOverlayEl.style.height = discordOverlayEl.style.height;
+        }
+      }
+
+      function getSourceOutput(sourceHotspots) {
+        const lines = sourceHotspots.map((spot) =>
+          `  { id: ${JSON.stringify(spot.id)}, x: ${spot.x}, y: ${spot.y}, w: ${spot.w}, h: ${spot.h} },`
+        );
+        return (
+          `const hotspots = [\n${lines.join('\n')}\n` +
+          `].map((spot) => ({ ...spot, x: spot.x + SCENE_OFFSET_X }));`
+        );
+      }
+
+      function persistSaveResultFlash(message) {
+        try {
+          sessionStorage.setItem(SAVE_RESULT_FLASH_KEY, message);
+        } catch (_) {}
+      }
+
+      function consumeSaveResultFlash() {
+        try {
+          const flash = sessionStorage.getItem(SAVE_RESULT_FLASH_KEY);
+          if (!flash) return '';
+          sessionStorage.removeItem(SAVE_RESULT_FLASH_KEY);
+          return flash;
+        } catch (_) {
+          return '';
+        }
+      }
+
+      function shouldUseLegacyDataApi(status) {
+        return status === 404;
+      }
+
+      function extractSourceHotspotsFromLegacyRows(rows) {
+        if (!Array.isArray(rows)) return null;
+        for (const row of rows) {
+          if (!row || row.title !== LEGACY_HOTSPOT_RECORD_TITLE) continue;
+          let parsed = null;
+          if (typeof row.content === 'string') {
+            try {
+              parsed = JSON.parse(row.content);
+            } catch (_) {}
+          } else if (Array.isArray(row.content)) {
+            parsed = row.content;
+          }
+          const sanitized = sanitizeSourceHotspots(parsed);
+          if (sanitized) return sanitized;
+        }
+        return null;
+      }
+
+      async function loadHotspotsFromLegacyServer() {
+        try {
+          const response = await fetch(LEGACY_HOTSPOT_API_PATH, { cache: 'no-store' });
+          if (!response.ok) return null;
+          const payload = await response.json();
+          const sanitized = extractSourceHotspotsFromLegacyRows(payload);
+          return sanitized ? sourceHotspotsToRuntime(sanitized) : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      async function loadHotspotsFromServer() {
+        if (hotspotApiMode === 'legacy') {
+          return loadHotspotsFromLegacyServer();
+        }
+
+        try {
+          const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store' });
+          if (!response.ok) {
+            if (shouldUseLegacyDataApi(response.status)) {
+              hotspotApiMode = 'legacy';
+              return loadHotspotsFromLegacyServer();
+            }
+            return null;
+          }
+          const payload = await response.json();
+          const sanitized = sanitizeSourceHotspots(payload?.hotspots);
+          return sanitized ? sourceHotspotsToRuntime(sanitized) : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      async function readResponseErrorText(response) {
+        try {
+          const payload = await response.clone().json();
+          if (payload && typeof payload.error === 'string' && payload.error.trim()) {
+            return payload.error.trim();
+          }
+        } catch (_) {}
+
+        try {
+          const text = await response.text();
+          if (text && text.trim()) return text.trim();
+        } catch (_) {}
+
+        return '';
+      }
+
+      async function postHotspotsToLegacyServer(savedSourceHotspots) {
+        let lastError = null;
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(LEGACY_HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                title: LEGACY_HOTSPOT_RECORD_TITLE,
+                content: JSON.stringify(savedSourceHotspots)
+              }),
+              cache: 'no-store'
+            });
+
+            if (!response.ok) {
+              const errorDetails = await readResponseErrorText(response);
+              throw new Error(
+                errorDetails
+                  ? `Server save failed (${response.status}): ${errorDetails}`
+                  : `Server save failed (${response.status})`
+              );
+            }
+
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+            }
+          }
+        }
+
+        throw lastError || new Error('Server save failed');
+      }
+
+      async function postHotspotsToServer(savedSourceHotspots) {
+        if (hotspotApiMode === 'legacy') {
+          await postHotspotsToLegacyServer(savedSourceHotspots);
+          return;
+        }
+
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ hotspots: savedSourceHotspots }),
+              cache: 'no-store'
+            });
+
+            if (!response.ok) {
+              if (shouldUseLegacyDataApi(response.status)) {
+                hotspotApiMode = 'legacy';
+                await postHotspotsToLegacyServer(savedSourceHotspots);
+                return;
+              }
+              const errorDetails = await readResponseErrorText(response);
+              throw new Error(
+                errorDetails
+                  ? `Server save failed (${response.status}): ${errorDetails}`
+                  : `Server save failed (${response.status})`
+              );
+            }
+
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+            }
+          }
+        }
+
+        throw lastError || new Error('Server save failed');
+      }
+
+      function setSaveButtonText(text, disabled = false) {
+        saveBtn.textContent = text;
+        saveBtn.disabled = disabled;
+      }
+
+      function resetSaveButtonSoon() {
+        if (saveButtonResetTimeoutId !== null) {
+          window.clearTimeout(saveButtonResetTimeoutId);
+        }
+        saveButtonResetTimeoutId = window.setTimeout(() => {
+          setSaveButtonText('Save');
+          saveButtonResetTimeoutId = null;
+        }, SAVE_BUTTON_RESET_MS);
+      }
+
+      function hideSaveModal() {
+        saveModal.classList.add('hidden');
+      }
+
+      function showSaveFallbackModal(sourceHotspots, message) {
+        saveModalTitle.textContent = message;
+        saveModalTextarea.value = getSourceOutput(sourceHotspots);
+        saveModal.classList.remove('hidden');
+      }
+
+      function stopMomentum() {
+        if (momentumAnimationFrameId !== null) {
+          window.cancelAnimationFrame(momentumAnimationFrameId);
+          momentumAnimationFrameId = null;
+        }
+        momentumVelocityX = 0;
+        lastMomentumTimestamp = 0;
+      }
+
+      function shouldUseMomentum(pointerType) {
+        return pointerType === 'touch' || (pointerType === 'pen' && hasCoarsePointer);
+      }
+
+      function addResizeHandles(el) {
+        ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'].forEach((dir) => {
+          const handle = document.createElement('div');
+          handle.className = `resize-handle resize-${dir}`;
+          handle.dataset.dir = dir;
+          handle.setAttribute('aria-hidden', 'true');
+          el.appendChild(handle);
+        });
+      }
+
+      function updateHotspotLabel(el) {
+        const label = el.querySelector('.hotspot-label');
+        if (!label) return;
+        const readableLabel = el.dataset.label || el.id;
+        const x = Math.round(parseFloat(el.style.left));
+        const y = Math.round(parseFloat(el.style.top));
+        const w = Math.round(parseFloat(el.style.width));
+        const h = Math.round(parseFloat(el.style.height));
+        label.textContent = `${readableLabel} (${x}, ${y}) ${w}×${h}`;
+      }
+
+      // ── Flip Clock helpers ────────────────────────────────
+
+      function openClockApp() {
+        const ua = navigator.userAgent;
+        if (/Windows/i.test(ua)) {
+          window.location.href = CLOCK_URL_WINDOWS;
+        } else if (/iPhone|iPad|iPod/i.test(ua)) {
+          window.location.href = CLOCK_URL_IOS;
+        } else {
+          window.open('https://time.is', '_blank', 'noopener,noreferrer');
+        }
+      }
+
+      function openCalendarApp() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        window.location.href = isMobile ? CALENDAR_URL_MOBILE : CALENDAR_URL_DESKTOP;
+      }
+
+      function navigateToCommodoreFromDen() {
+        try {
+          sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_DEN);
+        } catch (error) {
+          console.warn('Unable to persist Commodore navigation source.', error);
+        }
+        window.location.assign(COMMODORE_URL);
+      }
+
+      function triggerCommodorePowerOnSequence() {
+        if (isCommodorePoweringOn) {
+          return;
+        }
+        isCommodorePoweringOn = true;
+        if (commodorePowerButtonEl) {
+          commodorePowerButtonEl.style.setProperty('--commodore-power-on-duration', `${COMMODORE_POWER_ON_ANIMATION_MS}ms`);
+          commodorePowerButtonEl.classList.add('is-powering-on');
+        }
+        commodorePowerOnTimeoutId = window.setTimeout(() => {
+          commodorePowerOnTimeoutId = null;
+          navigateToCommodoreFromDen();
+        }, COMMODORE_POWER_ON_ANIMATION_MS);
+      }
+
+      function createFlipCard(isMonth) {
+        const el = document.createElement('div');
+        el.className = isMonth ? 'fc-month' : 'fc-digit';
+        el.dataset.val = '';
+
+        const top = document.createElement('div');
+        top.className = 'fc-top';
+        const topNum = document.createElement('span');
+        topNum.className = 'fc-num';
+        top.appendChild(topNum);
+
+        const bot = document.createElement('div');
+        bot.className = 'fc-bot';
+        const botNum = document.createElement('span');
+        botNum.className = 'fc-num';
+        bot.appendChild(botNum);
+
+        el.appendChild(top);
+        el.appendChild(bot);
+        return el;
+      }
+
+      function setFlipCard(el, newVal, animate) {
+        const oldVal = el.dataset.val;
+        if (oldVal === newVal) return;
+
+        const topNum = el.querySelector('.fc-top .fc-num');
+        const botNum = el.querySelector('.fc-bot .fc-num');
+
+        if (!animate || oldVal === '') {
+          topNum.textContent = newVal;
+          botNum.textContent = newVal;
+          el.dataset.val = newVal;
+          return;
+        }
+
+        // Show new bottom value immediately (hidden behind flap during phase 1)
+        botNum.textContent = newVal;
+
+        // Phase 1: old top folds away
+        const flap1 = document.createElement('div');
+        flap1.className = 'fc-flap fc-flap-p1';
+        const flap1Num = document.createElement('span');
+        flap1Num.className = 'fc-num';
+        flap1Num.textContent = oldVal;
+        flap1.appendChild(flap1Num);
+        el.appendChild(flap1);
+
+        flap1.addEventListener('animationend', () => {
+          flap1.remove();
+          topNum.textContent = newVal;
+
+          // Phase 2: new top unfolds in
+          const flap2 = document.createElement('div');
+          flap2.className = 'fc-flap fc-flap-p2';
+          const flap2Num = document.createElement('span');
+          flap2Num.className = 'fc-num';
+          flap2Num.textContent = newVal;
+          flap2.appendChild(flap2Num);
+          el.appendChild(flap2);
+
+          flap2.addEventListener('animationend', () => {
+            flap2.remove();
+          }, { once: true });
+        }, { once: true });
+
+        el.dataset.val = newVal;
+      }
+
+      function applyRadioTuningPosition(scaleBlock, value) {
+        const clamped = clamp(value, 0, 1);
+        scaleBlock.style.setProperty('--rc-tuning-position', `${(clamped * 100).toFixed(2)}%`);
+        return clamped;
+      }
+
+      function getRadioStationStrength(position) {
+        const clampedPosition = clamp(position, 0, 1);
+        const strongestStationDistance = RADIO_TUNING_STATION_POSITIONS.reduce(
+          (closest, stationPosition) => Math.min(closest, Math.abs(clampedPosition - stationPosition)),
+          Number.POSITIVE_INFINITY
+        );
+        const ratio = strongestStationDistance / RADIO_TUNING_STATION_WIDTH;
+        return clamp(Math.exp(-(ratio * ratio) * 2), 0, 1);
+      }
+
+      function resetRadioTuningPlayback(audioEl) {
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
+      }
+
+      function ensureRadioTuningLoopPlayback(audioEl) {
+        if (!audioEl.paused) return;
+        const playPromise = audioEl.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+      }
+
+      function stopRadioTuningLoopPlayback(audioEl) {
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        audioEl.playbackRate = 1;
+        audioEl.volume = 1;
+        if (audioEl.__radioTuningState) {
+          audioEl.__radioTuningState.movementEnergy = 0;
+        }
+      }
+
+      function getNextRadioTuningAudioUrl() {
+        if (!flipClockRadioTuningAudioCycle.length) {
+          flipClockRadioTuningAudioCycle = [...RADIO_TUNING_AUDIO_URLS];
+          for (let i = flipClockRadioTuningAudioCycle.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const swapValue = flipClockRadioTuningAudioCycle[i];
+            flipClockRadioTuningAudioCycle[i] = flipClockRadioTuningAudioCycle[j];
+            flipClockRadioTuningAudioCycle[j] = swapValue;
+          }
+        }
+        return flipClockRadioTuningAudioCycle.pop();
+      }
+
+      function getRadioTuningAudioElement(audioUrl) {
+        let audioEl = flipClockRadioTuningAudioElsByUrl.get(audioUrl);
+        if (!audioEl) {
+          audioEl = new Audio(audioUrl);
+          audioEl.preload = 'auto';
+          audioEl.loop = true;
+          flipClockRadioTuningAudioElsByUrl.set(audioUrl, audioEl);
+        }
+        return audioEl;
+      }
+
+      function startFlipClock(container) {
+        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
+                             'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        // Cache card references once to avoid repeated DOM queries
+        const cards = {
+          h1: container.querySelector('[data-key="h1"]'),
+          h2: container.querySelector('[data-key="h2"]'),
+          m1: container.querySelector('[data-key="m1"]'),
+          m2: container.querySelector('[data-key="m2"]'),
+          dateBadge: container.querySelector('[data-key="date-badge"]')
+        };
+
+        function tick(animate) {
+          const now = new Date();
+          const hours24 = now.getHours();
+          const hh = String(hours24).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          const dateBadge = `${MONTH_NAMES[now.getMonth()].toUpperCase()} ${String(now.getDate()).padStart(2, '0')}`;
+
+          setFlipCard(cards.h1, hh[0], animate);
+          setFlipCard(cards.h2, hh[1], animate);
+          setFlipCard(cards.m1, mm[0], animate);
+          setFlipCard(cards.m2, mm[1], animate);
+          if (cards.dateBadge) {
+            cards.dateBadge.textContent = dateBadge;
+          }
+        }
+
+        tick(false); // Initial render without animation
+
+        // Align the first animated tick to the next full second boundary,
+        // then switch to a regular 1 s interval for subsequent ticks.
+        const msUntilNextSecond = 1000 - new Date().getMilliseconds();
+        flipClockAlignTimeoutId = setTimeout(() => {
+          flipClockAlignTimeoutId = null;
+          tick(true);
+          flipClockIntervalId = setInterval(() => tick(true), 1000);
+        }, msUntilNextSecond);
+      }
+
+      // ─────────────────────────────────────────────────────
+
+      function createSceneTiles() {
+        sceneLayer.textContent = '';
+        SCENE_TILE_IMAGE_URLS.forEach((src, index) => {
+          const tile = document.createElement('img');
+          tile.className = 'scene-tile';
+          tile.src = src;
+          tile.alt = '';
+          tile.loading = index === 0 ? 'eager' : 'lazy';
+          tile.decoding = 'async';
+          tile.style.left = `${index * TILE_WIDTH}px`;
+          sceneLayer.appendChild(tile);
+        });
+      }
+
+      function createHotspots(hotspotList) {
+        hotspotLayer.textContent = '';
+        const toTitleCase = (value) =>
+          value
+            .split('-')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+        hotspotList.forEach((spot) => {
+          const readableLabel = HOTSPOT_READABLE_LABELS.get(spot.id) ||
+            (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)
+              ? 'Join our Discord'
+              : toTitleCase(spot.id));
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'hotspot';
+          if (
+            OVERLAY_CONTROL_TO_OVERLAY_ID.has(spot.id) &&
+            spot.id !== COMMODORE_OVERLAY_CONTROL_ID
+          ) {
+            el.classList.add('overlay-control-hotspot');
+          }
+          if (LOCKED_DEBUG_HOTSPOT_IDS.has(spot.id)) {
+            el.classList.add('locked-debug-hotspot');
+          }
+          el.id = spot.id;
+          el.style.left = `${spot.x}px`;
+          el.style.top = `${spot.y}px`;
+          el.style.width = `${spot.w}px`;
+          el.style.height = `${spot.h}px`;
+          el.dataset.label = readableLabel;
+          el.setAttribute('aria-label', readableLabel);
+          el.title = readableLabel;
+
+          const label = document.createElement('span');
+          label.className = 'hotspot-label';
+          label.textContent = `${readableLabel} (${spot.x}, ${spot.y}) ${spot.w}×${spot.h}`;
+          el.appendChild(label);
+
+          addResizeHandles(el);
+
+          el.addEventListener('click', () => {
+            console.log(`[hotspot] ${spot.id}`);
+            if (spot.id === NOAHS_ARCADE_HOTSPOT_ID) {
+              window.location.assign(NOAHS_ARCADE_URL);
+              return;
+            }
+            if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
+              navigateToCommodoreFromDen();
+              return;
+            }
+            if (spot.id === 'chapel') {
+              window.location.assign(CHAPEL_URL);
+              return;
+            }
+            if (spot.id === COMMODORE_POWER_BUTTON_CONTROL_ID) {
+              triggerCommodorePowerOnSequence();
+              return;
+            }
+            if (spot.id === FLIP_CLOCK_OVERLAY_CONTROL_ID) {
+              openClockApp();
+              return;
+            }
+            if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
+              const whiteboardUrl = WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
+              window.location.assign(whiteboardUrl);
+              return;
+            }
+            if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
+              playAquariumHotspotSequence();
+              return;
+            }
+            if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
+              activateBigTvPromptMode();
+              return;
+            }
+            if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
+              window.location.assign(NOTES_URL);
+              return;
+            }
+          });
+
+          el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              el.click();
+            }
+          });
+
+          hotspotLayer.appendChild(el);
+        });
+      }
+
+      function createOverlays() {
+        overlayElementsById.clear();
+        leftMonitorSegmentButtonsByState.clear();
+        aquariumOverlayEl = null;
+        aquariumStaticOverlayEl = null;
+        aquariumStaticVideoEl = null;
+        bigTvPromptOverlayEl = null;
+        bigTvPromptSecretEl = null;
+        bigTvPromptInputEl = null;
+        bigTvPromptSubmitButtonEl = null;
+        hideBigTvPromptOverlay();
+        rightMonitorStaticOverlayEl = null;
+        rightMonitorStaticVideoEl = null;
+        leftMonitorStaticOverlayEl = null;
+        leftMonitorStaticVideoEl = null;
+        leftMonitorContentImageEl = null;
+        commodorePowerButtonEl = null;
+        isCommodorePoweringOn = false;
+        nedryGateOverlayEl = null;
+        nedryGateVideoEl = null;
+        if (flipClockRadioTuningAudioEl) {
+          stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
+        }
+        overlayDefaults.forEach((overlay) => {
+          const rect = getOverlayRect(overlay.id);
+          if (!rect) return;
+
+          const el = document.createElement('div');
+          let monitorScreenWindowEl = null;
+          el.id = overlay.id;
+          el.className = 'screen-overlay';
+          el.style.left = `${rect.x}px`;
+          el.style.top = `${rect.y}px`;
+          el.style.width = `${rect.w}px`;
+          el.style.height = `${rect.h}px`;
+
+          if (overlay.id === DISCORD_OVERLAY_ID) {
+            el.classList.add('discord-widget-overlay');
+          }
+
+          if (overlay.id === AQUARIUM_OVERLAY_ID) {
+            aquariumOverlayEl = el;
+            el.classList.add('aquarium-video-overlay');
+
+            aquariumStaticOverlayEl = document.createElement('div');
+            aquariumStaticOverlayEl.className = 'discord-static-overlay';
+            aquariumStaticOverlayEl.setAttribute('aria-hidden', 'true');
+
+            aquariumStaticVideoEl = document.createElement('video');
+            aquariumStaticVideoEl.className = 'discord-static-video';
+            aquariumStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            aquariumStaticVideoEl.preload = 'auto';
+            aquariumStaticVideoEl.muted = true;
+            aquariumStaticVideoEl.defaultMuted = true;
+            aquariumStaticVideoEl.playsInline = true;
+            aquariumStaticVideoEl.setAttribute('playsinline', '');
+            aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
+            aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
+            el.appendChild(aquariumStaticOverlayEl);
+
+            bigTvPromptOverlayEl = document.createElement('div');
+            bigTvPromptOverlayEl.className = 'big-tv-prompt-overlay';
+            bigTvPromptOverlayEl.setAttribute('aria-hidden', 'true');
+
+            const promptContent = document.createElement('div');
+            promptContent.className = 'big-tv-prompt-content';
+
+            bigTvPromptSecretEl = document.createElement('p');
+            bigTvPromptSecretEl.className = 'big-tv-prompt-secret';
+            bigTvPromptSecretEl.textContent = BIG_TV_PROMPT_SECRET_TEXT;
+            const clearPromptSecretText = () => {
+              if (bigTvPromptSecretEl) {
+                bigTvPromptSecretEl.textContent = '';
+              }
+            };
+            bigTvPromptSecretEl.addEventListener('mouseenter', clearPromptSecretText);
+
+            const promptLine = document.createElement('div');
+            promptLine.className = 'big-tv-prompt-line';
+
+            const promptPrefix = document.createElement('span');
+            promptPrefix.textContent = BIG_TV_PROMPT_PREFIX;
+            bigTvPromptInputEl = document.createElement('span');
+            bigTvPromptInputEl.className = 'big-tv-prompt-input';
+            const promptCaret = document.createElement('span');
+            promptCaret.className = 'big-tv-prompt-caret';
+            promptCaret.textContent = '_';
+            promptLine.append(promptPrefix, bigTvPromptInputEl, promptCaret);
+
+            bigTvPromptSubmitButtonEl = document.createElement('button');
+            bigTvPromptSubmitButtonEl.type = 'button';
+            bigTvPromptSubmitButtonEl.className = 'big-tv-prompt-submit';
+            bigTvPromptSubmitButtonEl.textContent = 'Submit';
+            bigTvPromptSubmitButtonEl.addEventListener('click', (event) => {
+              event.preventDefault();
+              submitBigTvPrompt();
+            });
+
+            promptContent.append(bigTvPromptSecretEl, promptLine, bigTvPromptSubmitButtonEl);
+            bigTvPromptOverlayEl.appendChild(promptContent);
+            el.appendChild(bigTvPromptOverlayEl);
+
+            nedryGateOverlayEl = document.createElement('div');
+            nedryGateOverlayEl.className = 'nedry-gate-overlay';
+            nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
+
+            nedryGateVideoEl = document.createElement('video');
+            nedryGateVideoEl.className = 'nedry-gate-video';
+            nedryGateVideoEl.src = NEDRY_GATE_VIDEO_URL;
+            nedryGateVideoEl.preload = 'metadata';
+            nedryGateVideoEl.playsInline = true;
+            nedryGateVideoEl.setAttribute('playsinline', '');
+            nedryGateVideoEl.setAttribute('webkit-playsinline', '');
+            nedryGateVideoEl.addEventListener('ended', () => hideNedryGateOverlay());
+            nedryGateVideoEl.addEventListener('error', () => hideNedryGateOverlay());
+            nedryGateOverlayEl.appendChild(nedryGateVideoEl);
+            el.appendChild(nedryGateOverlayEl);
+          }
+
+          if (overlay.id === 'overlay-left-monitor') {
+            el.classList.add('calendar-monitor-overlay');
+            monitorScreenWindowEl = document.createElement('div');
+            monitorScreenWindowEl.className = 'monitor-screen-window left-monitor-screen-window';
+            el.appendChild(monitorScreenWindowEl);
+            leftMonitorContentImageEl = document.createElement('img');
+            leftMonitorContentImageEl.className = 'left-monitor-content-image';
+            leftMonitorContentImageEl.alt = '';
+            leftMonitorContentImageEl.loading = 'lazy';
+            leftMonitorContentImageEl.decoding = 'async';
+            monitorScreenWindowEl.appendChild(leftMonitorContentImageEl);
+            const selector = document.createElement('div');
+            selector.className = 'left-monitor-selector';
+            LEFT_MONITOR_SEGMENTS.forEach(({ state, label, quadrant }) => {
+              const segment = document.createElement('button');
+              segment.type = 'button';
+              segment.className = 'left-monitor-segment';
+              segment.dataset.quadrant = quadrant;
+              segment.setAttribute('aria-label', `Toggle ${label} (${quadrant}) on left monitor`);
+              segment.setAttribute('aria-pressed', 'false');
+              segment.addEventListener('pointerdown', (event) => event.stopPropagation());
+              segment.addEventListener('click', (event) => {
+                event.stopPropagation();
+                setLeftMonitorState(
+                  state === leftMonitorSelectedState
+                    ? DEFAULT_LEFT_MONITOR_STATE
+                    : state
+                );
+              });
+              leftMonitorSegmentButtonsByState.set(state, segment);
+              selector.appendChild(segment);
+            });
+            monitorScreenWindowEl.appendChild(selector);
+            setLeftMonitorState(leftMonitorSelectedState);
+
+            leftMonitorStaticOverlayEl = document.createElement('div');
+            leftMonitorStaticOverlayEl.className = 'overlay-static-layer';
+            leftMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
+            leftMonitorStaticVideoEl = document.createElement('video');
+            leftMonitorStaticVideoEl.className = 'overlay-static-video';
+            leftMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            leftMonitorStaticVideoEl.preload = 'auto';
+            leftMonitorStaticVideoEl.muted = true;
+            leftMonitorStaticVideoEl.defaultMuted = true;
+            leftMonitorStaticVideoEl.loop = true;
+            leftMonitorStaticVideoEl.playsInline = true;
+            leftMonitorStaticVideoEl.setAttribute('playsinline', '');
+            leftMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            leftMonitorStaticOverlayEl.appendChild(leftMonitorStaticVideoEl);
+            monitorScreenWindowEl.appendChild(leftMonitorStaticOverlayEl);
+          }
+
+          if (overlay.id === 'overlay-commodore-screen') {
+            el.classList.add('commodore-desk-overlay');
+            const img = document.createElement('img');
+            img.className = 'commodore-desk-image';
+            img.src = COMMODORE_DESK_IMAGE_URL;
+            img.alt = 'Commodore desk screen';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            el.appendChild(img);
+          }
+
+          if (overlay.id === COMMODORE_SHADOW_OVERLAY_ID) {
+            el.classList.add('commodore-shadow-overlay');
+          }
+
+          if (overlay.id === COMMODORE_POWER_BUTTON_OVERLAY_ID) {
+            el.classList.add('commodore-power-button-overlay');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'commodore-power-button-button';
+            button.setAttribute('aria-label', 'Commodore power button');
+            button.title = 'Commodore power button';
+            button.addEventListener('pointerdown', (event) => event.stopPropagation());
+            button.addEventListener('click', (event) => {
+              event.stopPropagation();
+              triggerCommodorePowerOnSequence();
+            });
+            commodorePowerButtonEl = button;
+            el.appendChild(button);
+          }
+
+          if (overlay.id === 'overlay-right-monitor') {
+            el.classList.add('join-discord-overlay');
+            monitorScreenWindowEl = document.createElement('div');
+            monitorScreenWindowEl.className = 'monitor-screen-window right-monitor-screen-window';
+            el.appendChild(monitorScreenWindowEl);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'join-discord-button';
+            button.setAttribute('aria-label', 'Join our Discord');
+            button.title = 'Join our Discord';
+            button.addEventListener('pointerdown', (event) => event.stopPropagation());
+            button.addEventListener('click', (event) => {
+              event.stopPropagation();
+              discordButtonSelected = !discordButtonSelected;
+              if (discordButtonSelected) {
+                setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
+              }
+              syncDiscordButtonUi();
+              activateBigTvPromptMode();
+            });
+
+            const img = document.createElement('img');
+            img.className = 'join-discord-button-image';
+            img.src = DISCORD_BUTTON_IMAGE_URL;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            discordButtonImgEl = img;
+            button.appendChild(img);
+            monitorScreenWindowEl.appendChild(button);
+
+            rightMonitorStaticOverlayEl = document.createElement('div');
+            rightMonitorStaticOverlayEl.className = 'overlay-static-layer';
+            rightMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
+            rightMonitorStaticVideoEl = document.createElement('video');
+            rightMonitorStaticVideoEl.className = 'overlay-static-video';
+            rightMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
+            rightMonitorStaticVideoEl.preload = 'auto';
+            rightMonitorStaticVideoEl.muted = true;
+            rightMonitorStaticVideoEl.defaultMuted = true;
+            rightMonitorStaticVideoEl.loop = true;
+            rightMonitorStaticVideoEl.playsInline = true;
+            rightMonitorStaticVideoEl.setAttribute('playsinline', '');
+            rightMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            rightMonitorStaticOverlayEl.appendChild(rightMonitorStaticVideoEl);
+            monitorScreenWindowEl.appendChild(rightMonitorStaticOverlayEl);
+          }
+
+          if (overlay.id === LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID || overlay.id === RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID) {
+            el.classList.add('monitor-side-frame-overlay');
+            const img = document.createElement('img');
+            img.className = 'monitor-side-frame-image';
+            img.src =
+              overlay.id === LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID
+                ? LEFT_MONITOR_SIDE_FRAME_IMAGE_URL
+                : RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            el.appendChild(img);
+          }
+
+          if (overlay.id === FLIP_CLOCK_OVERLAY_ID) {
+            el.classList.add('flip-clock-overlay');
+            el.addEventListener('pointerdown', (event) => event.stopPropagation());
+            el.addEventListener('click', (event) => event.stopPropagation());
+
+            function makeZone(className, ariaLabel, onActivate) {
+              const zone = document.createElement('button');
+              zone.type = 'button';
+              zone.className = `rc-zone ${className}`;
+              zone.setAttribute('aria-label', ariaLabel);
+              zone.addEventListener('pointerdown', (e) => e.stopPropagation());
+              zone.addEventListener('click', (e) => {
+                e.stopPropagation();
+                onActivate();
+              });
+              return zone;
+            }
+
+            const top = document.createElement('div');
+            top.className = 'rc-top';
+
+            const sleepKnob = document.createElement('div');
+            sleepKnob.className = 'rc-knob';
+            sleepKnob.setAttribute('aria-hidden', 'true');
+
+            const speaker = document.createElement('div');
+            speaker.className = 'rc-speaker';
+            speaker.setAttribute('aria-hidden', 'true');
+
+            const tunerKnob = document.createElement('div');
+            tunerKnob.className = 'rc-knob';
+            tunerKnob.setAttribute('aria-hidden', 'true');
+
+            top.append(sleepKnob, speaker, tunerKnob);
+
+            const face = document.createElement('div');
+            face.className = 'rc-face';
+
+            const clockZone = makeZone('rc-clock-zone', 'Open Clock App', openClockApp);
+            const clockDigits = document.createElement('div');
+            clockDigits.className = 'fc-digits';
+            const h1 = createFlipCard(false); h1.dataset.key = 'h1';
+            const h2 = createFlipCard(false); h2.dataset.key = 'h2';
+            const timeGap = document.createElement('span');
+            timeGap.className = 'rc-time-gap';
+            timeGap.setAttribute('aria-hidden', 'true');
+            const m1 = createFlipCard(false); m1.dataset.key = 'm1';
+            const m2 = createFlipCard(false); m2.dataset.key = 'm2';
+            clockDigits.append(h1, h2, timeGap, m1, m2);
+            clockZone.append(clockDigits);
+
+            const radioZone = makeZone('rc-radio-zone', 'Open Calendar App', openCalendarApp);
+
+            const model = document.createElement('div');
+            model.className = 'rc-model';
+            model.textContent = 'FM/AM';
+
+            const dateBadge = document.createElement('div');
+            dateBadge.className = 'rc-date-badge';
+            dateBadge.dataset.key = 'date-badge';
+            dateBadge.textContent = 'JAN 01';
+
+            const scaleBlock = document.createElement('div');
+            scaleBlock.className = 'rc-scale-block';
+
+            const selectorLine = document.createElement('div');
+            selectorLine.className = 'rc-selector-line';
+            selectorLine.setAttribute('aria-hidden', 'true');
+            let tuningPosition = applyRadioTuningPosition(scaleBlock, 0.84);
+            let tuningAudio = flipClockRadioTuningAudioEl || getRadioTuningAudioElement(getNextRadioTuningAudioUrl());
+            flipClockRadioTuningAudioEl = tuningAudio;
+            resetRadioTuningPlayback(tuningAudio);
+            const TUNING_DRAG_THRESHOLD_PX = 1;
+            const KEYBOARD_TUNING_STEP = 0.02;
+            const KEYBOARD_AUDIO_STOP_DELAY_MS = 120;
+            let activeTunePointerId = null;
+            let lastPointerClientX = 0;
+            let stopTuneAudioTimeoutId = null;
+
+            const selectorDot = document.createElement('div');
+            selectorDot.className = 'rc-selector-dot';
+            selectorDot.setAttribute('role', 'slider');
+            selectorDot.setAttribute('tabindex', '0');
+            selectorDot.setAttribute('aria-label', 'Tune radio frequency');
+            selectorDot.setAttribute('aria-valuemin', '0');
+            selectorDot.setAttribute('aria-valuemax', '100');
+            selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+
+            function updateTuningFromClientX(clientX, { playAudio = true, timestampMs } = {}) {
+              const rect = scaleBlock.getBoundingClientRect();
+              if (!rect.width) return false;
+              const nextPosition = clamp((clientX - rect.left) / rect.width, 0, 1);
+              if (Math.abs(nextPosition - tuningPosition) < 0.001) return false;
+              tuningPosition = applyRadioTuningPosition(scaleBlock, nextPosition);
+              selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              resetRadioTuningPlayback(tuningAudio);
+              if (playAudio) {
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
+              return true;
+            }
+
+            function endTuneDrag(pointerId) {
+              if (activeTunePointerId !== pointerId) return;
+              activeTunePointerId = null;
+              stopRadioTuningLoopPlayback(tuningAudio);
+              if (selectorDot.hasPointerCapture(pointerId)) {
+                selectorDot.releasePointerCapture(pointerId);
+              }
+            }
+
+            function selectNextTuningAudio() {
+              const nextAudio = getRadioTuningAudioElement(getNextRadioTuningAudioUrl());
+              if (tuningAudio && tuningAudio !== nextAudio) {
+                stopRadioTuningLoopPlayback(tuningAudio);
+              }
+              tuningAudio = nextAudio;
+              flipClockRadioTuningAudioEl = tuningAudio;
+              resetRadioTuningPlayback(tuningAudio);
+            }
+
+            selectorDot.addEventListener('pointerdown', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              activeTunePointerId = event.pointerId;
+              lastPointerClientX = event.clientX;
+              selectorDot.setPointerCapture(event.pointerId);
+              selectNextTuningAudio();
+              const didUpdateTuning = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
+              if (!didUpdateTuning) {
+                resetRadioTuningPlayback(tuningAudio);
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
+            });
+
+            selectorDot.addEventListener('pointermove', (event) => {
+              if (event.pointerId !== activeTunePointerId) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const didMove = updateTuningFromClientX(event.clientX, { playAudio: true, timestampMs: event.timeStamp });
+              if (!didMove && Math.abs(event.clientX - lastPointerClientX) > TUNING_DRAG_THRESHOLD_PX) {
+                ensureRadioTuningLoopPlayback(tuningAudio);
+              }
+              lastPointerClientX = event.clientX;
+            });
+
+            selectorDot.addEventListener('pointerup', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              endTuneDrag(event.pointerId);
+            });
+            selectorDot.addEventListener('pointercancel', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              endTuneDrag(event.pointerId);
+            });
+            selectorDot.addEventListener('lostpointercapture', () => {
+              activeTunePointerId = null;
+              stopRadioTuningLoopPlayback(tuningAudio);
+            });
+            selectorDot.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+            selectorDot.addEventListener('keydown', (event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              event.stopPropagation();
+              const step = event.key === 'ArrowRight' ? KEYBOARD_TUNING_STEP : -KEYBOARD_TUNING_STEP;
+              tuningPosition = applyRadioTuningPosition(scaleBlock, tuningPosition + step);
+              selectorDot.setAttribute('aria-valuenow', String(Math.round(tuningPosition * 100)));
+              resetRadioTuningPlayback(tuningAudio);
+              ensureRadioTuningLoopPlayback(tuningAudio);
+              if (stopTuneAudioTimeoutId !== null) {
+                window.clearTimeout(stopTuneAudioTimeoutId);
+              }
+              stopTuneAudioTimeoutId = window.setTimeout(() => {
+                stopTuneAudioTimeoutId = null;
+                stopRadioTuningLoopPlayback(tuningAudio);
+              }, KEYBOARD_AUDIO_STOP_DELAY_MS);
+            });
+
+            const fmRow = document.createElement('div');
+            fmRow.className = 'rc-scale-row';
+            fmRow.innerHTML = `
+              <span class="rc-band">FM</span>
+              <span class="rc-frequencies">
+                <span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span>
+              </span>
+              <span class="rc-unit">MHz</span>
+            `;
+
+            const amRow = document.createElement('div');
+            amRow.className = 'rc-scale-row';
+            amRow.innerHTML = `
+              <span class="rc-band">AM</span>
+              <span class="rc-frequencies">
+                <span>53</span><span>60</span><span>70</span><span>90</span><span>120</span><span>160</span>
+              </span>
+              <span class="rc-unit">kHz</span>
+            `;
+
+            const selectorLabel = document.createElement('div');
+            selectorLabel.className = 'rc-selector-label';
+            selectorLabel.textContent = 'Tuning';
+
+            const brand = document.createElement('div');
+            brand.className = 'rc-brand';
+            brand.textContent = 'Panasonic';
+
+            scaleBlock.append(selectorLine, selectorDot, fmRow, amRow);
+            radioZone.append(model, dateBadge, scaleBlock, selectorLabel, brand);
+
+            face.append(clockZone, radioZone);
+            el.append(top, face);
+
+            // Start the live clock after the element is in the DOM
+            requestAnimationFrame(() => startFlipClock(el));
+          }
+
+          screenOverlayLayer.appendChild(el);
+          overlayElementsById.set(overlay.id, el);
+        });
+      }
+
+      function applyTransforms() {
+        world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
+      }
+
+      function setCameraX(nextCameraX) {
+        cameraX = clamp(nextCameraX, 0, maxCameraX);
+        applyTransforms();
+      }
+
+      function setTargetCameraX(nextCameraX) {
+        const nextTarget = clamp(nextCameraX, 0, maxCameraX);
+        if (targetCameraX === nextTarget) return;
+        targetCameraX = nextTarget;
+        startCameraAnimation();
+      }
+
+      function startCameraAnimation() {
+        if (cameraAnimationFrameId !== null) return;
+        cameraAnimationFrameId = window.requestAnimationFrame(tickCamera);
+      }
+
+      function tickCamera() {
+        cameraAnimationFrameId = null;
+        const delta = targetCameraX - cameraX;
+        if (Math.abs(delta) < CAMERA_SETTLE_EPSILON) {
+          setCameraX(targetCameraX);
+          return;
+        }
+        setCameraX(cameraX + delta * CAMERA_SMOOTHING_FACTOR);
+        startCameraAnimation();
+      }
+
+      function startMomentum(initialVelocityX) {
+        stopMomentum();
+        if (!shouldUseMomentum(activePointerType) || Math.abs(initialVelocityX) < TOUCH_MOMENTUM_MIN_VELOCITY) {
+          return;
+        }
+
+        setCameraX(targetCameraX);
+        targetCameraX = cameraX;
+        momentumVelocityX = initialVelocityX;
+        momentumAnimationFrameId = window.requestAnimationFrame(function tickMomentum(timestamp) {
+          if (lastMomentumTimestamp === 0) {
+            lastMomentumTimestamp = timestamp;
+          }
+
+          const elapsed = Math.max(1, timestamp - lastMomentumTimestamp);
+          lastMomentumTimestamp = timestamp;
+          momentumVelocityX *= Math.exp(-TOUCH_MOMENTUM_DECAY * elapsed);
+
+          if (Math.abs(momentumVelocityX) < TOUCH_MOMENTUM_MIN_VELOCITY) {
+            stopMomentum();
+            return;
+          }
+
+          const previousCameraX = cameraX;
+          setCameraX(cameraX + momentumVelocityX * elapsed);
+          targetCameraX = cameraX;
+
+          if (cameraX === previousCameraX) {
+            stopMomentum();
+            return;
+          }
+
+          momentumAnimationFrameId = window.requestAnimationFrame(tickMomentum);
+        });
+      }
+
+      function resize() {
+        scale = window.innerHeight / DESIGN_HEIGHT;
+        visibleWidth = window.innerWidth / scale;
+        maxCameraX = Math.max(0, worldWidth - visibleWidth);
+
+        stage.style.width = `${worldWidth}px`;
+        stage.style.transform = `scale(${scale}) translate3d(0, -50%, 0)`;
+        world.style.width = `${worldWidth}px`;
+        world.style.height = `${worldHeight}px`;
+
+        // Start camera centered on the desk area in tile 0.
+        if (!hasInitializedCamera) {
+          setCameraX(DESK_CENTER_X - visibleWidth / 2);
+          targetCameraX = cameraX;
+          hasInitializedCamera = true;
+        } else {
+          setCameraX(cameraX);
+          targetCameraX = cameraX;
+        }
+      }
+
+      function onWheel(event) {
+        event.preventDefault();
+        stopMomentum();
+        let unitScale = 1;
+        if (event.deltaMode === DOM_DELTA_LINE) {
+          unitScale = LINE_SCROLL_PIXELS;
+        } else if (event.deltaMode === DOM_DELTA_PAGE) {
+          unitScale = window.innerHeight;
+        }
+        // Map both vertical wheel and horizontal trackpad movement into horizontal camera travel.
+        const useHorizontalAxis = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+        const primaryAxisDelta = useHorizontalAxis ? event.deltaX : event.deltaY;
+        setTargetCameraX(targetCameraX + primaryAxisDelta * unitScale * WHEEL_SCROLL_MULTIPLIER);
+      }
+
+      function startDebugEdit(event, el, type, dir) {
+        if (el.classList.contains('locked-debug-hotspot')) return;
+        activePointerId = event.pointerId;
+        debugEditType = type;
+        debugEditEl = el;
+        debugEditDir = dir;
+        debugEditStartX = event.clientX;
+        debugEditStartY = event.clientY;
+        debugEditOrigRect = {
+          left: parseFloat(el.style.left),
+          top: parseFloat(el.style.top),
+          w: parseFloat(el.style.width),
+          h: parseFloat(el.style.height)
+        };
+        viewport.setPointerCapture(event.pointerId);
+      }
+
+      function applyDebugEdit(event) {
+        const dx = (event.clientX - debugEditStartX) / scale;
+        const dy = (event.clientY - debugEditStartY) / scale;
+        const { left, top, w, h } = debugEditOrigRect;
+        const el = debugEditEl;
+        const MIN_SIZE = 20;
+
+        if (debugEditType === 'move') {
+          el.style.left = `${left + dx}px`;
+          el.style.top = `${top + dy}px`;
+        } else {
+          const dir = debugEditDir;
+          let newLeft = left;
+          let newTop = top;
+          let newW = w;
+          let newH = h;
+
+          if (dir.includes('e')) newW = Math.max(MIN_SIZE, w + dx);
+          if (dir.includes('w')) {
+            const clampedW = Math.max(MIN_SIZE, w - dx);
+            newLeft = left + (w - clampedW);
+            newW = clampedW;
+          }
+          if (dir.includes('s')) newH = Math.max(MIN_SIZE, h + dy);
+          if (dir.includes('n')) {
+            const clampedH = Math.max(MIN_SIZE, h - dy);
+            newTop = top + (h - clampedH);
+            newH = clampedH;
+          }
+
+          el.style.left   = `${newLeft}px`;
+          el.style.top    = `${newTop}px`;
+          el.style.width  = `${newW}px`;
+          el.style.height = `${newH}px`;
+        }
+
+        updateHotspotLabel(el);
+        if (OVERLAY_CONTROL_TO_OVERLAY_ID.has(el.id)) {
+          syncControlledOverlaysFromHotspots();
+        }
+      }
+
+      function onPointerDown(event) {
+        if (activePointerId !== null) return;
+        stopMomentum();
+
+        // In debug mode, intercept drags on hotspots and resize handles.
+        if (document.body.classList.contains('debug')) {
+          const handle = event.target.closest('.resize-handle');
+          if (handle) {
+            const hotspotEl = handle.closest('.hotspot');
+            if (hotspotEl && !hotspotEl.classList.contains('locked-debug-hotspot')) {
+              startDebugEdit(event, hotspotEl, 'resize', handle.dataset.dir);
+              return;
+            }
+          }
+          const hotspotEl = event.target.closest('.hotspot');
+          if (hotspotEl && !hotspotEl.classList.contains('locked-debug-hotspot')) {
+            startDebugEdit(event, hotspotEl, 'move', null);
+            return;
+          }
+        }
+
+        isPointerDown = true;
+        activePointerId = event.pointerId;
+        activePointerType = event.pointerType || '';
+        pointerStartX = event.clientX;
+        lastPointerX = event.clientX;
+        lastPointerMoveTime = event.timeStamp;
+        dragVelocityX = 0;
+        dragStartedOnHotspot = Boolean(event.target.closest('.hotspot'));
+        suppressHotspotClickUntil = 0;
+      }
+
+      function onPointerMove(event) {
+        if (event.pointerId !== activePointerId) return;
+
+        // Debug edit in progress — move or resize the hotspot.
+        if (debugEditType !== null) {
+          applyDebugEdit(event);
+          return;
+        }
+
+        if (!isPointerDown) return;
+
+        if (!isDragging) {
+          const dragDistance = Math.abs(event.clientX - pointerStartX);
+          if (dragDistance < DRAG_START_THRESHOLD_PX) {
+            return;
+          }
+          isDragging = true;
+          viewport.classList.add('dragging');
+          viewport.setPointerCapture(event.pointerId);
+          if (dragStartedOnHotspot) {
+            suppressHotspotClickUntil = Date.now() + HOTSPOT_CLICK_SUPPRESSION_MS;
+          }
+        }
+
+        event.preventDefault();
+        const dx = event.clientX - lastPointerX;
+        const elapsed = Math.max(1, event.timeStamp - lastPointerMoveTime);
+        lastPointerX = event.clientX;
+        lastPointerMoveTime = event.timeStamp;
+
+        // Convert screen drag delta to design-space world delta.
+        const dragScrollMultiplier = shouldUseMomentum(activePointerType)
+          ? MOBILE_DRAG_SCROLL_MULTIPLIER
+          : DESKTOP_DRAG_SCROLL_MULTIPLIER;
+        const worldDelta = (-dx / scale) * dragScrollMultiplier;
+        dragVelocityX = dragVelocityX * 0.75 + (worldDelta / elapsed) * 0.25;
+        setTargetCameraX(targetCameraX + worldDelta);
+      }
+
+      function onPointerUp(event) {
+        if (event.pointerId !== activePointerId) return;
+
+        // End a debug edit operation.
+        if (debugEditType !== null) {
+          suppressHotspotClickUntil = Date.now() + HOTSPOT_CLICK_SUPPRESSION_MS;
+          debugEditType = null;
+          debugEditEl = null;
+          debugEditDir = null;
+          debugEditOrigRect = null;
+          activePointerId = null;
+          activePointerType = '';
+          if (viewport.hasPointerCapture(event.pointerId)) {
+            viewport.releasePointerCapture(event.pointerId);
+          }
+          return;
+        }
+
+        const shouldStartMomentum = isDragging && shouldUseMomentum(activePointerType);
+        const releasedVelocityX = dragVelocityX;
+        isPointerDown = false;
+        activePointerId = null;
+        activePointerType = '';
+        dragStartedOnHotspot = false;
+        isDragging = false;
+        dragVelocityX = 0;
+        viewport.classList.remove('dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+        if (shouldStartMomentum) {
+          startMomentum(releasedVelocityX);
+        }
+      }
+
+      function onKeyDown(event) {
+        const debugComboPressed =
+          event.code === 'KeyD' &&
+          (event.ctrlKey || event.metaKey) &&
+          event.shiftKey;
+
+        if (event.code === 'Backquote' || debugComboPressed) {
+          toggleDebugMode();
+        }
+      }
+
+      function setDebugMode(enabled) {
+        document.body.classList.toggle('debug', enabled);
+        debugStatus.textContent = enabled
+          ? 'Debug mode enabled'
+          : 'Debug mode disabled';
+      }
+
+      function toggleDebugMode() {
+        setDebugMode(!document.body.classList.contains('debug'));
+      }
+
+      async function saveHotspots() {
+        const savedRuntimeHotspots = getSavedHotspotsFromDom();
+        const savedSourceHotspots = runtimeHotspotsToSource(savedRuntimeHotspots);
+        hotspots = savedRuntimeHotspots;
+        hideSaveModal();
+
+        setSaveButtonText('Saving...', true);
+        try {
+          await postHotspotsToServer(savedSourceHotspots);
+          persistSaveResultFlash('Hotspots saved to the server.');
+          setDebugMode(false);
+          window.location.reload();
+        } catch (error) {
+          setSaveButtonText('Save failed');
+          debugStatus.textContent = 'Server save failed; hotspots were not persisted (server-only mode).';
+          showSaveFallbackModal(
+            savedSourceHotspots,
+            `Unable to save to the server (${error.message}) — hotspots were not persisted (server-only mode); copy the code below to update source manually`
+          );
+          resetSaveButtonSoon();
+        }
+      }
+
+      function cleanup() {
+        hideBigTvPromptOverlay();
+        if (cameraAnimationFrameId !== null) {
+          window.cancelAnimationFrame(cameraAnimationFrameId);
+          cameraAnimationFrameId = null;
+        }
+        if (flipClockAlignTimeoutId !== null) {
+          clearTimeout(flipClockAlignTimeoutId);
+          flipClockAlignTimeoutId = null;
+        }
+        if (flipClockIntervalId !== null) {
+          clearInterval(flipClockIntervalId);
+          flipClockIntervalId = null;
+        }
+        if (flipClockRadioTuningAudioEl) {
+          stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
+          flipClockRadioTuningAudioEl.currentTime = 0;
+        }
+        if (commodorePowerOnTimeoutId !== null) {
+          window.clearTimeout(commodorePowerOnTimeoutId);
+          commodorePowerOnTimeoutId = null;
+        }
+        stopMomentum();
+      }
+
+      async function initializeScene() {
+        const serverHotspots = await loadHotspotsFromServer();
+        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
+        hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
+
+        createOverlays();
+        createSceneTiles();
+        createHotspots(hotspots);
+        if (useLiteRendering) {
+          document.body.classList.add('lite-rendering');
+        }
+
+        resize();
+
+        const saveResultFlash = consumeSaveResultFlash();
+        if (saveResultFlash) {
+          debugStatus.textContent = saveResultFlash;
+        } else {
+          debugStatus.textContent = hasServerHotspots
+            ? 'Hotspots loaded from the server.'
+            : 'Server hotspots unavailable; loaded bundled default hotspots.';
+        }
+      }
+
+      viewport.addEventListener('wheel', onWheel, { passive: false });
+      viewport.addEventListener('pointerdown', onPointerDown);
+      viewport.addEventListener('pointermove', onPointerMove);
+      viewport.addEventListener('pointerup', onPointerUp);
+      viewport.addEventListener('pointercancel', onPointerUp);
+      hotspotLayer.addEventListener('click', (event) => {
+        if (Date.now() < suppressHotspotClickUntil) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }, true);
+
+      window.addEventListener('keydown', onKeyDown);
+      window.addEventListener('keydown', handleBigTvPromptTyping);
+      window.addEventListener('resize', resize);
+      window.addEventListener('beforeunload', cleanup, { once: true });
+      debugToggleButton.addEventListener('click', toggleDebugMode);
+
+      saveBtn.addEventListener('click', saveHotspots);
+
+      document.getElementById('save-modal-close-btn').addEventListener('click', hideSaveModal);
+
+      document.getElementById('save-modal-copy-btn').addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        const copy = () => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(saveModalTextarea.value).then(copy).catch(() => {
+            saveModalTextarea.select();
+            if (document.execCommand('copy')) copy();
+          });
+        } else {
+          saveModalTextarea.select();
+          if (document.execCommand('copy')) copy();
+        }
+      });
+
+      // Close save modal on backdrop click
+      saveModal.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+          hideSaveModal();
+        }
+      });
+
+      initializeScene();
+    })();
+  </script>
 </body>
 </html>

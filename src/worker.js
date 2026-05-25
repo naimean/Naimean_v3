@@ -29,9 +29,10 @@ const JSON_HEADERS = {
 };
 
 const HTML_ROUTE_ALIASES = new Map([
-  ['/', '/den.html'],
-  ['/index.html', '/den.html'],
-  ['/den', '/den.html']
+  ['/', '/index.html'],
+  ['/index.html', '/index.html'],
+  ['/den', '/index.html'],
+  ['/den.html', '/index.html']
 ]);
 
 function json(data, status = 200) {
