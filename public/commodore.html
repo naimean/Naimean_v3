@@ -53,6 +53,14 @@
       box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9);
       border-radius: 16px;
       pointer-events: none;
+      transform-origin: center;
+      transition: opacity 260ms ease, transform 260ms ease, box-shadow 260ms ease;
+    }
+
+    .shadow-layer.is-powered-on {
+      opacity: 0;
+      transform: scale(1.04);
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.22);
     }
 
     .hotspot {
@@ -72,6 +80,16 @@
         inset 0 -2px 3px rgba(0, 0, 0, 0.42),
         0 1px 3px rgba(0, 0, 0, 0.3);
       pointer-events: none;
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .power-button-visual.is-powered-on {
+      transform: translateY(1px);
+      filter: brightness(1.08);
+      box-shadow:
+        inset 0 2px 3px rgba(0, 0, 0, 0.36),
+        inset 0 -1px 1px rgba(255, 233, 192, 0.2),
+        0 0 2px rgba(255, 161, 70, 0.42);
     }
 
     .power-button-visual::before {
@@ -232,6 +250,7 @@
       const MIN_SIZE = 12;
       const STORAGE_KEY = 'commodore.editor.layout.v1';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
+      const DEN_URL = '/den.html';
       const DEFAULT_LAYOUT = {
         'monitor-shadow': { x: 106, y: 78, w: 230, h: 150, kind: 'shadow', label: 'Monitor Shadow' },
         'return-key': { x: 283, y: 403, w: 58, h: 30, kind: 'hotspot', label: 'Return Key' },
@@ -243,6 +262,8 @@
       const debugButton = document.getElementById('debug-toggle-btn');
       const saveButton = document.getElementById('debug-save-btn');
       const layout = loadLayout();
+      let monitorShadowEl = null;
+      let powerButtonEl = null;
       let editState = null;
       let saveButtonResetTimer = null;
 
@@ -424,7 +445,14 @@
         debugButton.textContent = enabled ? 'Debug On' : 'Debug';
       }
 
+      function setPoweredOn() {
+        monitorShadowEl?.classList.add('is-powered-on');
+        powerButtonEl?.classList.add('is-powered-on');
+      }
+
       Object.entries(layout).forEach(([id, config]) => makeEditable(id, config));
+      monitorShadowEl = overlayLayer.querySelector('[data-id="monitor-shadow"]');
+      powerButtonEl = overlayLayer.querySelector('[data-id="power-button"]');
       renderLayout();
 
       overlayLayer.addEventListener('pointerdown', (event) => {
@@ -443,6 +471,20 @@
       window.addEventListener('pointermove', updateDrag);
       window.addEventListener('pointerup', endEdit);
       window.addEventListener('pointercancel', endEdit);
+      overlayLayer.addEventListener('click', (event) => {
+        if (document.body.classList.contains('debug')) return;
+        const hotspot = event.target.closest('.hotspot');
+        if (!hotspot) return;
+        if (hotspot.dataset.id === 'return-key') {
+          event.preventDefault();
+          window.location.assign(DEN_URL);
+          return;
+        }
+        if (hotspot.dataset.id === 'power-button') {
+          event.preventDefault();
+          setPoweredOn();
+        }
+      });
       debugButton.addEventListener('click', () => setDebug(!document.body.classList.contains('debug')));
       saveButton.addEventListener('click', () => saveLayout(true));
     })();
