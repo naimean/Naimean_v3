@@ -1330,14 +1330,12 @@
       const AQUARIUM_CLIP_END_SEEK_BUFFER_SECONDS = 0.1;
       const AQUARIUM_SHRIMP_CLIP_CONFIGS = Object.freeze([]);
       const AQUARIUM_LOCAL_CLIP_POOL = Object.freeze(
-        AQUARIUM_SHRIMP_CLIP_CONFIGS.flatMap(({ filename, startSeconds = 0 } = {}) =>
-          typeof filename === 'string' && filename
-            ? [{
-                src: `assets/video/shrimp/${filename}`,
-                startSeconds
-              }]
-            : []
-        )
+        AQUARIUM_SHRIMP_CLIP_CONFIGS
+          .filter((clip) => clip && typeof clip.filename === 'string' && clip.filename)
+          .map(({ filename, startSeconds = 0 }) => ({
+            src: `assets/video/shrimp/${filename}`,
+            startSeconds
+          }))
       );
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
@@ -1791,7 +1789,7 @@
 
         const clip = getRandomAquariumLocalClip();
         if (!clip?.src) {
-          return true;
+          return false;
         }
         aquariumStaticOverlayEl.classList.remove('is-active');
         setAquariumClipPlayback({ shouldPlay: true, clip });
@@ -1817,10 +1815,12 @@
           return;
         }
 
-        const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
-        if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
-          hideAquariumStaticOverlay();
-          return;
+        if (AQUARIUM_LOCAL_CLIP_POOL.length > 0) {
+          const clipWindowFinished = await playAquariumRandomClipPass(sequenceToken);
+          if (!clipWindowFinished || sequenceToken !== aquariumPlaybackSequenceToken) {
+            hideAquariumStaticOverlay();
+            return;
+          }
         }
 
         const secondStaticEnded = await playAquariumStaticPass(sequenceToken);
