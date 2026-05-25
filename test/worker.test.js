@@ -750,3 +750,99 @@ test('functions/api/hotspots onRequest delegates POST requests', async () => {
   assert.equal(response, expected);
   assert.equal(calls.fetch, 1);
 });
+
+test('HotspotStore GET reports unknown load errors without message text', async () => {
+  const state = {
+    storage: {
+      async get() { throw null; },
+      async put() {}
+    }
+  };
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/hotspots', { method: 'GET' }));
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'Failed to load hotspots: Unknown error' });
+});
+
+test('HotspotStore POST reports unknown save errors without message text', async () => {
+  const state = {
+    storage: {
+      async get() { return undefined; },
+      async put() { throw undefined; }
+    }
+  };
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: [] })
+    })
+  );
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'Failed to save hotspots: Unknown error' });
+});
+
+test('functions HotspotStore POST falls back to defaults for non-finite values', async () => {
+  const { state } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hotspots: [
+          null,
+          { id: 'noahs-arcade', x: 'bad', y: null, w: Infinity, h: undefined }
+        ]
+      })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[0], { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 });
+});
+
+test('functions HotspotStore POST uses defaults when hotspots payload is not an array', async () => {
+  const { state } = makeFunctionsState(undefined);
+  const store = new FunctionsHotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ hotspots: null })
+    })
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.hotspots[1], { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 });
+});
+
+test('functions/api/hotspots onRequest returns unknown error text when durable object throws non-Error', async () => {
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName() { return 'id:den-hotspots'; },
+      get() {
+        return {
+          async fetch() { throw {}; }
+        };
+      }
+    }
+  };
+
+  const response = await onRequest({
+    request: new Request('https://example.com/api/hotspots', { method: 'GET' }),
+    env
+  });
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'Hotspot store request failed: Unknown error' });
+});
