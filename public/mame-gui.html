@@ -159,6 +159,37 @@
       width: 100%;
     }
 
+    .url-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .url-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .google-btn {
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      background: rgba(6, 6, 11, 0.75);
+      color: var(--accent-2);
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .google-btn:hover,
+    .google-btn:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(255, 157, 61, 0.24);
+    }
+
     @media (max-width: 640px) {
       main {
         width: min(100% - 20px, 1200px);
@@ -267,6 +298,9 @@
           label.textContent = 'URL override';
           card.appendChild(label);
 
+          const urlRow = document.createElement('div');
+          urlRow.className = 'url-row';
+
           const input = document.createElement('input');
           input.type = 'text';
           input.id = inputId;
@@ -274,7 +308,20 @@
           input.placeholder = cabinet.url || '/path-or-https://example.com';
           const override = normalizeUrl(urlOverrides[cabinet.name]);
           input.value = override || '';
-          card.appendChild(input);
+          urlRow.appendChild(input);
+
+          const googleBtn = document.createElement('button');
+          googleBtn.type = 'button';
+          googleBtn.className = 'google-btn';
+          googleBtn.textContent = 'Google';
+          googleBtn.title = `Search Google for "${cabinet.name}"`;
+          googleBtn.addEventListener('click', () => {
+            const query = encodeURIComponent('Dos Game Online ' + cabinet.name);
+            window.location.href = `https://www.google.com/search?q=${query}`;
+          });
+          urlRow.appendChild(googleBtn);
+
+          card.appendChild(urlRow);
 
           cards.appendChild(card);
         });
