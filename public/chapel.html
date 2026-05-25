@@ -152,8 +152,8 @@
   </main>
   <script>
     (() => {
-      const DEFAULT_IMAGE_WIDTH = 993;
-      const DEFAULT_IMAGE_HEIGHT = 3709;
+      const DESIGN_IMAGE_WIDTH = 993;
+      const DESIGN_IMAGE_HEIGHT = 3709;
       const HOTSPOT_PADDING_DESIGN_PX = 4;
       const ANCHOR_POINTS = {
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
@@ -170,9 +170,14 @@
       const overlayLayer = document.getElementById('overlay-layer');
       const sceneImage = document.getElementById('scene-image');
       const imageDimensions = {
-        width: sceneImage?.naturalWidth || DEFAULT_IMAGE_WIDTH,
-        height: sceneImage?.naturalHeight || DEFAULT_IMAGE_HEIGHT
+        width: sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH,
+        height: sceneImage?.naturalHeight || DESIGN_IMAGE_HEIGHT
       };
+
+      function syncImageDimensions() {
+        imageDimensions.width = sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH;
+        imageDimensions.height = sceneImage?.naturalHeight || DESIGN_IMAGE_HEIGHT;
+      }
 
       function rectFromAnchors(anchorStart, anchorEnd, padding = 0) {
         const start = ANCHOR_POINTS[anchorStart];
@@ -218,13 +223,11 @@
       }
 
       if (sceneImage?.complete && sceneImage.naturalWidth && sceneImage.naturalHeight) {
-        imageDimensions.width = sceneImage.naturalWidth;
-        imageDimensions.height = sceneImage.naturalHeight;
+        syncImageDimensions();
         renderHotspots();
       } else {
         sceneImage?.addEventListener('load', () => {
-          imageDimensions.width = sceneImage.naturalWidth || DEFAULT_IMAGE_WIDTH;
-          imageDimensions.height = sceneImage.naturalHeight || DEFAULT_IMAGE_HEIGHT;
+          syncImageDimensions();
           renderHotspots();
         }, { once: true });
         sceneImage?.addEventListener('error', renderHotspots, { once: true });
