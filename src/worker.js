@@ -102,21 +102,16 @@ export class HotspotStore {
   }
 }
 
-const HTML_HEADERS = {
-  'content-type': 'text/html; charset=utf-8',
-  'content-disposition': 'inline'
-};
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === '/') {
-      return Response.redirect(new URL('/den', url).toString(), 301);
+      return Response.redirect(new URL('/den.html', url).toString(), 301);
     }
 
-    if (url.pathname === '/den.html') {
-      return Response.redirect(new URL('/den', url).toString(), 301);
+    if (url.pathname === '/den') {
+      return Response.redirect(new URL('/den.html', url).toString(), 301);
     }
 
     if (url.pathname === '/api/hotspots') {
@@ -125,17 +120,6 @@ export default {
       }
       const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
       return env.HOTSPOT_STORE.get(id).fetch(request);
-    }
-
-    if (url.pathname === '/den') {
-      const assetUrl = new URL('/den.html', url);
-      const assetReq = new Request(assetUrl.toString(), { method: 'GET' });
-      const res = await env.ASSETS.fetch(assetReq);
-      if (!res.ok) return res;
-      const newHeaders = new Headers(res.headers);
-      newHeaders.set('content-type', HTML_HEADERS['content-type']);
-      newHeaders.set('content-disposition', HTML_HEADERS['content-disposition']);
-      return new Response(res.body, { status: res.status, headers: newHeaders });
     }
 
     return env.ASSETS.fetch(request);

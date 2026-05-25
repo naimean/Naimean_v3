@@ -1,6 +1,8 @@
-/ /den 301
-/index.html /den 301
-/v2 /den 301
-/v2/* /den 301
-/Naimean_v2 /den 301
-/Naimean_v2/* /den 301
+/ /den.html 301
+/index.html /den.html 301
+/den /den.html 301
+/commodore /commodore.html 301
+/v2 /den.html 301
+/v2/* /den.html 301
+/Naimean_v2 /den.html 301
+/Naimean_v2/* /den.html 301
