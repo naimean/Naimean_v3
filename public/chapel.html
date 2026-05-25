@@ -30,22 +30,188 @@
       background: #000;
     }
 
-    img {
-      display: block;
+    #scene {
+      position: relative;
       width: min(100%, 960px);
-      height: auto;
       margin: 0 auto;
+    }
+
+    #scene-image {
+      display: block;
+      width: 100%;
+      height: auto;
       user-select: none;
       -webkit-user-drag: none;
+    }
+
+    #overlay-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .power-button-visual {
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(110, 78, 43, 0.55);
+      background:
+        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 233, 192, 0.34),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.42),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .power-button-visual::before {
+      content: '';
+      position: absolute;
+      inset: 17% 13%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
+        radial-gradient(circle at center, rgba(255, 194, 106, 0.98) 0%, rgba(241, 112, 45, 0.95) 48%, rgba(139, 19, 12, 0.7) 74%, rgba(139, 19, 12, 0) 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.25),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+        0 0 10px 2px rgba(255, 116, 29, 0.7),
+        0 0 16px 4px rgba(255, 102, 0, 0.28);
+      animation: chapel-power-glow 3.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .power-button-visual::after {
+      content: '';
+      position: absolute;
+      inset: 31% 35%;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 35% 28%, rgba(228, 255, 232, 0.95) 0%, rgba(228, 255, 232, 0) 35%),
+        linear-gradient(180deg, #96ff9a 0%, #2ce45c 55%, #0d6817 100%);
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.28),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+        0 0 7px 1px rgba(74, 255, 118, 0.55);
+    }
+
+    .power-button-visual:active {
+      transform: translateY(1px);
+      filter: brightness(1.08);
+      box-shadow:
+        inset 0 2px 3px rgba(0, 0, 0, 0.36),
+        inset 0 -1px 1px rgba(255, 233, 192, 0.2),
+        0 0 2px rgba(255, 161, 70, 0.42);
+    }
+
+    @keyframes chapel-power-glow {
+      0%,
+      100% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 11px 2px rgba(255, 124, 44, 0.72),
+          0 0 18px 5px rgba(255, 108, 17, 0.26);
+        transform: scale(0.98);
+      }
+
+      35% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 15px 4px rgba(255, 149, 67, 0.92),
+          0 0 24px 7px rgba(255, 126, 38, 0.44);
+        transform: scale(1.02);
+      }
+
+      65% {
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.25),
+          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
+          0 0 13px 3px rgba(255, 172, 90, 0.82),
+          0 0 22px 6px rgba(255, 140, 54, 0.36);
+      }
     }
   </style>
 </head>
 <body>
   <main aria-label="Chapel stacked image scroller">
-    <picture>
-      <source srcset="assets/images/chapel_stacked.v20260424.webp" type="image/webp" />
-      <img src="assets/images/chapel_stacked.v20260424.png" alt="Chapel stacked web image" />
-    </picture>
+    <div id="scene">
+      <picture>
+        <source srcset="assets/images/chapel_stacked.v20260424.webp" type="image/webp" />
+        <img id="scene-image" src="assets/images/chapel_stacked.v20260424.png" alt="Chapel stacked web image" />
+      </picture>
+      <div id="overlay-layer" aria-label="Chapel hotspots"></div>
+    </div>
   </main>
+  <script>
+    (() => {
+      const DESIGN_SIZE = { width: 993, height: 3709 };
+      const ANCHOR_POINTS = {
+        sceneTopLeft: { x: 0, y: 0 },
+        sceneTopRight: { x: 993, y: 0 },
+        sceneBottomLeft: { x: 0, y: 3709 },
+        sceneBottomRight: { x: 993, y: 3709 },
+        commodoreButtonsTopLeft: { x: 430, y: 2592 },
+        commodoreButtonsBottomRight: { x: 478, y: 2620 }
+      };
+      const HOTSPOTS = [
+        {
+          id: 'chapel-commodore-power-button',
+          label: 'Commodore power button',
+          variant: 'power-button',
+          anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight']
+        }
+      ];
+      const overlayLayer = document.getElementById('overlay-layer');
+
+      function rectFromAnchors(anchorStart, anchorEnd, padding = 0) {
+        const start = ANCHOR_POINTS[anchorStart];
+        const end = ANCHOR_POINTS[anchorEnd];
+        if (!start || !end) return null;
+        const x = Math.max(0, Math.min(start.x, end.x) - padding);
+        const y = Math.max(0, Math.min(start.y, end.y) - padding);
+        const w = Math.abs(end.x - start.x) + (padding * 2);
+        const h = Math.abs(end.y - start.y) + (padding * 2);
+        return { x, y, w, h };
+      }
+
+      function toPercentX(value) {
+        return (value / DESIGN_SIZE.width) * 100;
+      }
+
+      function toPercentY(value) {
+        return (value / DESIGN_SIZE.height) * 100;
+      }
+
+      function renderHotspots() {
+        HOTSPOTS.forEach((definition) => {
+          const rect = rectFromAnchors(definition.anchors[0], definition.anchors[1], 4);
+          if (!rect) return;
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'hotspot';
+          button.dataset.id = definition.id;
+          button.ariaLabel = definition.label;
+          button.style.left = `${toPercentX(rect.x)}%`;
+          button.style.top = `${toPercentY(rect.y)}%`;
+          button.style.width = `${toPercentX(rect.w)}%`;
+          button.style.height = `${toPercentY(rect.h)}%`;
+          if (definition.variant === 'power-button') {
+            button.classList.add('power-button-visual');
+          }
+          overlayLayer.appendChild(button);
+        });
+      }
+
+      renderHotspots();
+    })();
+  </script>
 </body>
 </html>
