@@ -1385,6 +1385,12 @@
         { state: 'mail', label: 'Mail' },
         { state: 'none', label: 'None' }
       ]);
+      const LEFT_MONITOR_STATE_TO_LABEL = Object.freeze(
+        LEFT_MONITOR_SEGMENTS.reduce((lookup, { state, label }) => {
+          lookup[state] = label;
+          return lookup;
+        }, {})
+      );
       const DEFAULT_LEFT_MONITOR_STATE = 'none';
       const NOTES_URL = 'notes.html';
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
@@ -1589,7 +1595,8 @@
         syncLeftMonitorSelectionUi();
         if (bigTvMonitorImageEl) {
           bigTvMonitorImageEl.src = LEFT_MONITOR_STATE_TO_IMAGE_URL[nextState];
-          bigTvMonitorImageEl.alt = `Big TV display: ${nextState}`;
+          const stateLabel = LEFT_MONITOR_STATE_TO_LABEL[nextState] || nextState;
+          bigTvMonitorImageEl.alt = `Big TV display: ${stateLabel} screen`;
         }
       }
 
