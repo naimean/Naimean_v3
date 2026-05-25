@@ -226,7 +226,7 @@
           imageDimensions.height = sceneImage.naturalHeight || DEFAULT_IMAGE_DIMENSIONS.height;
           renderHotspots();
         }, { once: true });
-        renderHotspots();
+        sceneImage?.addEventListener('error', renderHotspots, { once: true });
       }
     })();
   </script>
