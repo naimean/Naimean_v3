@@ -1648,21 +1648,12 @@
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_SHRIMP_CLIPS = Object.freeze([
-        'assets/video/shrimp/star-shrimp-clip-01.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-02.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-03.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-04.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-05.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-06.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-07.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-08.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-09.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-10.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-11.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-12.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-13.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-14.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-15.v20260525.mp4'
+        'assets/video/shrimp/shrimp1.mp4',
+        'assets/video/shrimp/shrimp2.mp4',
+        'assets/video/shrimp/shrimp3.mp4',
+        'assets/video/shrimp/shrimp4.mp4',
+        'assets/video/shrimp/shrimp5.mp4',
+        'assets/video/shrimp/shrimp6.mp4'
       ]);
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
@@ -2072,12 +2063,6 @@
         const sequenceToken = aquariumSequenceToken;
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
-
-        const firstStaticEnded = await playAquariumStaticPass(sequenceToken);
-        if (!firstStaticEnded || sequenceToken !== aquariumSequenceToken) {
-          hideAquariumStaticOverlay();
-          return;
-        }
 
         const clipUrl = getRandomShrimpClipUrl();
         const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
