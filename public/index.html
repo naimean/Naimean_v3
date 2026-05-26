@@ -687,9 +687,9 @@
         #001103;
       color: #4dff91;
       display: flex;
-      align-items: flex-start;
+      flex-direction: column;
+      align-items: stretch;
       justify-content: flex-start;
-      padding: clamp(10px, 3.5%, 24px);
       box-sizing: border-box;
       font: 700 clamp(75.6px, calc(19.25% + 33.6px), 159.6px) / 1.25 'Courier New', monospace;
       text-shadow: 0 0 8px rgba(77, 255, 145, 0.65);
@@ -709,17 +709,20 @@
       align-items: flex-start;
       gap: 0.36em;
       font-size: 0.7em;
+      padding: clamp(10px, 3.5%, 24px);
+      box-sizing: border-box;
     }
 
     .big-tv-prompt-secret-box {
       position: relative;
-      width: min(100%, 22em);
+      width: 100%;
       min-height: 1.8em;
-      border: 1px solid rgba(77, 255, 145, 0.75);
+      border: none;
+      border-bottom: 1px solid rgba(77, 255, 145, 0.75);
       background:
         linear-gradient(180deg, rgba(9, 30, 12, 0.88), rgba(2, 12, 5, 0.78));
       overflow: hidden;
-      padding: 0.22em 0.45em;
+      padding: clamp(10px, 3.5%, 24px);
       box-sizing: border-box;
       color: inherit;
       font: inherit;
@@ -1798,7 +1801,7 @@
       const LEFT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/L_Frame.png';
       const RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/R_Frame.png';
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
-      const BIG_TV_PROMPT_SECRET_TEXT = "You didn't say the MAGIC WORD";
+      const BIG_TV_PROMPT_SECRET_TEXT = 'You didn\'t say the MAGIC WORD';
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
@@ -3527,7 +3530,7 @@
               submitBigTvPrompt();
             });
 
-            promptContent.append(bigTvPromptSecretBoxEl, promptLine, bigTvPromptSubmitButtonEl);
+            promptContent.append(promptLine, bigTvPromptSubmitButtonEl);
 
             bigTvPromptHiddenInputEl = document.createElement('input');
             bigTvPromptHiddenInputEl.type = 'text';
@@ -3553,6 +3556,7 @@
             });
             bigTvPromptOverlayEl.appendChild(bigTvPromptHiddenInputEl);
 
+            bigTvPromptOverlayEl.appendChild(bigTvPromptSecretBoxEl);
             bigTvPromptOverlayEl.appendChild(promptContent);
             el.appendChild(bigTvPromptOverlayEl);
 
