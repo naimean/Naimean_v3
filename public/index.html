@@ -277,9 +277,9 @@
         linear-gradient(90deg, rgba(7, 16, 37, 0.22) 0%, rgba(7, 16, 37, 0) 16%, rgba(7, 16, 37, 0) 84%, rgba(7, 16, 37, 0.26) 100%);
     }
 
-    /* These insets map the screen-window outer edges to the inner screen-hole edge of L_Frame.png (accounting for object-fit:contain letterboxing). */
+    /* These insets map every screen-window edge to the inner screen-hole edge of L_Frame.png (accounting for object-fit:contain letterboxing). */
     .left-monitor-screen-window {
-      inset: 22.076% 24.414% 32.434% 19.271%;
+      inset: 22.076% 24.414% 32.434% 25.20%;
       /* Keep the interactive image and buttons fully under the monitor frame opening. */
       transform: none;
       clip-path: polygon(
@@ -315,9 +315,9 @@
       );
     }
 
-    /* These insets map the screen-window outer edges to the inner screen-hole edge of R_Frame.png (accounting for object-fit:contain letterboxing). */
+    /* These insets map every screen-window edge to the inner screen-hole edge of R_Frame.png (accounting for object-fit:contain letterboxing). */
     .right-monitor-screen-window {
-      inset: 32.566% 19.271% 22.286% 24.414%;
+      inset: 32.566% 25.26% 22.286% 24.414%;
       /* Keep the interactive image and buttons fully under the monitor frame opening. */
       transform: none;
       clip-path: polygon(
