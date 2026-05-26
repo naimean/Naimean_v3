@@ -16,7 +16,43 @@
       {
         "name": "HOTSPOT_STORE",
         "class_name": "HotspotStore"
+      }{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "naimeav3",
+  "main": "src/worker.js",
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*"]
+  },
+  "compatibility_date": "2026-05-18",
+  "observability": {
+    "enabled": true
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "HOTSPOT_STORE",
+        "class_name": "HotspotStore"
       }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "HotspotStore"
+      ]
+    }
+  ],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./public"
+  }
+}
     ]
   },
   "migrations": [
