@@ -279,7 +279,7 @@
 
     /* These insets and clip-path samples trace the left frame's transparent inner border for a curved CRT opening. */
     .left-monitor-screen-window {
-      inset: 17.1% 24.4% 29.3% 25.2%;
+      inset: 9.668% 19.336% 19.824% 19.076%;
       /* Perspective tilt matching the L_Frame photo angle: top leans back (rotateX) and left side
          angles away to match the slightly wider left bezel of the frame art (rotateY). */
       transform: perspective(600px) rotateX(6deg) rotateY(-3deg);
@@ -319,7 +319,7 @@
 
     /* These insets and clip-path samples trace the right frame's transparent inner border for a curved CRT opening. */
     .right-monitor-screen-window {
-      inset: 29.2% 25.3% 17.2% 24.4%;
+      inset: 19.824% 19.076% 9.668% 24.414%;
       /* Perspective tilt matching the R_Frame photo angle: top leans back (rotateX) and right side
          angles away to match the slightly wider right bezel of the frame art (rotateY). */
       transform: perspective(600px) rotateX(6deg) rotateY(3deg);
@@ -603,6 +603,11 @@
       pointer-events: none;
     }
 
+    #overlay-commodore-screen-control {
+      pointer-events: none;
+      cursor: default;
+    }
+
     .join-discord-button {
       width: 100%;
       height: 100%;
@@ -625,7 +630,7 @@
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: contain;
+      object-fit: cover;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -671,7 +676,7 @@
       justify-content: flex-start;
       padding: clamp(10px, 3.5%, 24px);
       box-sizing: border-box;
-      font: 700 clamp(110px, calc(27.5% + 50px), 230px) / 1.25 'Courier New', monospace;
+      font: 700 clamp(108px, calc(27.5% + 48px), 228px) / 1.25 'Courier New', monospace;
       text-shadow: 0 0 8px rgba(77, 255, 145, 0.65);
       transition: opacity 120ms ease;
     }
@@ -727,6 +732,22 @@
     .big-tv-prompt-submit:focus-visible {
       outline: 2px solid rgba(139, 255, 177, 0.95);
       outline-offset: 2px;
+    }
+
+    .big-tv-prompt-hidden-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+      top: 0;
+      left: 0;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      color: transparent;
+      caret-color: transparent;
     }
 
     @keyframes prompt-caret-blink {
@@ -1656,21 +1677,12 @@
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_SHRIMP_CLIPS = Object.freeze([
-        'assets/video/shrimp/star-shrimp-clip-01.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-02.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-03.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-04.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-05.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-06.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-07.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-08.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-09.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-10.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-11.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-12.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-13.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-14.v20260525.mp4',
-        'assets/video/shrimp/star-shrimp-clip-15.v20260525.mp4'
+        'assets/video/shrimp/shrimp1.mp4',
+        'assets/video/shrimp/shrimp2.mp4',
+        'assets/video/shrimp/shrimp3.mp4',
+        'assets/video/shrimp/shrimp4.mp4',
+        'assets/video/shrimp/shrimp5.mp4',
+        'assets/video/shrimp/shrimp6.mp4'
       ]);
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
@@ -1893,6 +1905,7 @@
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
+      let bigTvPromptHiddenInputEl = null;
       let bigTvPromptSubmitButtonEl = null;
       let isBigTvPromptActive = false;
       let bigTvPromptInputValue = '';
@@ -2081,12 +2094,6 @@
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
 
-        const firstStaticEnded = await playAquariumStaticPass(sequenceToken);
-        if (!firstStaticEnded || sequenceToken !== aquariumSequenceToken) {
-          hideAquariumStaticOverlay();
-          return;
-        }
-
         const clipUrl = getRandomShrimpClipUrl();
         const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
         if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
@@ -2234,6 +2241,9 @@
           return;
         }
         bigTvPromptInputEl.textContent = bigTvPromptInputValue;
+        if (bigTvPromptHiddenInputEl && bigTvPromptHiddenInputEl.value !== bigTvPromptInputValue) {
+          bigTvPromptHiddenInputEl.value = bigTvPromptInputValue;
+        }
       }
 
       function showBigTvPromptOverlay() {
@@ -2249,6 +2259,10 @@
         bigTvPromptOverlayEl.classList.add('is-active');
         syncBigTvContentVisibility();
         startMonitorFlickerLoops();
+        if (bigTvPromptHiddenInputEl) {
+          bigTvPromptHiddenInputEl.value = '';
+          bigTvPromptHiddenInputEl.focus();
+        }
       }
 
       function hideBigTvPromptOverlay({ clearInput = true } = {}) {
@@ -2259,6 +2273,10 @@
         if (clearInput) {
           bigTvPromptInputValue = '';
           updateBigTvPromptInput();
+        }
+        if (bigTvPromptHiddenInputEl) {
+          bigTvPromptHiddenInputEl.blur();
+          bigTvPromptHiddenInputEl.value = '';
         }
         stopMonitorFlickerLoops();
         syncBigTvContentVisibility();
@@ -3129,10 +3147,6 @@
               window.location.assign(NOAHS_ARCADE_URL);
               return;
             }
-            if (spot.id === COMMODORE_OVERLAY_CONTROL_ID) {
-              navigateToCommodoreFromDen();
-              return;
-            }
             if (spot.id === 'chapel') {
               window.location.assign(CHAPEL_URL);
               return;
@@ -3184,6 +3198,7 @@
         bigTvPromptOverlayEl = null;
         bigTvPromptSecretEl = null;
         bigTvPromptInputEl = null;
+        bigTvPromptHiddenInputEl = null;
         bigTvPromptSubmitButtonEl = null;
         hideBigTvPromptOverlay();
         rightMonitorStaticOverlayEl = null;
@@ -3238,6 +3253,11 @@
             bigTvPromptOverlayEl = document.createElement('div');
             bigTvPromptOverlayEl.className = 'big-tv-prompt-overlay';
             bigTvPromptOverlayEl.setAttribute('aria-hidden', 'true');
+            bigTvPromptOverlayEl.addEventListener('pointerdown', (event) => {
+              if (bigTvPromptHiddenInputEl && event.target !== bigTvPromptSubmitButtonEl) {
+                bigTvPromptHiddenInputEl.focus();
+              }
+            });
 
             const promptContent = document.createElement('div');
             promptContent.className = 'big-tv-prompt-content';
@@ -3274,6 +3294,31 @@
             });
 
             promptContent.append(bigTvPromptSecretEl, promptLine, bigTvPromptSubmitButtonEl);
+
+            bigTvPromptHiddenInputEl = document.createElement('input');
+            bigTvPromptHiddenInputEl.type = 'text';
+            bigTvPromptHiddenInputEl.className = 'big-tv-prompt-hidden-input';
+            bigTvPromptHiddenInputEl.setAttribute('aria-hidden', 'true');
+            bigTvPromptHiddenInputEl.setAttribute('autocomplete', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('autocorrect', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('autocapitalize', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('spellcheck', 'false');
+            bigTvPromptHiddenInputEl.addEventListener('input', () => {
+              if (!isBigTvPromptActive) return;
+              bigTvPromptInputValue = bigTvPromptHiddenInputEl.value;
+              updateBigTvPromptInput();
+            });
+            bigTvPromptHiddenInputEl.addEventListener('keydown', (event) => {
+              if (!isBigTvPromptActive) return;
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                submitBigTvPrompt();
+              } else if (event.key === 'Escape') {
+                hideBigTvPromptOverlay();
+              }
+            });
+            bigTvPromptOverlayEl.appendChild(bigTvPromptHiddenInputEl);
+
             bigTvPromptOverlayEl.appendChild(promptContent);
             el.appendChild(bigTvPromptOverlayEl);
 
