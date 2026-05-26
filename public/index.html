@@ -280,10 +280,8 @@
     /* These insets and clip-path samples trace the left frame's transparent inner border for a curved CRT opening. */
     .left-monitor-screen-window {
       inset: calc(9.668% - 1px) calc(19.336% - 1px) calc(19.824% - 1px) calc(19.076% - 1px);
-      /* Perspective tilt matching the L_Frame photo angle: top leans back (rotateX) and left side
-         angles away to match the slightly wider left bezel of the frame art (rotateY). */
-      transform: perspective(600px) rotateX(6deg) rotateY(-3deg);
-      transform-origin: center center;
+      /* Keep the interactive image and buttons fully under the monitor frame opening. */
+      transform: none;
       clip-path: polygon(
         46.7% 0%,
         40% 0.2%,
@@ -320,10 +318,8 @@
     /* These insets and clip-path samples trace the right frame's transparent inner border for a curved CRT opening. */
     .right-monitor-screen-window {
       inset: calc(19.824% - 1px) calc(19.076% - 1px) calc(9.668% - 1px) calc(24.414% - 1px);
-      /* Perspective tilt matching the R_Frame photo angle: top leans back (rotateX) and right side
-         angles away to match the slightly wider right bezel of the frame art (rotateY). */
-      transform: perspective(600px) rotateX(6deg) rotateY(3deg);
-      transform-origin: center center;
+      /* Keep the interactive image and buttons fully under the monitor frame opening. */
+      transform: none;
       clip-path: polygon(
         38.5% 0%,
         40% 0%,
