@@ -603,6 +603,8 @@
       width: calc(100% - var(--left-monitor-inner-boundary-left) - var(--left-monitor-inner-boundary-right));
       height: calc(100% - var(--left-monitor-inner-boundary-top) - var(--left-monitor-inner-boundary-bottom));
       object-fit: contain;
+      transform: scale(1.1);
+      transform-origin: center;
     }
 
     .right-monitor-screen-window > .join-discord-button {
@@ -612,6 +614,8 @@
       left: 5%;
       width: auto;
       height: auto;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
     .right-monitor-screen-window > .overlay-static-layer,
