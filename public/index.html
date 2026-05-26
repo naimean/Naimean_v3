@@ -2159,7 +2159,7 @@
         if (aquariumOverlayEl?.classList.contains('is-active')) {
           return aquariumOverlayEl;
         }
-        return overlayElementsById.get(DISCORD_OVERLAY_ID) || aquariumOverlayEl;
+        return overlayElementsById.get(DISCORD_OVERLAY_ID) || aquariumOverlayEl || null;
       }
 
       function syncBigTvFullscreenUi() {
@@ -2173,7 +2173,11 @@
           const exitButton = overlayEl.querySelector('.big-tv-fullscreen-exit-button');
           if (exitButton) {
             exitButton.hidden = !isFullscreenTarget;
-            exitButton.setAttribute('aria-hidden', isFullscreenTarget ? 'false' : 'true');
+            if (isFullscreenTarget) {
+              exitButton.removeAttribute('aria-hidden');
+            } else {
+              exitButton.setAttribute('aria-hidden', 'true');
+            }
           }
         });
       }
@@ -2215,7 +2219,6 @@
         button.hidden = true;
         button.setAttribute('aria-label', 'Exit fullscreen');
         button.setAttribute('aria-hidden', 'true');
-        button.title = 'Exit fullscreen';
         button.innerHTML = `
           <svg class="big-tv-fullscreen-exit-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M9 3H5v4"></path>
