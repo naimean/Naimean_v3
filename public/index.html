@@ -561,12 +561,10 @@
     }
 
     .join-discord-button-image {
-      width: 70%;
-      height: 70%;
-      max-width: 70%;
-      max-height: 70%;
+      width: 100%;
+      height: 100%;
       display: block;
-      object-fit: contain;
+      object-fit: cover;
       object-position: center;
       pointer-events: none;
       user-select: none;
@@ -574,6 +572,10 @@
     }
 
     .left-monitor-screen-window {
+      --left-monitor-inner-boundary-top: 3%;
+      --left-monitor-inner-boundary-right: 2.4%;
+      --left-monitor-inner-boundary-bottom: 5%;
+      --left-monitor-inner-boundary-left: 3.2%;
       background:
         radial-gradient(ellipse at 50% 44%, rgba(18, 53, 117, 0.96) 0%, rgba(12, 33, 82, 0.98) 62%, rgba(4, 10, 25, 1) 100%);
     }
@@ -589,22 +591,30 @@
 
     .left-monitor-screen-window > .left-monitor-selector,
     .left-monitor-screen-window > .overlay-static-layer {
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      top: var(--left-monitor-inner-boundary-top);
+      right: var(--left-monitor-inner-boundary-right);
+      bottom: var(--left-monitor-inner-boundary-bottom);
+      left: var(--left-monitor-inner-boundary-left);
     }
 
     .left-monitor-screen-window > .left-monitor-content-image {
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: 100%;
+      top: var(--left-monitor-inner-boundary-top);
+      right: var(--left-monitor-inner-boundary-right);
+      bottom: var(--left-monitor-inner-boundary-bottom);
+      left: var(--left-monitor-inner-boundary-left);
+      width: auto;
+      height: auto;
     }
 
-    .right-monitor-screen-window > .join-discord-button,
+    .right-monitor-screen-window > .join-discord-button {
+      top: -1.5%;
+      right: -1.5%;
+      bottom: -1.5%;
+      left: -1.5%;
+      width: auto;
+      height: auto;
+    }
+
     .right-monitor-screen-window > .overlay-static-layer,
     .right-monitor-screen-window > .right-monitor-shrimp-logo-overlay {
       top: 0;
