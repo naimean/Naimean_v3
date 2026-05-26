@@ -599,18 +599,17 @@
 
     .left-monitor-screen-window > .left-monitor-content-image {
       top: var(--left-monitor-inner-boundary-top);
-      right: var(--left-monitor-inner-boundary-right);
-      bottom: var(--left-monitor-inner-boundary-bottom);
       left: var(--left-monitor-inner-boundary-left);
-      width: auto;
-      height: auto;
+      width: calc(100% - var(--left-monitor-inner-boundary-left) - var(--left-monitor-inner-boundary-right));
+      height: calc(100% - var(--left-monitor-inner-boundary-top) - var(--left-monitor-inner-boundary-bottom));
+      object-fit: contain;
     }
 
     .right-monitor-screen-window > .join-discord-button {
-      top: -1.5%;
-      right: -1.5%;
-      bottom: -1.5%;
-      left: -1.5%;
+      top: 5%;
+      right: 5%;
+      bottom: 5%;
+      left: 5%;
       width: auto;
       height: auto;
     }
