@@ -24,7 +24,8 @@ function rewriteRequestPath(request, newPath) {
 }
 
 const HTML_ROUTE_ALIASES = new Map([
-  ['/den', '/den.html'],
+  ['/den', '/index.html'],
+  ['/den.html', '/index.html'],
   ['/hallway', '/index.html'],
 ]);
 
