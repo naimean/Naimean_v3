@@ -701,12 +701,60 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 0.36em;
+      font-size: 0.7em;
+    }
+
+    .big-tv-prompt-secret-box {
+      position: relative;
+      width: min(100%, 22em);
+      min-height: 1.8em;
+      border: 1px solid rgba(77, 255, 145, 0.75);
+      background:
+        linear-gradient(180deg, rgba(9, 30, 12, 0.88), rgba(2, 12, 5, 0.78));
+      overflow: hidden;
+      padding: 0.22em 0.45em;
+      box-sizing: border-box;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .big-tv-prompt-secret-box::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(115deg,
+          rgba(0, 0, 0, 0.72) 0%,
+          rgba(20, 80, 30, 0.35) 45%,
+          rgba(0, 0, 0, 0.72) 100%);
+      opacity: 1;
+      transition: opacity 160ms ease;
+      animation: prompt-secret-filter-fade 1.8s ease-in-out infinite alternate;
+      pointer-events: none;
     }
 
     .big-tv-prompt-secret {
       margin: 0;
       white-space: pre-wrap;
       word-break: break-word;
+      opacity: 0;
+      filter: blur(5px);
+      transition: opacity 140ms ease, filter 140ms ease;
+    }
+
+    .big-tv-prompt-secret-box:hover .big-tv-prompt-secret,
+    .big-tv-prompt-secret-box:focus-visible .big-tv-prompt-secret,
+    .big-tv-prompt-secret-box.is-revealed .big-tv-prompt-secret {
+      opacity: 1;
+      filter: none;
+    }
+
+    .big-tv-prompt-secret-box:hover::after,
+    .big-tv-prompt-secret-box:focus-visible::after,
+    .big-tv-prompt-secret-box.is-revealed::after {
+      opacity: 0;
     }
 
     .big-tv-prompt-line {
@@ -764,6 +812,15 @@
       }
       46%, 100% {
         opacity: 0;
+      }
+    }
+
+    @keyframes prompt-secret-filter-fade {
+      0% {
+        opacity: 0.55;
+      }
+      100% {
+        opacity: 1;
       }
     }
 
@@ -1725,7 +1782,7 @@
       const LEFT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/L_Frame.png';
       const RIGHT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/R_Frame.png';
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
-      const BIG_TV_PROMPT_SECRET_TEXT = 'You didnt say the magic word';
+      const BIG_TV_PROMPT_SECRET_TEXT = "You didn't say the MAGIC WORD";
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
@@ -1913,10 +1970,12 @@
       let aquariumSequenceToken = 0;
       let aquariumLoopOwnerToken = 0;
       let bigTvPromptOverlayEl = null;
+      let bigTvPromptSecretBoxEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
       let bigTvPromptHiddenInputEl = null;
       let bigTvPromptSubmitButtonEl = null;
+      let bigTvPromptSecretRevealTimeoutId = null;
       let isBigTvPromptActive = false;
       let bigTvPromptInputValue = '';
       let bigTvPromptSequenceToken = 0;
@@ -2358,6 +2417,25 @@
         }
       }
 
+      function setBigTvPromptSecretRevealed(isRevealed, { temporary = false } = {}) {
+        if (bigTvPromptSecretRevealTimeoutId) {
+          window.clearTimeout(bigTvPromptSecretRevealTimeoutId);
+          bigTvPromptSecretRevealTimeoutId = null;
+        }
+        if (!bigTvPromptSecretBoxEl) {
+          return;
+        }
+        bigTvPromptSecretBoxEl.classList.toggle('is-revealed', isRevealed);
+        if (isRevealed && temporary) {
+          bigTvPromptSecretRevealTimeoutId = window.setTimeout(() => {
+            if (bigTvPromptSecretBoxEl) {
+              bigTvPromptSecretBoxEl.classList.remove('is-revealed');
+            }
+            bigTvPromptSecretRevealTimeoutId = null;
+          }, 1600);
+        }
+      }
+
       function showBigTvPromptOverlay() {
         if (!bigTvPromptOverlayEl) {
           return;
@@ -2368,6 +2446,7 @@
         if (bigTvPromptSecretEl) {
           bigTvPromptSecretEl.textContent = BIG_TV_PROMPT_SECRET_TEXT;
         }
+        setBigTvPromptSecretRevealed(false);
         bigTvPromptOverlayEl.classList.add('is-active');
         syncBigTvContentVisibility();
         startMonitorFlickerLoops();
@@ -2390,6 +2469,7 @@
           bigTvPromptHiddenInputEl.blur();
           bigTvPromptHiddenInputEl.value = '';
         }
+        setBigTvPromptSecretRevealed(false);
         stopMonitorFlickerLoops();
         syncBigTvContentVisibility();
       }
@@ -3308,10 +3388,15 @@
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         bigTvPromptOverlayEl = null;
+        bigTvPromptSecretBoxEl = null;
         bigTvPromptSecretEl = null;
         bigTvPromptInputEl = null;
         bigTvPromptHiddenInputEl = null;
         bigTvPromptSubmitButtonEl = null;
+        if (bigTvPromptSecretRevealTimeoutId) {
+          window.clearTimeout(bigTvPromptSecretRevealTimeoutId);
+          bigTvPromptSecretRevealTimeoutId = null;
+        }
         hideBigTvPromptOverlay();
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
@@ -3375,15 +3460,23 @@
             const promptContent = document.createElement('div');
             promptContent.className = 'big-tv-prompt-content';
 
+            bigTvPromptSecretBoxEl = document.createElement('button');
+            bigTvPromptSecretBoxEl.type = 'button';
+            bigTvPromptSecretBoxEl.className = 'big-tv-prompt-secret-box';
+            bigTvPromptSecretBoxEl.addEventListener('pointerenter', () => setBigTvPromptSecretRevealed(true));
+            bigTvPromptSecretBoxEl.addEventListener('pointerleave', () => setBigTvPromptSecretRevealed(false));
+            bigTvPromptSecretBoxEl.addEventListener('focus', () => setBigTvPromptSecretRevealed(true));
+            bigTvPromptSecretBoxEl.addEventListener('blur', () => setBigTvPromptSecretRevealed(false));
+            bigTvPromptSecretBoxEl.addEventListener('pointerdown', (event) => {
+              if (event.pointerType !== 'mouse') {
+                setBigTvPromptSecretRevealed(true, { temporary: true });
+              }
+            });
+
             bigTvPromptSecretEl = document.createElement('p');
             bigTvPromptSecretEl.className = 'big-tv-prompt-secret';
             bigTvPromptSecretEl.textContent = BIG_TV_PROMPT_SECRET_TEXT;
-            const clearPromptSecretText = () => {
-              if (bigTvPromptSecretEl) {
-                bigTvPromptSecretEl.textContent = '';
-              }
-            };
-            bigTvPromptSecretEl.addEventListener('mouseenter', clearPromptSecretText);
+            bigTvPromptSecretBoxEl.appendChild(bigTvPromptSecretEl);
 
             const promptLine = document.createElement('div');
             promptLine.className = 'big-tv-prompt-line';
@@ -3406,7 +3499,7 @@
               submitBigTvPrompt();
             });
 
-            promptContent.append(bigTvPromptSecretEl, promptLine, bigTvPromptSubmitButtonEl);
+            promptContent.append(bigTvPromptSecretBoxEl, promptLine, bigTvPromptSubmitButtonEl);
 
             bigTvPromptHiddenInputEl = document.createElement('input');
             bigTvPromptHiddenInputEl.type = 'text';
