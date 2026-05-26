@@ -195,6 +195,82 @@
       transition-delay: 0s;
     }
 
+    .screen-overlay.big-tv-fullscreen-target:fullscreen,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen {
+      position: fixed;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0;
+      background: #000;
+    }
+
+    .screen-overlay.big-tv-fullscreen-target:fullscreen::before,
+    .screen-overlay.big-tv-fullscreen-target:fullscreen::after,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen::before,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen::after {
+      border-radius: 0;
+    }
+
+    .screen-overlay.big-tv-fullscreen-target:fullscreen .discord-static-video,
+    .screen-overlay.big-tv-fullscreen-target:fullscreen .nedry-gate-video,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen .discord-static-video,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen .nedry-gate-video {
+      object-fit: contain;
+    }
+
+    .big-tv-fullscreen-exit-button {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      right: calc(env(safe-area-inset-right, 0px) + 12px);
+      width: clamp(44px, 5vw, 56px);
+      height: clamp(44px, 5vw, 56px);
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .screen-overlay.big-tv-fullscreen-target:fullscreen .big-tv-fullscreen-exit-button,
+    .screen-overlay.big-tv-fullscreen-target.is-fullscreen .big-tv-fullscreen-exit-button {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .big-tv-fullscreen-exit-button:hover {
+      background: rgba(18, 18, 18, 0.86);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .big-tv-fullscreen-exit-button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.92);
+      outline-offset: 2px;
+    }
+
+    .big-tv-fullscreen-exit-icon {
+      width: 100%;
+      height: 100%;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .screen-overlay.commodore-desk-overlay {
       overflow: hidden;
       pointer-events: none;
@@ -1840,6 +1916,7 @@
       const PENCIL_SHARPENER_HOTSPOT_ID = 'pencil-sharpener';
       const DISCORD_OVERLAY_ID = 'overlay-big-tv';
       const AQUARIUM_OVERLAY_ID = 'overlay-aquarium-video';
+      const BIG_TV_FULLSCREEN_OVERLAY_IDS = new Set([DISCORD_OVERLAY_ID, AQUARIUM_OVERLAY_ID]);
       const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
       const CLOCK_URL_IOS = 'clock://';
@@ -1875,6 +1952,7 @@
       HOTSPOT_READABLE_LABELS.set(COMMODORE_OVERLAY_CONTROL_ID, 'Commodore Screen');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
+      HOTSPOT_READABLE_LABELS.set(DISCORD_OVERLAY_CONTROL_ID, 'Fullscreen Big TV');
       HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Left Monitor Side Frame');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
@@ -2058,12 +2136,104 @@
         const promptActive = isBigTvPromptActive;
         const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive;
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
+        const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
           discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
           aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
         }
+        if (
+          (shouldShowBigTvOverlay && fullscreenElement === discordOverlayEl) ||
+          (!shouldShowBigTvOverlay && fullscreenElement === aquariumOverlayEl)
+        ) {
+          void exitBigTvFullscreen();
+        }
+      }
+
+      function isBigTvFullscreenTarget(element) {
+        return !!element && BIG_TV_FULLSCREEN_OVERLAY_IDS.has(element.id);
+      }
+
+      function getActiveBigTvFullscreenTarget() {
+        if (aquariumOverlayEl?.classList.contains('is-active')) {
+          return aquariumOverlayEl;
+        }
+        return overlayElementsById.get(DISCORD_OVERLAY_ID) || aquariumOverlayEl || null;
+      }
+
+      function syncBigTvFullscreenUi() {
+        const fullscreenElement = document.fullscreenElement;
+        [overlayElementsById.get(DISCORD_OVERLAY_ID), aquariumOverlayEl].forEach((overlayEl) => {
+          if (!overlayEl) {
+            return;
+          }
+          const isFullscreenTarget = fullscreenElement === overlayEl;
+          overlayEl.classList.toggle('is-fullscreen', isFullscreenTarget);
+          const exitButton = overlayEl.querySelector('.big-tv-fullscreen-exit-button');
+          if (exitButton) {
+            exitButton.hidden = !isFullscreenTarget;
+            if (isFullscreenTarget) {
+              exitButton.removeAttribute('aria-hidden');
+            } else {
+              exitButton.setAttribute('aria-hidden', 'true');
+            }
+          }
+        });
+      }
+
+      async function enterBigTvFullscreen(targetOverlayEl = getActiveBigTvFullscreenTarget()) {
+        if (
+          !targetOverlayEl ||
+          document.fullscreenElement === targetOverlayEl ||
+          typeof targetOverlayEl.requestFullscreen !== 'function'
+        ) {
+          return;
+        }
+        try {
+          await targetOverlayEl.requestFullscreen();
+        } catch (error) {
+          console.warn('Unable to enter big TV fullscreen mode.', error);
+        }
+      }
+
+      async function exitBigTvFullscreen(event) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (!document.fullscreenElement || typeof document.exitFullscreen !== 'function') {
+          return;
+        }
+        try {
+          await document.exitFullscreen();
+        } catch (error) {
+          console.warn('Unable to exit big TV fullscreen mode.', error);
+        }
+      }
+
+      function createBigTvFullscreenExitButton() {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'big-tv-fullscreen-exit-button';
+        button.hidden = true;
+        button.setAttribute('aria-label', 'Exit fullscreen');
+        button.setAttribute('aria-hidden', 'true');
+        button.innerHTML = `
+          <svg class="big-tv-fullscreen-exit-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M9 3H5v4"></path>
+            <path d="M15 3h4v4"></path>
+            <path d="M9 21H5v-4"></path>
+            <path d="M15 21h4v-4"></path>
+            <path d="M9 9 5 5"></path>
+            <path d="m15 9 4-4"></path>
+            <path d="m9 15-4 4"></path>
+            <path d="m15 15 4 4"></path>
+          </svg>
+        `;
+        button.addEventListener('pointerdown', (event) => event.stopPropagation());
+        button.addEventListener('click', exitBigTvFullscreen);
+        return button;
       }
 
       function syncLeftMonitorSelectionUi() {
@@ -3383,6 +3553,10 @@
               openClockApp();
               return;
             }
+            if (spot.id === DISCORD_OVERLAY_CONTROL_ID) {
+              void enterBigTvFullscreen();
+              return;
+            }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
               const whiteboardUrl = WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
               window.location.assign(whiteboardUrl);
@@ -3457,12 +3631,14 @@
           el.style.height = `${rect.h}px`;
 
           if (overlay.id === DISCORD_OVERLAY_ID) {
-            el.classList.add('discord-widget-overlay');
+            el.classList.add('discord-widget-overlay', 'big-tv-fullscreen-target');
+            el.appendChild(createBigTvFullscreenExitButton());
           }
 
           if (overlay.id === AQUARIUM_OVERLAY_ID) {
             aquariumOverlayEl = el;
-            el.classList.add('aquarium-video-overlay');
+            el.classList.add('aquarium-video-overlay', 'big-tv-fullscreen-target');
+            el.appendChild(createBigTvFullscreenExitButton());
 
             aquariumStaticOverlayEl = document.createElement('div');
             aquariumStaticOverlayEl.className = 'discord-static-overlay';
@@ -4350,6 +4526,7 @@
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('keydown', handleBigTvPromptTyping);
+      document.addEventListener('fullscreenchange', syncBigTvFullscreenUi);
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
