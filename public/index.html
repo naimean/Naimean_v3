@@ -626,6 +626,7 @@
     }
 
     .join-discord-button-image {
+      /* Extend image bleed so the blue button border stays hidden behind the monitor frame. */
       width: calc(100% + 10px);
       height: calc(100% + 80px);
       max-width: none;
@@ -848,10 +849,9 @@
       position: absolute;
       inset: 0;
       margin: auto;
+      /* Match the monitor-frame bleed treatment used by the right-side composite image. */
       width: calc(100% + 10px);
       height: calc(100% + 40px);
-      max-width: none;
-      max-height: none;
       object-fit: contain;
       object-position: center;
       pointer-events: none;
