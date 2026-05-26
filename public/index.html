@@ -663,7 +663,7 @@
       justify-content: flex-start;
       padding: clamp(10px, 3.5%, 24px);
       box-sizing: border-box;
-      font: 700 clamp(110px, calc(27.5% + 50px), 230px) / 1.25 'Courier New', monospace;
+      font: 700 clamp(108px, calc(27.5% + 48px), 228px) / 1.25 'Courier New', monospace;
       text-shadow: 0 0 8px rgba(77, 255, 145, 0.65);
       transition: opacity 120ms ease;
     }
@@ -719,6 +719,22 @@
     .big-tv-prompt-submit:focus-visible {
       outline: 2px solid rgba(139, 255, 177, 0.95);
       outline-offset: 2px;
+    }
+
+    .big-tv-prompt-hidden-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+      top: 0;
+      left: 0;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      color: transparent;
+      caret-color: transparent;
     }
 
     @keyframes prompt-caret-blink {
@@ -1885,6 +1901,7 @@
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
+      let bigTvPromptHiddenInputEl = null;
       let bigTvPromptSubmitButtonEl = null;
       let isBigTvPromptActive = false;
       let bigTvPromptInputValue = '';
@@ -2226,6 +2243,9 @@
           return;
         }
         bigTvPromptInputEl.textContent = bigTvPromptInputValue;
+        if (bigTvPromptHiddenInputEl && bigTvPromptHiddenInputEl.value !== bigTvPromptInputValue) {
+          bigTvPromptHiddenInputEl.value = bigTvPromptInputValue;
+        }
       }
 
       function showBigTvPromptOverlay() {
@@ -2241,6 +2261,10 @@
         bigTvPromptOverlayEl.classList.add('is-active');
         syncBigTvContentVisibility();
         startMonitorFlickerLoops();
+        if (bigTvPromptHiddenInputEl) {
+          bigTvPromptHiddenInputEl.value = '';
+          bigTvPromptHiddenInputEl.focus();
+        }
       }
 
       function hideBigTvPromptOverlay({ clearInput = true } = {}) {
@@ -2251,6 +2275,10 @@
         if (clearInput) {
           bigTvPromptInputValue = '';
           updateBigTvPromptInput();
+        }
+        if (bigTvPromptHiddenInputEl) {
+          bigTvPromptHiddenInputEl.blur();
+          bigTvPromptHiddenInputEl.value = '';
         }
         stopMonitorFlickerLoops();
         syncBigTvContentVisibility();
@@ -3176,6 +3204,7 @@
         bigTvPromptOverlayEl = null;
         bigTvPromptSecretEl = null;
         bigTvPromptInputEl = null;
+        bigTvPromptHiddenInputEl = null;
         bigTvPromptSubmitButtonEl = null;
         hideBigTvPromptOverlay();
         rightMonitorStaticOverlayEl = null;
@@ -3230,6 +3259,11 @@
             bigTvPromptOverlayEl = document.createElement('div');
             bigTvPromptOverlayEl.className = 'big-tv-prompt-overlay';
             bigTvPromptOverlayEl.setAttribute('aria-hidden', 'true');
+            bigTvPromptOverlayEl.addEventListener('pointerdown', (event) => {
+              if (bigTvPromptHiddenInputEl && event.target !== bigTvPromptSubmitButtonEl) {
+                bigTvPromptHiddenInputEl.focus();
+              }
+            });
 
             const promptContent = document.createElement('div');
             promptContent.className = 'big-tv-prompt-content';
@@ -3266,6 +3300,31 @@
             });
 
             promptContent.append(bigTvPromptSecretEl, promptLine, bigTvPromptSubmitButtonEl);
+
+            bigTvPromptHiddenInputEl = document.createElement('input');
+            bigTvPromptHiddenInputEl.type = 'text';
+            bigTvPromptHiddenInputEl.className = 'big-tv-prompt-hidden-input';
+            bigTvPromptHiddenInputEl.setAttribute('aria-hidden', 'true');
+            bigTvPromptHiddenInputEl.setAttribute('autocomplete', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('autocorrect', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('autocapitalize', 'off');
+            bigTvPromptHiddenInputEl.setAttribute('spellcheck', 'false');
+            bigTvPromptHiddenInputEl.addEventListener('input', () => {
+              if (!isBigTvPromptActive) return;
+              bigTvPromptInputValue = bigTvPromptHiddenInputEl.value;
+              updateBigTvPromptInput();
+            });
+            bigTvPromptHiddenInputEl.addEventListener('keydown', (event) => {
+              if (!isBigTvPromptActive) return;
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                submitBigTvPrompt();
+              } else if (event.key === 'Escape') {
+                hideBigTvPromptOverlay();
+              }
+            });
+            bigTvPromptOverlayEl.appendChild(bigTvPromptHiddenInputEl);
+
             bigTvPromptOverlayEl.appendChild(promptContent);
             el.appendChild(bigTvPromptOverlayEl);
 
