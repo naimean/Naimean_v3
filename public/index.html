@@ -1894,6 +1894,7 @@
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let aquariumSequenceToken = 0;
+      let aquariumLoopOwnerToken = 0;
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretEl = null;
       let bigTvPromptInputEl = null;
@@ -2081,20 +2082,43 @@
       }
 
       async function playAquariumHotspotSequence() {
-        aquariumSequenceToken += 1;
-        const sequenceToken = aquariumSequenceToken;
-        hideNedryGateOverlay();
-        hideAquariumStaticOverlay();
-
-        const clipUrl = getRandomShrimpClipUrl();
-        const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
-        if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
+        if (aquariumLoopOwnerToken !== 0 && aquariumLoopOwnerToken === aquariumSequenceToken) {
+          cancelAquariumPlaybackSequence();
+          hideNedryGateOverlay();
           hideAquariumStaticOverlay();
+          aquariumLoopOwnerToken = 0;
           return;
         }
 
-        await playAquariumStaticPass(sequenceToken);
+        aquariumSequenceToken += 1;
+        const sequenceToken = aquariumSequenceToken;
+        aquariumLoopOwnerToken = sequenceToken;
+        hideNedryGateOverlay();
         hideAquariumStaticOverlay();
+
+        let lastClipUrl = null;
+        while (sequenceToken === aquariumSequenceToken) {
+          let clipUrl;
+          do {
+            clipUrl = getRandomShrimpClipUrl();
+          } while (AQUARIUM_SHRIMP_CLIPS.length > 1 && clipUrl === lastClipUrl);
+          lastClipUrl = clipUrl;
+
+          const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
+          if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
+            break;
+          }
+
+          const staticEnded = await playAquariumStaticPass(sequenceToken);
+          if (!staticEnded || sequenceToken !== aquariumSequenceToken) {
+            hideAquariumStaticOverlay();
+            break;
+          }
+        }
+
+        if (aquariumLoopOwnerToken === sequenceToken) {
+          aquariumLoopOwnerToken = 0;
+        }
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
