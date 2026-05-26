@@ -636,7 +636,12 @@
 
     .left-monitor-screen-window {
       --left-monitor-vertical-buffer: 10px;
+      --monitor-horizontal-buffer: 15px;
       background: transparent;
+    }
+
+    .right-monitor-screen-window {
+      --monitor-horizontal-buffer: 15px;
     }
 
     .left-monitor-screen-window > .left-monitor-content-image,
@@ -644,6 +649,20 @@
     .left-monitor-screen-window > .overlay-static-layer {
       top: var(--left-monitor-vertical-buffer);
       bottom: var(--left-monitor-vertical-buffer);
+      left: var(--monitor-horizontal-buffer);
+      right: var(--monitor-horizontal-buffer);
+      width: auto;
+    }
+
+    .right-monitor-screen-window > .join-discord-button {
+      width: calc(100% - 30px);
+    }
+
+    .right-monitor-screen-window > .overlay-static-layer,
+    .right-monitor-screen-window > .right-monitor-shrimp-logo-overlay {
+      left: var(--monitor-horizontal-buffer);
+      right: var(--monitor-horizontal-buffer);
+      width: auto;
     }
 
     .left-monitor-screen-window > .left-monitor-selector {
