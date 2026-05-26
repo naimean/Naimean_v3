@@ -730,7 +730,6 @@
           rgba(20, 80, 30, 0.35) 45%,
           rgba(0, 0, 0, 0.72) 100%);
       opacity: 1;
-      transition: opacity 160ms ease;
       animation: prompt-secret-filter-fade 1.8s ease-in-out infinite alternate;
       pointer-events: none;
     }
@@ -821,6 +820,16 @@
       }
       100% {
         opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .big-tv-prompt-secret-box::after {
+        animation: none;
+      }
+      .big-tv-prompt-secret,
+      .big-tv-prompt-secret-box::after {
+        transition: none;
       }
     }
 
@@ -3452,7 +3461,14 @@
             bigTvPromptOverlayEl.className = 'big-tv-prompt-overlay';
             bigTvPromptOverlayEl.setAttribute('aria-hidden', 'true');
             bigTvPromptOverlayEl.addEventListener('pointerdown', (event) => {
-              if (bigTvPromptHiddenInputEl && event.target !== bigTvPromptSubmitButtonEl) {
+              const targetNode = event.target;
+              const tappedSecretBox =
+                targetNode && bigTvPromptSecretBoxEl && bigTvPromptSecretBoxEl.contains(targetNode);
+              if (
+                bigTvPromptHiddenInputEl &&
+                event.target !== bigTvPromptSubmitButtonEl &&
+                !tappedSecretBox
+              ) {
                 bigTvPromptHiddenInputEl.focus();
               }
             });
@@ -3469,6 +3485,11 @@
             bigTvPromptSecretBoxEl.addEventListener('blur', () => setBigTvPromptSecretRevealed(false));
             bigTvPromptSecretBoxEl.addEventListener('pointerdown', (event) => {
               if (event.pointerType !== 'mouse') {
+                setBigTvPromptSecretRevealed(true, { temporary: true });
+              }
+            });
+            bigTvPromptSecretBoxEl.addEventListener('click', (event) => {
+              if (event.detail === 0) {
                 setBigTvPromptSecretRevealed(true, { temporary: true });
               }
             });
