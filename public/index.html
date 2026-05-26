@@ -277,9 +277,9 @@
         linear-gradient(90deg, rgba(7, 16, 37, 0.22) 0%, rgba(7, 16, 37, 0) 16%, rgba(7, 16, 37, 0) 84%, rgba(7, 16, 37, 0.26) 100%);
     }
 
-    /* These insets and clip-path samples trace the left frame's transparent inner border for a curved CRT opening. */
+    /* These insets map the screen-window outer edges to the inner screen-hole edge of L_Frame.png (accounting for object-fit:contain letterboxing). */
     .left-monitor-screen-window {
-      inset: calc(9.668% - 1px) calc(19.336% - 1px) calc(19.824% - 1px) calc(19.076% - 1px);
+      inset: 22.076% 24.414% 32.434% 19.271%;
       /* Keep the interactive image and buttons fully under the monitor frame opening. */
       transform: none;
       clip-path: polygon(
@@ -315,9 +315,9 @@
       );
     }
 
-    /* These insets and clip-path samples trace the right frame's transparent inner border for a curved CRT opening. */
+    /* These insets map the screen-window outer edges to the inner screen-hole edge of R_Frame.png (accounting for object-fit:contain letterboxing). */
     .right-monitor-screen-window {
-      inset: calc(19.824% - 1px) calc(19.076% - 1px) calc(9.668% - 1px) calc(24.414% - 1px);
+      inset: 32.566% 19.271% 22.286% 24.414%;
       /* Keep the interactive image and buttons fully under the monitor frame opening. */
       transform: none;
       clip-path: polygon(
