@@ -2138,12 +2138,15 @@
         rightMonitorStaticOverlayEl.classList.add('is-active');
         try {
           await rightMonitorStaticVideoEl.play();
-          await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
         } catch (error) {
           if (error?.name !== 'AbortError') {
             console.warn('Unable to play right monitor static (aquarium end).', error);
           }
+          rightMonitorStaticOverlayEl.classList.remove('is-active');
+          rightMonitorStaticVideoEl.loop = true;
+          return;
         }
+        await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
         rightMonitorStaticOverlayEl.classList.remove('is-active');
         rightMonitorStaticVideoEl.loop = true;
         // discordButtonSelected is unchanged — button is now visible in its pre-click state
