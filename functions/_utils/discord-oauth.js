@@ -23,7 +23,6 @@ export function handleDiscordAuthRequest(request, env) {
   if (!clientId) {
     return Response.redirect(DISCORD_GUEST_INVITE_URL, 302);
   }
-
   const url = new URL(request.url);
   const params = new URLSearchParams({
     client_id: clientId,
