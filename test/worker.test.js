@@ -198,7 +198,7 @@ test('worker redirects Discord auth alias routes to Discord OAuth authorize URL'
   );
 });
 
-test('worker redirects Discord 0auth typo route to guest invite when client id is missing', async () => {
+test('worker redirects Discord 0auth route to guest invite when DISCORD_CLIENT_ID is missing', async () => {
   const env = {
     ASSETS: {
       async fetch() {
