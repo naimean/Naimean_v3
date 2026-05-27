@@ -2489,7 +2489,6 @@
         if (mediaEl.getAttribute('src') === sourceUrl) {
           return;
         }
-        mediaEl.setAttribute('src', sourceUrl);
         mediaEl.src = sourceUrl;
         mediaEl.load();
       }
@@ -2506,6 +2505,13 @@
           return;
         }
         videoEl.dataset.baseDuration = String(videoEl.duration);
+      }
+
+      function attachStaticVideoMetadataListener(videoEl) {
+        if (!videoEl) {
+          return;
+        }
+        videoEl.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(videoEl));
       }
 
       function formatMediaFragmentTime(seconds) {
@@ -3912,8 +3918,7 @@
             aquariumStaticVideoEl.playsInline = true;
             aquariumStaticVideoEl.setAttribute('playsinline', '');
             aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
-            const aquariumStaticVideo = aquariumStaticVideoEl;
-            aquariumStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(aquariumStaticVideo));
+            attachStaticVideoMetadataListener(aquariumStaticVideoEl);
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
 
@@ -4101,8 +4106,7 @@
             leftMonitorStaticVideoEl.playsInline = true;
             leftMonitorStaticVideoEl.setAttribute('playsinline', '');
             leftMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
-            const leftMonitorStaticVideo = leftMonitorStaticVideoEl;
-            leftMonitorStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(leftMonitorStaticVideo));
+            attachStaticVideoMetadataListener(leftMonitorStaticVideoEl);
             leftMonitorStaticOverlayEl.appendChild(leftMonitorStaticVideoEl);
             monitorScreenWindowEl.appendChild(leftMonitorStaticOverlayEl);
           }
@@ -4183,8 +4187,7 @@
             rightMonitorStaticVideoEl.playsInline = true;
             rightMonitorStaticVideoEl.setAttribute('playsinline', '');
             rightMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
-            const rightMonitorStaticVideo = rightMonitorStaticVideoEl;
-            rightMonitorStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(rightMonitorStaticVideo));
+            attachStaticVideoMetadataListener(rightMonitorStaticVideoEl);
             rightMonitorStaticOverlayEl.appendChild(rightMonitorStaticVideoEl);
             monitorScreenWindowEl.appendChild(rightMonitorStaticOverlayEl);
 
