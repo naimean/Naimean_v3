@@ -1053,17 +1053,19 @@
     .big-tv-debug-watermark {
       position: absolute;
       top: 8px;
-      left: 8px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 4;
-      padding: 2px 6px;
+      padding: 1px 6px;
       border-radius: 3px;
-      background: rgba(0, 0, 0, 0.72);
-      color: rgba(202, 255, 218, 0.95);
+      background: rgba(0, 0, 0, 0.18);
+      color: rgba(202, 255, 218, 0.98);
       font: 600 10px/1.2 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
       letter-spacing: 0.04em;
       text-transform: none;
       pointer-events: none;
       user-select: none;
+      white-space: nowrap;
     }
 
     /* Effects always on top. */
@@ -1885,8 +1887,11 @@
       // (in seconds) lets the 'ended' event arrive before treating the pause as an
       // interruption of the playback sequence.
       const MEDIA_ENDED_PAUSE_TOLERANCE_S = 0.5;
-      const BIG_TV_DEBUG_WATERMARK_SERVER_ASSET = 'Server_Asset';
-      const BIG_TV_DEBUG_WATERMARK_SHRIMP_CITY = 'shrimp_city';
+      const BIG_TV_DEBUG_WATERMARK_SERVER_ASSET = 'server_asset';
+      const BIG_TV_DEBUG_WATERMARK_SHRIMP_CITY = 'google_drive';
+      const BIG_TV_DEBUG_WATERMARK_DEFAULT_TOP_PX = 8;
+      const BIG_TV_DEBUG_WATERMARK_MIN_TOP_MARGIN_PX = 2;
+      const BIG_TV_DEBUG_WATERMARK_LETTERBOX_CLEARANCE_PX = 4;
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
         'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
@@ -2225,6 +2230,7 @@
             }
           }
         });
+        updateBigTvDebugWatermarkPlacement();
       }
 
       function getBigTvVideoFullscreenTarget(targetOverlayEl) {
@@ -2456,6 +2462,41 @@
           return;
         }
         bigTvDebugWatermarkEl.textContent = getBigTvDebugWatermarkText();
+        updateBigTvDebugWatermarkPlacement();
+      }
+
+      function updateBigTvDebugWatermarkPlacement() {
+        if (!bigTvDebugWatermarkEl || !nedryGateOverlayEl || !nedryGateVideoEl) {
+          return;
+        }
+
+        const overlayRect = nedryGateOverlayEl.getBoundingClientRect();
+        const overlayWidth = overlayRect.width;
+        const overlayHeight = overlayRect.height;
+        const videoWidth = nedryGateVideoEl.videoWidth;
+        const videoHeight = nedryGateVideoEl.videoHeight;
+
+        if (
+          overlayWidth <= 0 ||
+          overlayHeight <= 0 ||
+          !Number.isFinite(videoWidth) ||
+          !Number.isFinite(videoHeight) ||
+          videoWidth <= 0 ||
+          videoHeight <= 0
+        ) {
+          bigTvDebugWatermarkEl.style.top = `${BIG_TV_DEBUG_WATERMARK_DEFAULT_TOP_PX}px`;
+          return;
+        }
+
+        const fitScale = Math.min(overlayWidth / videoWidth, overlayHeight / videoHeight);
+        const renderedVideoHeight = videoHeight * fitScale;
+        const topLetterboxHeight = Math.max(0, (overlayHeight - renderedVideoHeight) / 2);
+        const watermarkHeight = bigTvDebugWatermarkEl.offsetHeight || 12;
+        const preferredTop = topLetterboxHeight - watermarkHeight - BIG_TV_DEBUG_WATERMARK_MIN_TOP_MARGIN_PX;
+        const safeTop = topLetterboxHeight > watermarkHeight + BIG_TV_DEBUG_WATERMARK_LETTERBOX_CLEARANCE_PX
+          ? Math.max(BIG_TV_DEBUG_WATERMARK_MIN_TOP_MARGIN_PX, Math.round(preferredTop))
+          : BIG_TV_DEBUG_WATERMARK_DEFAULT_TOP_PX;
+        bigTvDebugWatermarkEl.style.top = `${safeTop}px`;
       }
 
       async function loadAquariumShrimpClipCatalog() {
@@ -3990,6 +4031,7 @@
             nedryGateVideoEl.setAttribute('webkit-playsinline', '');
             nedryGateVideoEl.addEventListener('ended', () => hideNedryGateOverlay());
             nedryGateVideoEl.addEventListener('error', () => hideNedryGateOverlay());
+            nedryGateVideoEl.addEventListener('loadedmetadata', () => updateBigTvDebugWatermarkPlacement());
             nedryGateOverlayEl.appendChild(nedryGateVideoEl);
             bigTvDebugWatermarkEl = document.createElement('div');
             bigTvDebugWatermarkEl.className = 'big-tv-debug-watermark';
@@ -4488,6 +4530,7 @@
           setCameraX(cameraX);
           targetCameraX = cameraX;
         }
+        updateBigTvDebugWatermarkPlacement();
       }
 
       function onWheel(event) {
