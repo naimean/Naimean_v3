@@ -1949,7 +1949,7 @@
       const BIG_TV_FULLSCREEN_OVERLAY_IDS = new Set([DISCORD_OVERLAY_ID, AQUARIUM_OVERLAY_ID]);
       const FLIP_CLOCK_OVERLAY_ID = 'overlay-flip-clock';
       const CLOCK_URL_WINDOWS = 'ms-clock://';
-      const CLOCK_URL_IOS = 'clock://';
+      const CLOCK_URL_IOS = 'clock-alarm://';
       const CALENDAR_URL_DESKTOP = 'outlookcal://';
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
       const WORLD_WIDTH_SEGMENTS = 3;
@@ -3497,7 +3497,7 @@
         const ua = navigator.userAgent;
         if (/Windows/i.test(ua)) {
           window.location.href = CLOCK_URL_WINDOWS;
-        } else if (/iPhone|iPad|iPod/i.test(ua)) {
+        } else if (isIOSDevice) {
           window.location.href = CLOCK_URL_IOS;
         } else {
           window.open('https://time.is', '_blank', 'noopener,noreferrer');
