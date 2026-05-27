@@ -1971,8 +1971,8 @@
       const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
-      const MIN_USABLE_RATIO = 0.0001; // Guards inverse inset math from divide-by-zero when ratios are malformed.
-      const LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER = 1.35; // Legacy monitor control bounds were frame-sized; modern controls are screen-window sized.
+      const MIN_MONITOR_RATIO_DENOMINATOR = 0.0001; // Prevents divide-by-zero when converting between screen-window and frame bounds.
+      const LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER = 1.35; // Legacy monitor controls were frame-sized and are ~35% larger than the modern screen-window controls.
       const COMMODORE_HITBOX_HORIZONTAL_INSET = 40; // Shrinks Commodore click area while preserving overlay artwork width.
       const COMMODORE_HITBOX_VERTICAL_INSET = 70; // Shrinks Commodore click area while preserving overlay artwork height.
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
@@ -3139,8 +3139,8 @@
       }
 
       function frameBoundsToScreenBounds(frameBounds, insets) {
-        const usableWidthRatio = Math.max(MIN_USABLE_RATIO, 1 - insets.left - insets.right);
-        const usableHeightRatio = Math.max(MIN_USABLE_RATIO, 1 - insets.top - insets.bottom);
+        const usableWidthRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.left - insets.right);
+        const usableHeightRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.top - insets.bottom);
         const x = frameBounds.x + (frameBounds.w * insets.left);
         const y = frameBounds.y + (frameBounds.h * insets.top);
         const w = frameBounds.w * usableWidthRatio;
@@ -3154,17 +3154,17 @@
       }
 
       function screenBoundsToFrameBounds(screenBounds, insets) {
-        const usableWidthRatio = Math.max(MIN_USABLE_RATIO, 1 - insets.left - insets.right);
-        const usableHeightRatio = Math.max(MIN_USABLE_RATIO, 1 - insets.top - insets.bottom);
+        const usableWidthRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.left - insets.right);
+        const usableHeightRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.top - insets.bottom);
         const w = screenBounds.w / usableWidthRatio;
         const h = screenBounds.h / usableHeightRatio;
         const x = screenBounds.x - (w * insets.left);
         const y = screenBounds.y - (h * insets.top);
         return {
-          x,
-          y,
-          w,
-          h
+          x: Math.round(x),
+          y: Math.round(y),
+          w: Math.round(w),
+          h: Math.round(h)
         };
       }
 
