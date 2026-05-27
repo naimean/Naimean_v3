@@ -683,10 +683,26 @@ test('worker rejects invalid shrimp clip id for proxy endpoint', async () => {
     GOOGLE_DRIVE_API_KEY: 'test-api-key'
   };
 
-  const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clip/../bad'), env);
+  const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clip/bad'), env);
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: 'Invalid clip id.' });
+});
+
+test('worker returns 503 for shrimp clip proxy when Drive API key is missing', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be called for shrimp clip proxy API');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clip/abc1234567890'), env);
+
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: 'Google Drive API key is not configured.' });
 });
 
 test('worker serves root path through the index asset alias', async () => {

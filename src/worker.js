@@ -157,7 +157,10 @@ async function handleShrimpClipProxy(request, env, clipId) {
   });
   const response = await fetch(`${GOOGLE_DRIVE_MEDIA_ENDPOINT}/${clipId}?${params.toString()}`);
   if (!response.ok || !response.body) {
-    return buildApiError(response.status || 502, 'Unable to fetch shrimp clip.');
+    return buildApiError(
+      response.status || 502,
+      `Failed to fetch clip from Google Drive (status: ${response.status || 502}).`
+    );
   }
 
   const headers = new Headers();
