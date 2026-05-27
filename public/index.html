@@ -4154,20 +4154,20 @@
         monitorPowerTimeoutIds = [];
       }
 
-      function isMonitorShadowTransparent(shadowOverlayEl) {
+      function isMonitorPoweredOn(shadowOverlayEl) {
         return !!shadowOverlayEl && shadowOverlayEl.classList.contains('is-monitor-on');
       }
 
       function isBigTvMonitorInteractive() {
-        return isMonitorShadowTransparent(bigTvShadowOverlayEl);
+        return isMonitorPoweredOn(bigTvShadowOverlayEl);
       }
 
       function isLeftMonitorInteractive() {
-        return isMonitorShadowTransparent(leftMonitorShadowOverlayEl);
+        return isMonitorPoweredOn(leftMonitorShadowOverlayEl);
       }
 
       function isRightMonitorInteractive() {
-        return isMonitorShadowTransparent(rightMonitorShadowOverlayEl);
+        return isMonitorPoweredOn(rightMonitorShadowOverlayEl);
       }
 
       function resetMonitorsToOffState() {
