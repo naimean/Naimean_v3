@@ -1017,7 +1017,7 @@
     .ashtray-smoke-effect {
       position: absolute;
       width: 280px;
-      height: calc(var(--smoke-rise-distance) + 140px);
+      height: calc(var(--smoke-rise-distance) + var(--smoke-tail-height, 140px));
       pointer-events: none;
       overflow: visible;
       z-index: 2;
@@ -2121,6 +2121,8 @@
       const ASHTRAY_SMOKE_Y = 1816;
       const SMOKE_CEILING_Y = 0;
       const SMOKE_FADE_TO_CEILING_RATIO = 0.6;
+      const MIN_SMOKE_RISE_DISTANCE = 320;
+      const SMOKE_SOURCE_VERTICAL_OFFSET = 64;
       const ASHTRAY_SMOKE_DEFAULT_WIDTH = 280;
       const ASHTRAY_SMOKE_TAIL_HEIGHT = 140;
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
@@ -2206,12 +2208,12 @@
           id: ASHTRAY_SMOKE_CONTROL_ID,
           x: ASHTRAY_SMOKE_SOURCE_X - Math.round(ASHTRAY_SMOKE_DEFAULT_WIDTH / 2),
           y: Math.round(ASHTRAY_SMOKE_Y - Math.max(
-            320,
+            MIN_SMOKE_RISE_DISTANCE,
             (ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO
-          ) + 64),
+          ) + SMOKE_SOURCE_VERTICAL_OFFSET),
           w: ASHTRAY_SMOKE_DEFAULT_WIDTH,
           h: Math.round(Math.max(
-            320,
+            MIN_SMOKE_RISE_DISTANCE,
             (ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO
           ) + ASHTRAY_SMOKE_TAIL_HEIGHT)
         },
@@ -4181,7 +4183,7 @@
 
         const smokeControlSpot = getRuntimeHotspotById(ASHTRAY_SMOKE_CONTROL_ID);
         const defaultSmokeRiseDistance = Math.max(
-          320,
+          MIN_SMOKE_RISE_DISTANCE,
           Math.round((ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO)
         );
         const defaultSmokeHeight = defaultSmokeRiseDistance + ASHTRAY_SMOKE_TAIL_HEIGHT;
@@ -4190,7 +4192,7 @@
           Math.round(smokeControlSpot?.h ?? defaultSmokeHeight)
         );
         const smokeRiseDistance = Math.max(
-          220,
+          MIN_SMOKE_RISE_DISTANCE,
           Math.round(smokeHeight - ASHTRAY_SMOKE_TAIL_HEIGHT)
         );
         const smokeEffectEl = document.createElement('div');
@@ -4200,7 +4202,7 @@
           smokeControlSpot?.x ?? (SCENE_OFFSET_X + ASHTRAY_SMOKE_SOURCE_X - Math.round(ASHTRAY_SMOKE_DEFAULT_WIDTH / 2))
         )}px`;
         smokeEffectEl.style.top = `${Math.round(
-          smokeControlSpot?.y ?? (ASHTRAY_SMOKE_Y - smokeRiseDistance + 64)
+          smokeControlSpot?.y ?? (ASHTRAY_SMOKE_Y - smokeRiseDistance + SMOKE_SOURCE_VERTICAL_OFFSET)
         )}px`;
         smokeEffectEl.style.width = `${Math.max(
           MIN_HOTSPOT_SIZE,
@@ -4208,6 +4210,7 @@
         )}px`;
         smokeEffectEl.style.height = `${smokeHeight}px`;
         smokeEffectEl.style.setProperty('--smoke-rise-distance', `${smokeRiseDistance}px`);
+        smokeEffectEl.style.setProperty('--smoke-tail-height', `${ASHTRAY_SMOKE_TAIL_HEIGHT}px`);
 
         const wisps = [
           { delay: -0.2, duration: 8.8, startX: -24, driftX: 10, curlA: 22, curlB: -16, angle: -14, variant: 'rise' },
