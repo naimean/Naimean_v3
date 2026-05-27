@@ -9,6 +9,7 @@
       --design-height: 2160;
       --tile-width: 3840;
       --commodore-power-on-color: #1ed760;
+      --commodore-tv-turn-off-duration: 0.45s;
     }
 
     * {
@@ -441,7 +442,6 @@
     .commodore-power-button-button.on {
       background: var(--commodore-power-on-color);
       border-color: var(--commodore-power-on-color);
-      pointer-events: none;
     }
 
     .commodore-power-button-button.on::before {
@@ -494,35 +494,60 @@
       pointer-events: none;
     }
 
-    @keyframes commodore-tv-turn-off {
+    @keyframes commodore-tv-shadow-takeover {
       0% {
-        clip-path: inset(50%);
-        filter: brightness(12);
-        opacity: 1;
+        opacity: 0;
+        filter: brightness(1.35);
       }
 
-      12% {
-        clip-path: inset(49.8% 0);
-        filter: brightness(8);
-        opacity: 1;
-      }
-
-      30% {
-        clip-path: inset(49% 0);
-        filter: brightness(4);
-        opacity: 1;
-      }
-
-      55% {
-        clip-path: inset(46% 0);
-        filter: brightness(1.5);
-        opacity: 1;
+      35% {
+        opacity: 0.35;
+        filter: brightness(1.2);
       }
 
       100% {
-        clip-path: inset(0%);
-        filter: brightness(1);
         opacity: 1;
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes commodore-tv-turn-off-line {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scaleX(0.08);
+      }
+
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scaleX(1);
+      }
+
+      72% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scaleX(0.1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scaleX(0.02);
+      }
+    }
+
+    @keyframes commodore-tv-turn-off-dot {
+      0%,
+      68% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0);
+      }
+
+      82% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.1);
       }
     }
 
@@ -534,8 +559,40 @@
 
     .commodore-shadow-overlay.tv-turning-off,
     .monitor-shadow-overlay.tv-turning-off {
-      animation: commodore-tv-turn-off 0.35s ease-out forwards;
+      animation: commodore-tv-shadow-takeover var(--commodore-tv-turn-off-duration) ease-out forwards;
       pointer-events: none;
+    }
+
+    .commodore-shadow-overlay.tv-turning-off::before,
+    .monitor-shadow-overlay.tv-turning-off::before,
+    .commodore-shadow-overlay.tv-turning-off::after,
+    .monitor-shadow-overlay.tv-turning-off::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      pointer-events: none;
+    }
+
+    .commodore-shadow-overlay.tv-turning-off::before,
+    .monitor-shadow-overlay.tv-turning-off::before {
+      width: 92%;
+      height: 2px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.95);
+      transform-origin: center;
+      animation: commodore-tv-turn-off-line var(--commodore-tv-turn-off-duration) ease-out forwards;
+    }
+
+    .commodore-shadow-overlay.tv-turning-off::after,
+    .monitor-shadow-overlay.tv-turning-off::after {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 28px rgba(255, 255, 255, 1);
+      animation: commodore-tv-turn-off-dot var(--commodore-tv-turn-off-duration) ease-out forwards;
     }
 
     @keyframes commodore-power-pulse {
