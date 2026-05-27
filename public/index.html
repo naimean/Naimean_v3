@@ -488,8 +488,53 @@
       }
     }
 
-    .commodore-shadow-overlay.tv-turning-on {
+    .commodore-shadow-overlay.tv-turning-on,
+    .monitor-shadow-overlay.tv-turning-on {
       animation: commodore-tv-turn-on 2s ease-in forwards;
+      pointer-events: none;
+    }
+
+    @keyframes commodore-tv-turn-off {
+      0% {
+        clip-path: inset(50%);
+        filter: brightness(12);
+        opacity: 1;
+      }
+
+      12% {
+        clip-path: inset(49.8% 0);
+        filter: brightness(8);
+        opacity: 1;
+      }
+
+      30% {
+        clip-path: inset(49% 0);
+        filter: brightness(4);
+        opacity: 1;
+      }
+
+      55% {
+        clip-path: inset(46% 0);
+        filter: brightness(1.5);
+        opacity: 1;
+      }
+
+      100% {
+        clip-path: inset(0%);
+        filter: brightness(1);
+        opacity: 1;
+      }
+    }
+
+    .commodore-shadow-overlay.is-monitor-on,
+    .monitor-shadow-overlay.is-monitor-on {
+      opacity: 0;
+      clip-path: inset(50%);
+    }
+
+    .commodore-shadow-overlay.tv-turning-off,
+    .monitor-shadow-overlay.tv-turning-off {
+      animation: commodore-tv-turn-off 0.7s ease-out forwards;
       pointer-events: none;
     }
 
@@ -1785,7 +1830,8 @@
       const LEGACY_HOTSPOT_API_PATH = '/api/data';
       const LEGACY_HOTSPOT_RECORD_TITLE = 'den-hotspots-v3';
       const SAVE_BUTTON_RESET_MS = 2000;
-      const COMMODORE_POWER_ON_ANIMATION_MS = 1500;
+      const COMMODORE_MONITOR_TURN_ON_MS = 2000;
+      const MONITOR_POWER_CASCADE_MS = 4000;
       const SAVE_RETRY_ATTEMPTS = 3;
       const SAVE_RETRY_DELAY_MS = 350;
       const TOUCH_MOMENTUM_DECAY = 0.004;
@@ -2146,8 +2192,12 @@
       let aquariumClipHistory = []; // URLs of clips that have been played, newest last
       let aquariumHistoryPointer = 0; // 0 = live (at newest), >0 = N steps back in history
       let commodorePowerButtonEl = null;
-      let commodorePowerOnTimeoutId = null;
       let isCommodorePoweringOn = false;
+      let commodoreShadowOverlayEl = null;
+      let bigTvShadowOverlayEl = null;
+      let leftMonitorShadowOverlayEl = null;
+      let rightMonitorShadowOverlayEl = null;
+      let monitorPowerTimeoutIds = [];
       const leftMonitorSegmentButtonsByState = new Map();
       let rightMonitorFlickerTimeoutId = null;
       let leftMonitorFlickerTimeoutId = null;
@@ -3723,6 +3773,34 @@
         window.location.href = isMobile ? CALENDAR_URL_MOBILE : CALENDAR_URL_DESKTOP;
       }
 
+      function cancelMonitorPowerTimeouts() {
+        monitorPowerTimeoutIds.forEach((id) => window.clearTimeout(id));
+        monitorPowerTimeoutIds = [];
+      }
+
+      function animateMonitorShadowOn(el) {
+        if (!el) return;
+        el.classList.remove('is-monitor-on', 'tv-turning-off', 'tv-turning-on');
+        void el.offsetHeight;
+        el.classList.add('tv-turning-on');
+        el.addEventListener('animationend', () => {
+          el.classList.remove('tv-turning-on');
+          el.classList.add('is-monitor-on');
+        }, { once: true });
+      }
+
+      function animateMonitorShadowOff(el) {
+        if (!el) return;
+        el.classList.remove('tv-turning-on');
+        el.classList.add('is-monitor-on');
+        void el.offsetHeight;
+        el.classList.remove('is-monitor-on');
+        el.classList.add('tv-turning-off');
+        el.addEventListener('animationend', () => {
+          el.classList.remove('tv-turning-off');
+        }, { once: true });
+      }
+
       function navigateToCommodoreFromDen() {
         try {
           sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_DEN);
@@ -3734,16 +3812,25 @@
 
       function triggerCommodorePowerOnSequence() {
         if (isCommodorePoweringOn) {
+          isCommodorePoweringOn = false;
+          cancelMonitorPowerTimeouts();
+          if (commodorePowerButtonEl) {
+            commodorePowerButtonEl.classList.remove('on');
+          }
+          [commodoreShadowOverlayEl, bigTvShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach(animateMonitorShadowOff);
           return;
         }
         isCommodorePoweringOn = true;
         if (commodorePowerButtonEl) {
           commodorePowerButtonEl.classList.add('on');
         }
-        commodorePowerOnTimeoutId = window.setTimeout(() => {
-          commodorePowerOnTimeoutId = null;
-          navigateToCommodoreFromDen();
-        }, COMMODORE_POWER_ON_ANIMATION_MS);
+        animateMonitorShadowOn(commodoreShadowOverlayEl);
+        [bigTvShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach((el) => {
+          if (!el) return;
+          const delay = COMMODORE_MONITOR_TURN_ON_MS + Math.floor(Math.random() * MONITOR_POWER_CASCADE_MS);
+          const id = window.setTimeout(() => animateMonitorShadowOn(el), delay);
+          monitorPowerTimeoutIds.push(id);
+        });
       }
 
       function createFlipCard(isMonth) {
@@ -4054,6 +4141,11 @@
         leftMonitorContentImageEl = null;
         commodorePowerButtonEl = null;
         isCommodorePoweringOn = false;
+        commodoreShadowOverlayEl = null;
+        bigTvShadowOverlayEl = null;
+        leftMonitorShadowOverlayEl = null;
+        rightMonitorShadowOverlayEl = null;
+        cancelMonitorPowerTimeouts();
         nedryGateOverlayEl = null;
         nedryGateVideoEl = null;
         if (flipClockRadioTuningAudioEl) {
@@ -4299,6 +4391,7 @@
 
           if (overlay.id === COMMODORE_SHADOW_OVERLAY_ID) {
             el.classList.add('commodore-shadow-overlay');
+            commodoreShadowOverlayEl = el;
           }
 
           if (
@@ -4307,6 +4400,9 @@
             overlay.id === RIGHT_MONITOR_SHADOW_LAYER_ID
           ) {
             el.classList.add('monitor-shadow-overlay');
+            if (overlay.id === BIG_TV_SHADOW_LAYER_ID) bigTvShadowOverlayEl = el;
+            else if (overlay.id === LEFT_MONITOR_SHADOW_LAYER_ID) leftMonitorShadowOverlayEl = el;
+            else rightMonitorShadowOverlayEl = el;
           }
 
           if (overlay.id === COMMODORE_POWER_BUTTON_OVERLAY_ID) {
@@ -4966,10 +5062,7 @@
           stopRadioTuningLoopPlayback(flipClockRadioTuningAudioEl);
           flipClockRadioTuningAudioEl.currentTime = 0;
         }
-        if (commodorePowerOnTimeoutId !== null) {
-          window.clearTimeout(commodorePowerOnTimeoutId);
-          commodorePowerOnTimeoutId = null;
-        }
+        cancelMonitorPowerTimeouts();
         stopMomentum();
       }
 
