@@ -74,6 +74,7 @@ async function fetchDriveShrimpClipCatalog(env) {
   if (!apiKey || !folderId || !isValidDriveFileId(folderId)) {
     return null;
   }
+  const safeFolderId = String(folderId).replace(/'/g, "\\'");
 
   const pageSize = toBoundedInteger(env.GOOGLE_DRIVE_PAGE_SIZE, 100, { min: 1, max: 1000 });
   const clipPaths = [];
@@ -82,7 +83,7 @@ async function fetchDriveShrimpClipCatalog(env) {
   while (true) {
     const params = new URLSearchParams({
       key: apiKey,
-      q: `'${folderId}' in parents and trashed=false and mimeType contains 'video/'`,
+      q: `'${safeFolderId}' in parents and trashed=false and mimeType contains 'video/'`,
       fields: 'nextPageToken,files(id,name,mimeType)',
       pageSize: String(pageSize),
       orderBy: 'name_natural',
@@ -159,7 +160,7 @@ async function handleShrimpClipProxy(request, env, clipId) {
   if (!response.ok || !response.body) {
     return buildApiError(
       response.status || 502,
-      `Failed to fetch clip from Google Drive (status: ${response.status || 502}).`
+      `Clip temporarily unavailable (status: ${response.status || 502}).`
     );
   }
 

@@ -2106,6 +2106,7 @@
       let discordButtonImgEl = null;
       let discordButtonSelected = false;
       let aquariumShrimpClips = [...AQUARIUM_LOCAL_SHRIMP_CLIPS];
+      let aquariumShrimpClipSet = new Set(aquariumShrimpClips);
       let aquariumShrimpClipQueue = [];
       let aquariumRightMonitorButtonStateBeforeSequence = false;
       let commodorePowerButtonEl = null;
@@ -2309,6 +2310,7 @@
             : [];
           if (clips.length > 0) {
             aquariumShrimpClips = clips;
+            aquariumShrimpClipSet = new Set(clips);
             aquariumShrimpClipQueue = [];
           }
         } catch {
@@ -2380,7 +2382,7 @@
         if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return false;
         }
-        const shrimpClipUrl = aquariumShrimpClips.includes(clipUrl)
+        const shrimpClipUrl = aquariumShrimpClipSet.has(clipUrl)
           ? clipUrl
           : getRandomShrimpClipUrl();
         setNedryGateVideoSource(shrimpClipUrl);
