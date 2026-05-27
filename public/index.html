@@ -490,7 +490,7 @@
 
     .commodore-shadow-overlay.tv-turning-on,
     .monitor-shadow-overlay.tv-turning-on {
-      animation: commodore-tv-turn-on 2s ease-in forwards;
+      animation: commodore-tv-turn-on 1s ease-in forwards;
       pointer-events: none;
     }
 
@@ -534,7 +534,7 @@
 
     .commodore-shadow-overlay.tv-turning-off,
     .monitor-shadow-overlay.tv-turning-off {
-      animation: commodore-tv-turn-off 0.7s ease-out forwards;
+      animation: commodore-tv-turn-off 0.35s ease-out forwards;
       pointer-events: none;
     }
 
@@ -1018,7 +1018,6 @@
       position: absolute;
       width: 280px;
       height: calc(var(--smoke-rise-distance) + 140px);
-      transform: translate(-50%, calc(-1 * var(--smoke-rise-distance) + 64px));
       pointer-events: none;
       overflow: visible;
       z-index: 2;
@@ -1052,6 +1051,23 @@
       animation: ashtray-smoke-curl calc(var(--smoke-duration, 10.6s) * 0.58) ease-in-out infinite alternate;
     }
 
+    .ashtray-smoke-wisp.ashtray-smoke-wisp-swirl {
+      width: 60px;
+      height: 188px;
+      border-radius: 44% 56% 58% 42%;
+      background:
+        radial-gradient(circle at 34% 30%, rgba(221, 232, 246, 0.3) 0%, rgba(192, 206, 229, 0.14) 28%, rgba(140, 154, 178, 0.06) 62%, rgba(112, 124, 148, 0) 100%);
+      filter: blur(2.1px);
+      animation: ashtray-smoke-swirl var(--smoke-duration, 11.4s) linear infinite;
+    }
+
+    .ashtray-smoke-wisp.ashtray-smoke-wisp-swirl::before {
+      inset: 24% 12% 0%;
+      border-radius: 62% 38% 44% 56%;
+      background: radial-gradient(circle at 55% 20%, rgba(234, 242, 255, 0.2) 0%, rgba(190, 203, 225, 0.09) 56%, rgba(128, 138, 158, 0) 100%);
+      animation: ashtray-smoke-swirl-curl calc(var(--smoke-duration, 11.4s) * 0.62) ease-in-out infinite alternate;
+    }
+
     @keyframes ashtray-smoke-rise {
       0% {
         opacity: 0;
@@ -1082,6 +1098,39 @@
       100% {
         transform: translateX(calc(var(--smoke-curl-a) * 0.26)) scaleY(1.1);
         opacity: 0.78;
+      }
+    }
+
+    @keyframes ashtray-smoke-swirl {
+      0% {
+        opacity: 0;
+        transform: translate3d(var(--smoke-start-x), 0, 0) scale(0.22) rotate(-8deg);
+      }
+      16% {
+        opacity: 0.42;
+      }
+      42% {
+        opacity: 0.32;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-curl-a)), calc(var(--smoke-rise-distance) * -0.3), 0) scale(0.8) rotate(calc(var(--smoke-curl-angle) * 0.75));
+      }
+      74% {
+        opacity: 0.16;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-curl-b)), calc(var(--smoke-rise-distance) * -0.7), 0) scale(1.12) rotate(calc(var(--smoke-curl-angle) * -0.9));
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-drift-x)), calc(var(--smoke-rise-distance) * -1), 0) scale(1.36) rotate(calc(var(--smoke-curl-angle) * 1.35));
+      }
+    }
+
+    @keyframes ashtray-smoke-swirl-curl {
+      0% {
+        transform: translateX(calc(var(--smoke-curl-b) * -0.18)) scale(0.92, 0.84);
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateX(calc(var(--smoke-curl-b) * 0.2)) scale(1.08, 1.2);
+        opacity: 0.74;
       }
     }
 
@@ -2067,10 +2116,13 @@
       const RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-right-monitor-side-frame-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
       const ASHTRAY_SMOKE_EFFECT_ID = 'ashtray-smoke-effect';
+      const ASHTRAY_SMOKE_CONTROL_ID = 'ashtray-smoke-effect-control';
       const ASHTRAY_SMOKE_SOURCE_X = 1374;
       const ASHTRAY_SMOKE_Y = 1816;
       const SMOKE_CEILING_Y = 0;
       const SMOKE_FADE_TO_CEILING_RATIO = 0.6;
+      const ASHTRAY_SMOKE_DEFAULT_WIDTH = 280;
+      const ASHTRAY_SMOKE_TAIL_HEIGHT = 140;
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
       const LEFT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1331, y: 1020, w: 280, h: 220 });
       const RIGHT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1758, y: 1014, w: 288, h: 228 });
@@ -2089,6 +2141,7 @@
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_OVERLAY_CONTROL_ID, 'Right Monitor Overlay');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, 'Right Monitor Shadow Layer');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
+      HOTSPOT_READABLE_LABELS.set(ASHTRAY_SMOKE_CONTROL_ID, 'Ashtray Smoke Effect');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
         'overlaymonitorscreencontrol'
@@ -2105,7 +2158,8 @@
         { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
         { controlId: RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, overlayId: RIGHT_MONITOR_SHADOW_LAYER_ID },
         { controlId: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, overlayId: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID },
-        { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
+        { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID },
+        { controlId: ASHTRAY_SMOKE_CONTROL_ID, overlayId: ASHTRAY_SMOKE_EFFECT_ID }
       ];
       const OVERLAY_CONTROL_TO_OVERLAY_ID = new Map(
         OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [controlId, overlayId])
@@ -2148,6 +2202,19 @@
         { id: RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
+        {
+          id: ASHTRAY_SMOKE_CONTROL_ID,
+          x: ASHTRAY_SMOKE_SOURCE_X - Math.round(ASHTRAY_SMOKE_DEFAULT_WIDTH / 2),
+          y: Math.round(ASHTRAY_SMOKE_Y - Math.max(
+            320,
+            (ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO
+          ) + 64),
+          w: ASHTRAY_SMOKE_DEFAULT_WIDTH,
+          h: Math.round(Math.max(
+            320,
+            (ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO
+          ) + ASHTRAY_SMOKE_TAIL_HEIGHT)
+        },
         { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_SCREEN_BOUNDS },
         { id: LEFT_MONITOR_SHADOW_LAYER_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
         { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS }
@@ -4110,32 +4177,54 @@
           return;
         }
         effectsLayer.querySelector(`#${ASHTRAY_SMOKE_EFFECT_ID}`)?.remove();
+        overlayElementsById.delete(ASHTRAY_SMOKE_EFFECT_ID);
 
-        const smokeEffectEl = document.createElement('div');
-        smokeEffectEl.id = ASHTRAY_SMOKE_EFFECT_ID;
-        smokeEffectEl.className = 'ashtray-smoke-effect';
-        smokeEffectEl.style.left = `${SCENE_OFFSET_X + ASHTRAY_SMOKE_SOURCE_X}px`;
-        smokeEffectEl.style.top = `${ASHTRAY_SMOKE_Y}px`;
-
-        const smokeRiseDistance = Math.max(
+        const smokeControlSpot = getRuntimeHotspotById(ASHTRAY_SMOKE_CONTROL_ID);
+        const defaultSmokeRiseDistance = Math.max(
           320,
           Math.round((ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO)
         );
+        const defaultSmokeHeight = defaultSmokeRiseDistance + ASHTRAY_SMOKE_TAIL_HEIGHT;
+        const smokeHeight = Math.max(
+          ASHTRAY_SMOKE_TAIL_HEIGHT + MIN_HOTSPOT_SIZE,
+          Math.round(smokeControlSpot?.h ?? defaultSmokeHeight)
+        );
+        const smokeRiseDistance = Math.max(
+          220,
+          Math.round(smokeHeight - ASHTRAY_SMOKE_TAIL_HEIGHT)
+        );
+        const smokeEffectEl = document.createElement('div');
+        smokeEffectEl.id = ASHTRAY_SMOKE_EFFECT_ID;
+        smokeEffectEl.className = 'ashtray-smoke-effect';
+        smokeEffectEl.style.left = `${Math.round(
+          smokeControlSpot?.x ?? (SCENE_OFFSET_X + ASHTRAY_SMOKE_SOURCE_X - Math.round(ASHTRAY_SMOKE_DEFAULT_WIDTH / 2))
+        )}px`;
+        smokeEffectEl.style.top = `${Math.round(
+          smokeControlSpot?.y ?? (ASHTRAY_SMOKE_Y - smokeRiseDistance + 64)
+        )}px`;
+        smokeEffectEl.style.width = `${Math.max(
+          MIN_HOTSPOT_SIZE,
+          Math.round(smokeControlSpot?.w ?? ASHTRAY_SMOKE_DEFAULT_WIDTH)
+        )}px`;
+        smokeEffectEl.style.height = `${smokeHeight}px`;
         smokeEffectEl.style.setProperty('--smoke-rise-distance', `${smokeRiseDistance}px`);
 
         const wisps = [
-          { delay: -0.2, duration: 8.8, startX: -24, driftX: 10, curlA: 22, curlB: -16, angle: -14 },
-          { delay: -1.6, duration: 9.5, startX: -8, driftX: 26, curlA: -20, curlB: 16, angle: 13 },
-          { delay: -2.9, duration: 10.1, startX: 4, driftX: -18, curlA: 18, curlB: -20, angle: -18 },
-          { delay: -4.4, duration: 11.4, startX: 16, driftX: 30, curlA: -26, curlB: 21, angle: 16 },
-          { delay: -5.9, duration: 9.8, startX: -30, driftX: 12, curlA: 14, curlB: -14, angle: -12 },
-          { delay: -7.2, duration: 10.9, startX: 22, driftX: -24, curlA: -18, curlB: 18, angle: 15 },
-          { delay: -8.4, duration: 9.2, startX: -16, driftX: 20, curlA: 20, curlB: -18, angle: -16 }
+          { delay: -0.2, duration: 8.8, startX: -24, driftX: 10, curlA: 22, curlB: -16, angle: -14, variant: 'rise' },
+          { delay: -1.6, duration: 9.5, startX: -8, driftX: 26, curlA: -20, curlB: 16, angle: 13, variant: 'rise' },
+          { delay: -2.9, duration: 10.1, startX: 4, driftX: -18, curlA: 18, curlB: -20, angle: -18, variant: 'rise' },
+          { delay: -4.4, duration: 11.4, startX: 16, driftX: 30, curlA: -26, curlB: 21, angle: 16, variant: 'swirl' },
+          { delay: -5.9, duration: 9.8, startX: -30, driftX: 12, curlA: 14, curlB: -14, angle: -12, variant: 'rise' },
+          { delay: -7.2, duration: 10.9, startX: 22, driftX: -24, curlA: -18, curlB: 18, angle: 15, variant: 'swirl' },
+          { delay: -8.4, duration: 9.2, startX: -16, driftX: 20, curlA: 20, curlB: -18, angle: -16, variant: 'rise' }
         ];
 
         wisps.forEach((wispConfig) => {
           const wispEl = document.createElement('span');
           wispEl.className = 'ashtray-smoke-wisp';
+          if (wispConfig.variant === 'swirl') {
+            wispEl.classList.add('ashtray-smoke-wisp-swirl');
+          }
           wispEl.style.setProperty('--smoke-delay', `${wispConfig.delay}s`);
           wispEl.style.setProperty('--smoke-duration', `${wispConfig.duration}s`);
           wispEl.style.setProperty('--smoke-start-x', `${wispConfig.startX}px`);
@@ -4147,6 +4236,7 @@
         });
 
         effectsLayer.appendChild(smokeEffectEl);
+        overlayElementsById.set(ASHTRAY_SMOKE_EFFECT_ID, smokeEffectEl);
       }
 
       function createHotspots(hotspotList) {
