@@ -22,7 +22,7 @@
     "AQUARIUM_LOCAL_CLIP_COUNT": "23",
     // Set DISCORD_CLIENT_ID to your Discord application's client ID to enable OAuth login.
     // The matching DISCORD_CLIENT_SECRET must be added as a Wrangler secret (not stored here).
-    "DISCORD_CLIENT_ID": ""
+    "DISCORD_CLIENT_ID": "1495879141638275213"
   },
   "durable_objects": {
     "bindings": [
