@@ -15,9 +15,10 @@ const DEFAULT_AQUARIUM_LOCAL_CLIP_COUNT = 23;
 function sanitizeHotspots(hotspots) {
   return (hotspots || []).map(h => ({
     id: String(h.id),
-    name: String(h.name || ''),
-    x: Number(h.x || 0),
-    y: Number(h.y || 0),
+    x: Number(h.x) || 0,
+    y: Number(h.y) || 0,
+    w: Number(h.w) || 0,
+    h: Number(h.h) || 0,
   }));
 }
 
