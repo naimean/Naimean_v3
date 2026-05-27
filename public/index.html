@@ -283,11 +283,11 @@
       z-index: 1;
     }
 
-    .screen-overlay.commodore-shadow-overlay {
+    .screen-overlay.commodore-shadow-overlay,
+    .screen-overlay.monitor-shadow-overlay {
       pointer-events: none;
-      z-index: 0;
-      background:
-        radial-gradient(120% 72% at 52% 66%, rgb(6, 8, 14) 0%, rgb(9, 12, 18) 54%, rgb(10, 12, 20) 100%);
+      z-index: 2;
+      background: #000;
       mix-blend-mode: normal;
       opacity: 1;
     }
@@ -381,13 +381,16 @@
       z-index: 1;
     }
 
-    #overlay-commodore-shadow {
-      z-index: 0;
+    #overlay-commodore-shadow,
+    #big_tv_shadow_layer,
+    #left_monitor_shadow_layer,
+    #right_monitor_shadow_layer {
+      z-index: 2;
     }
 
     #overlay-left-monitor-side-frame,
     #overlay-right-monitor-side-frame {
-      z-index: 2;
+      z-index: 3;
     }
 
     .commodore-desk-image {
@@ -1878,7 +1881,11 @@
         'assets/images/den_chapel.png'
       ];
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
+      const BIG_TV_SHADOW_LAYER_ID = 'big_tv_shadow_layer';
+      const BIG_TV_SHADOW_LAYER_CONTROL_ID = 'big_tv_shadow_layer_control';
       const LEFT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-left-monitor-control';
+      const LEFT_MONITOR_SHADOW_LAYER_ID = 'left_monitor_shadow_layer';
+      const LEFT_MONITOR_SHADOW_LAYER_CONTROL_ID = 'left_monitor_shadow_layer_control';
       const COMMODORE_OVERLAY_CONTROL_ID = 'overlay-commodore-screen-control';
       const COMMODORE_SHADOW_OVERLAY_ID = 'overlay-commodore-shadow';
       const COMMODORE_SHADOW_CONTROL_ID = 'overlay-commodore-shadow-control';
@@ -1892,6 +1899,8 @@
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
       const COMMODORE_MIN_SOURCE_HITBOX_HEIGHT = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_VERTICAL_INSET * 2);
       const RIGHT_MONITOR_OVERLAY_CONTROL_ID = 'overlay-right-monitor-control';
+      const RIGHT_MONITOR_SHADOW_LAYER_ID = 'right_monitor_shadow_layer';
+      const RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID = 'right_monitor_shadow_layer_control';
       const LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID = 'overlay-left-monitor-side-frame';
       const LEFT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-left-monitor-side-frame-control';
       const RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID = 'overlay-right-monitor-side-frame';
@@ -1908,9 +1917,12 @@
       HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
       HOTSPOT_READABLE_LABELS.set(DISCORD_OVERLAY_CONTROL_ID, 'Fullscreen Big TV');
+      HOTSPOT_READABLE_LABELS.set(BIG_TV_SHADOW_LAYER_CONTROL_ID, 'Big TV Shadow Layer');
       HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_OVERLAY_CONTROL_ID, 'Left Monitor Overlay');
+      HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_SHADOW_LAYER_CONTROL_ID, 'Left Monitor Shadow Layer');
       HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Left Monitor Side Frame');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_OVERLAY_CONTROL_ID, 'Right Monitor Overlay');
+      HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, 'Right Monitor Shadow Layer');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
@@ -1918,12 +1930,15 @@
       ]);
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
+        { controlId: BIG_TV_SHADOW_LAYER_CONTROL_ID, overlayId: BIG_TV_SHADOW_LAYER_ID },
         { controlId: LEFT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-left-monitor' },
+        { controlId: LEFT_MONITOR_SHADOW_LAYER_CONTROL_ID, overlayId: LEFT_MONITOR_SHADOW_LAYER_ID },
         { controlId: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, overlayId: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID },
         { controlId: COMMODORE_OVERLAY_CONTROL_ID, overlayId: 'overlay-commodore-screen' },
         { controlId: COMMODORE_SHADOW_CONTROL_ID, overlayId: COMMODORE_SHADOW_OVERLAY_ID },
         { controlId: COMMODORE_POWER_BUTTON_CONTROL_ID, overlayId: COMMODORE_POWER_BUTTON_OVERLAY_ID },
         { controlId: RIGHT_MONITOR_OVERLAY_CONTROL_ID, overlayId: 'overlay-right-monitor' },
+        { controlId: RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, overlayId: RIGHT_MONITOR_SHADOW_LAYER_ID },
         { controlId: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, overlayId: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID },
         { controlId: FLIP_CLOCK_OVERLAY_CONTROL_ID, overlayId: FLIP_CLOCK_OVERLAY_ID }
       ];
@@ -1960,13 +1975,16 @@
         ...WHITEBOARD_TASK_HOTSPOTS.map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
         { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
         { id: DISCORD_OVERLAY_CONTROL_ID, x: 1469, y: 330, w: 1000, h: 572 },
+        { id: BIG_TV_SHADOW_LAYER_CONTROL_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
         { id: COMMODORE_SHADOW_CONTROL_ID, x: 1682, y: 1095, w: 414, h: 198 },
         { id: COMMODORE_POWER_BUTTON_CONTROL_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
         { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, ...RIGHT_MONITOR_SCREEN_BOUNDS },
+        { id: RIGHT_MONITOR_SHADOW_LAYER_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
         { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_SCREEN_BOUNDS },
+        { id: LEFT_MONITOR_SHADOW_LAYER_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
         { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS }
       ];
 
@@ -1974,12 +1992,15 @@
       const overlayDefaults = [
         { id: DISCORD_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: AQUARIUM_OVERLAY_ID, x: 1468, y: 329, w: 1002, h: 574 },
+        { id: BIG_TV_SHADOW_LAYER_ID, x: 1468, y: 329, w: 1002, h: 574 },
         { id: 'overlay-left-monitor', ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_SHADOW_LAYER_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
         { id: LEFT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
         { id: COMMODORE_SHADOW_OVERLAY_ID, x: 1682, y: 1095, w: 414, h: 198 },
         { id: 'overlay-commodore-screen', x: 1703, y: 994, w: 372, h: 246 },
         { id: COMMODORE_POWER_BUTTON_OVERLAY_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
         { id: 'overlay-right-monitor', ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_SHADOW_LAYER_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_ID, x: 990, y: 1740, w: 360, h: 156 }
       ].map((overlay) => {
@@ -4235,6 +4256,14 @@
 
           if (overlay.id === COMMODORE_SHADOW_OVERLAY_ID) {
             el.classList.add('commodore-shadow-overlay');
+          }
+
+          if (
+            overlay.id === BIG_TV_SHADOW_LAYER_ID ||
+            overlay.id === LEFT_MONITOR_SHADOW_LAYER_ID ||
+            overlay.id === RIGHT_MONITOR_SHADOW_LAYER_ID
+          ) {
+            el.classList.add('monitor-shadow-overlay');
           }
 
           if (overlay.id === COMMODORE_POWER_BUTTON_OVERLAY_ID) {
