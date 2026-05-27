@@ -926,6 +926,77 @@
       mix-blend-mode: normal;
     }
 
+    .ashtray-smoke-effect {
+      position: absolute;
+      width: 280px;
+      height: calc(var(--smoke-rise-distance) + 140px);
+      transform: translate(-50%, calc(-1 * var(--smoke-rise-distance) + 64px));
+      pointer-events: none;
+      overflow: visible;
+      z-index: 2;
+    }
+
+    .ashtray-smoke-wisp {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 52px;
+      height: 170px;
+      border-radius: 55% 45% 52% 48%;
+      background:
+        radial-gradient(circle at 38% 28%, rgba(224, 232, 245, 0.34) 0%, rgba(205, 216, 236, 0.18) 24%, rgba(165, 176, 194, 0.08) 52%, rgba(128, 136, 155, 0) 100%);
+      filter: blur(1.8px);
+      opacity: 0;
+      transform-origin: 50% 100%;
+      will-change: transform, opacity;
+      animation: ashtray-smoke-rise var(--smoke-duration, 10.6s) linear infinite;
+      animation-delay: var(--smoke-delay, 0s);
+    }
+
+    .ashtray-smoke-wisp::before {
+      content: '';
+      position: absolute;
+      inset: 28% 16% 2%;
+      border-radius: 58% 42% 48% 52%;
+      background: radial-gradient(circle at 52% 22%, rgba(231, 238, 250, 0.22) 0%, rgba(187, 197, 218, 0.08) 52%, rgba(120, 128, 142, 0) 100%);
+      filter: blur(2.2px);
+      opacity: 0.72;
+      animation: ashtray-smoke-curl calc(var(--smoke-duration, 10.6s) * 0.58) ease-in-out infinite alternate;
+    }
+
+    @keyframes ashtray-smoke-rise {
+      0% {
+        opacity: 0;
+        transform: translate3d(var(--smoke-start-x), 0, 0) scale(0.24) rotate(0deg);
+      }
+      14% {
+        opacity: 0.46;
+      }
+      38% {
+        opacity: 0.36;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-curl-a)), calc(var(--smoke-rise-distance) * -0.34), 0) scale(0.74) rotate(calc(var(--smoke-curl-angle) * -0.45));
+      }
+      68% {
+        opacity: 0.2;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-curl-b)), calc(var(--smoke-rise-distance) * -0.66), 0) scale(1.04) rotate(var(--smoke-curl-angle));
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--smoke-start-x) + var(--smoke-drift-x)), calc(var(--smoke-rise-distance) * -1), 0) scale(1.28) rotate(calc(var(--smoke-curl-angle) * 1.18));
+      }
+    }
+
+    @keyframes ashtray-smoke-curl {
+      0% {
+        transform: translateX(calc(var(--smoke-curl-a) * -0.28)) scaleY(0.9);
+        opacity: 0.54;
+      }
+      100% {
+        transform: translateX(calc(var(--smoke-curl-a) * 0.26)) scaleY(1.1);
+        opacity: 0.78;
+      }
+    }
+
     /* ── Retro Desk Clock Overlay ──────────────────────────── */
     .flip-clock-overlay {
       --fc-scale: 0.72;
@@ -1906,6 +1977,11 @@
       const RIGHT_MONITOR_SIDE_FRAME_OVERLAY_ID = 'overlay-right-monitor-side-frame';
       const RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID = 'overlay-right-monitor-side-frame-control';
       const FLIP_CLOCK_OVERLAY_CONTROL_ID = 'overlay-flip-clock-control';
+      const ASHTRAY_SMOKE_EFFECT_ID = 'ashtray-smoke-effect';
+      const ASHTRAY_SMOKE_SOURCE_X = 1374;
+      const ASHTRAY_SMOKE_Y = 1816;
+      const SMOKE_CEILING_Y = 0;
+      const SMOKE_FADE_TO_CEILING_RATIO = 0.6;
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
       const LEFT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1331, y: 1020, w: 280, h: 220 });
       const RIGHT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1758, y: 1014, w: 288, h: 228 });
@@ -2020,6 +2096,7 @@
       const sceneLayer = document.getElementById('scene-layer');
       const hotspotLayer = document.getElementById('hotspot-layer');
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
+      const effectsLayer = document.getElementById('effects-layer');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
       const debugObjectSelect = document.getElementById('debug-object-select');
@@ -3898,6 +3975,50 @@
         });
       }
 
+      function createAshtraySmokeEffect() {
+        if (!effectsLayer) {
+          return;
+        }
+        effectsLayer.querySelector(`#${ASHTRAY_SMOKE_EFFECT_ID}`)?.remove();
+
+        const smokeEffectEl = document.createElement('div');
+        smokeEffectEl.id = ASHTRAY_SMOKE_EFFECT_ID;
+        smokeEffectEl.className = 'ashtray-smoke-effect';
+        smokeEffectEl.style.left = `${SCENE_OFFSET_X + ASHTRAY_SMOKE_SOURCE_X}px`;
+        smokeEffectEl.style.top = `${ASHTRAY_SMOKE_Y}px`;
+
+        const smokeRiseDistance = Math.max(
+          320,
+          Math.round((ASHTRAY_SMOKE_Y - SMOKE_CEILING_Y) * SMOKE_FADE_TO_CEILING_RATIO)
+        );
+        smokeEffectEl.style.setProperty('--smoke-rise-distance', `${smokeRiseDistance}px`);
+
+        const wisps = [
+          { delay: -0.2, duration: 8.8, startX: -24, driftX: 10, curlA: 22, curlB: -16, angle: -14 },
+          { delay: -1.6, duration: 9.5, startX: -8, driftX: 26, curlA: -20, curlB: 16, angle: 13 },
+          { delay: -2.9, duration: 10.1, startX: 4, driftX: -18, curlA: 18, curlB: -20, angle: -18 },
+          { delay: -4.4, duration: 11.4, startX: 16, driftX: 30, curlA: -26, curlB: 21, angle: 16 },
+          { delay: -5.9, duration: 9.8, startX: -30, driftX: 12, curlA: 14, curlB: -14, angle: -12 },
+          { delay: -7.2, duration: 10.9, startX: 22, driftX: -24, curlA: -18, curlB: 18, angle: 15 },
+          { delay: -8.4, duration: 9.2, startX: -16, driftX: 20, curlA: 20, curlB: -18, angle: -16 }
+        ];
+
+        wisps.forEach((wispConfig) => {
+          const wispEl = document.createElement('span');
+          wispEl.className = 'ashtray-smoke-wisp';
+          wispEl.style.setProperty('--smoke-delay', `${wispConfig.delay}s`);
+          wispEl.style.setProperty('--smoke-duration', `${wispConfig.duration}s`);
+          wispEl.style.setProperty('--smoke-start-x', `${wispConfig.startX}px`);
+          wispEl.style.setProperty('--smoke-drift-x', `${wispConfig.driftX}px`);
+          wispEl.style.setProperty('--smoke-curl-a', `${wispConfig.curlA}px`);
+          wispEl.style.setProperty('--smoke-curl-b', `${wispConfig.curlB}px`);
+          wispEl.style.setProperty('--smoke-curl-angle', `${wispConfig.angle}deg`);
+          smokeEffectEl.appendChild(wispEl);
+        });
+
+        effectsLayer.appendChild(smokeEffectEl);
+      }
+
       function createHotspots(hotspotList) {
         hotspotLayer.textContent = '';
         const toTitleCase = (value) =>
@@ -4945,6 +5066,7 @@
 
         createOverlays();
         createSceneTiles();
+        createAshtraySmokeEffect();
         createHotspots(hotspots);
         if (useLiteRendering) {
           document.body.classList.add('lite-rendering');
