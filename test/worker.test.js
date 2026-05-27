@@ -179,6 +179,58 @@ test('worker returns 500 for /api/hotspots when HOTSPOT_STORE binding is missing
   assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
 });
 
+test('worker redirects Discord auth alias routes to Discord OAuth authorize URL', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: '1234567890',
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord auth routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/discord/oauth'), env);
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fapi%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('worker redirects Discord 0auth route to guest invite when DISCORD_CLIENT_ID is missing', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord auth routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/discord/0auth'), env);
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), 'https://discord.gg/kTkD7N3JN');
+});
+
+test('worker supports trailing slash on Discord callback route', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord callback routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(
+    new Request('https://example.com/api/discord/callback/?code=abc123'),
+    env
+  );
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
+});
+
 test('worker serves non-api requests through ASSETS binding', async () => {
   const calls = { assetsFetch: [] };
   const env = {
