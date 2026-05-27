@@ -3200,7 +3200,8 @@
             x: sourceX,
             y: sourceY,
             w: sourceW,
-            h: sourceH
+            h: sourceH,
+            ...(spot.locked ? { locked: true } : {})
           };
         });
       }
@@ -3230,7 +3231,8 @@
             x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
             y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
             w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
-            h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
+            h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h,
+            ...(entry.locked === true ? { locked: true } : {})
           };
           const normalizedOverlayControlBounds = normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback, {
             allowLegacyNormalization: !hasModernMonitorSideFrameControls
@@ -3242,13 +3244,17 @@
       function getSavedHotspotsFromDom() {
         const saved = [];
         hotspotLayer.querySelectorAll('.hotspot').forEach((el) => {
-          saved.push({
+          const entry = {
             id: el.id,
             x: Math.round(parseFloat(el.style.left)),
             y: Math.round(parseFloat(el.style.top)),
             w: Math.round(parseFloat(el.style.width)),
             h: Math.round(parseFloat(el.style.height))
-          });
+          };
+          if (el.classList.contains('locked-debug-hotspot')) {
+            entry.locked = true;
+          }
+          saved.push(entry);
         });
         return saved;
       }
@@ -3914,8 +3920,9 @@
           ) {
             el.classList.add('overlay-control-hotspot');
           }
-          if (LOCKED_DEBUG_HOTSPOT_IDS.has(spot.id)) {
+          if (LOCKED_DEBUG_HOTSPOT_IDS.has(spot.id) || spot.locked) {
             el.classList.add('locked-debug-hotspot');
+            LOCKED_DEBUG_HOTSPOT_IDS.add(spot.id);
           }
           el.id = spot.id;
           el.style.left = `${spot.x}px`;
