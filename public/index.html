@@ -3171,6 +3171,25 @@
         playBigTvPromptIntroSequence();
       }
 
+      function hideAllMonitorShadows() {
+        [commodoreShadowOverlayEl, bigTvShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach((el) => {
+          if (!el) {
+            return;
+          }
+          el.classList.remove('tv-turning-on', 'tv-turning-off');
+          el.classList.add('is-monitor-on');
+        });
+      }
+
+      function shouldStartNedryGateFromDiscordAuth(pageUrl) {
+        const loginState = pageUrl.searchParams.get('login');
+        const hasLoginSuccess = typeof loginState === 'string' && loginState.toLowerCase() === 'success';
+        const hasDiscordAuthComplete = pageUrl.searchParams.has(DISCORD_AUTH_COMPLETE_PARAM);
+        const hasOAuthCode = pageUrl.searchParams.has('code');
+        const hasOAuthError = pageUrl.searchParams.has('error');
+        return hasDiscordAuthComplete || hasLoginSuccess || (hasOAuthCode && !hasOAuthError);
+      }
+
       function getRandomMonitorStaticDurationMs() {
         return MONITOR_STATIC_MIN_DURATION_MS + Math.floor(
           Math.random() * (MONITOR_STATIC_MAX_DURATION_MS - MONITOR_STATIC_MIN_DURATION_MS + 1)
@@ -5570,9 +5589,18 @@
         }
 
         const pageUrl = new URL(window.location.href);
-        if (pageUrl.searchParams.has(DISCORD_AUTH_COMPLETE_PARAM)) {
-          pageUrl.searchParams.delete(DISCORD_AUTH_COMPLETE_PARAM);
+        if (shouldStartNedryGateFromDiscordAuth(pageUrl)) {
+          [
+            DISCORD_AUTH_COMPLETE_PARAM,
+            'code',
+            'state',
+            'error',
+            'error_description',
+            'login',
+            'username'
+          ].forEach((paramName) => pageUrl.searchParams.delete(paramName));
           window.history.replaceState(null, '', pageUrl.toString());
+          hideAllMonitorShadows();
           activateBigTvPromptMode();
         }
       }
