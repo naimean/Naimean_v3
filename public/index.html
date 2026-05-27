@@ -1829,6 +1829,9 @@
       const NEDRY_GATE_VIDEO_URL = 'assets/video/nedrygate.mp4';
       const BIG_TV_RICKROLL_VIDEO_URL = 'assets/video/notarickroll-piece-1.v20260424.mp4';
       const ZELDA_SECRET_AUDIO_URL = 'assets/audio/zelda-secret.v20260424.mp3';
+      const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
+      const DISCORD_AUTH_PATH = '/api/discord/auth';
+      const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
       const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
       const STARSHRIMP_LOGO_IMAGE_URL = 'assets/images/starshrimp_logo.png';
@@ -2991,9 +2994,9 @@
             }
           });
         }
-        const zeldaEndedPromise = waitForMediaPlaybackToEnd(zeldaAudio);
+
+        // Rickroll starts as soon as static ends — do not wait for Zelda audio.
         const staticEnded = await playBigTvStaticPass(sequenceToken);
-        const zeldaEnded = await zeldaEndedPromise;
 
         if (sequenceToken !== bigTvPromptSequenceToken) {
           hideAquariumStaticOverlay();
@@ -3003,11 +3006,14 @@
 
         hideAquariumStaticOverlay();
         stopZeldaSecretAudioPlayback();
-        if (!staticEnded || !zeldaEnded) {
+        if (!staticEnded) {
           return;
         }
 
-        await playBigTvVideoPass(sequenceToken, BIG_TV_RICKROLL_VIDEO_URL);
+        const rickrollEnded = await playBigTvVideoPass(sequenceToken, BIG_TV_RICKROLL_VIDEO_URL);
+        if (rickrollEnded && sequenceToken === bigTvPromptSequenceToken) {
+          window.location.assign(DISCORD_GUEST_INVITE_URL);
+        }
       }
 
       function submitBigTvPrompt() {
@@ -4260,12 +4266,7 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
-              discordButtonSelected = !discordButtonSelected;
-              if (discordButtonSelected) {
-                setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
-              }
-              syncDiscordButtonUi();
-              activateBigTvPromptMode();
+              window.location.assign(DISCORD_AUTH_PATH);
             });
 
             const img = document.createElement('img');
@@ -4922,6 +4923,13 @@
           debugStatus.textContent = hasServerHotspots
             ? 'Hotspots loaded from the server.'
             : 'Server hotspots unavailable; loaded bundled default hotspots.';
+        }
+
+        const pageUrl = new URL(window.location.href);
+        if (pageUrl.searchParams.has(DISCORD_AUTH_COMPLETE_PARAM)) {
+          pageUrl.searchParams.delete(DISCORD_AUTH_COMPLETE_PARAM);
+          window.history.replaceState(null, '', pageUrl.toString());
+          activateBigTvPromptMode();
         }
       }
 

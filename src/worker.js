@@ -227,6 +227,35 @@ const HTML_ROUTE_ALIASES = new Map([
   ['/hallway', '/index.html'],
 ]);
 
+const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
+const DISCORD_OAUTH_AUTHORIZE_URL = 'https://discord.com/api/oauth2/authorize';
+const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
+
+function handleDiscordAuth(request, env) {
+  const clientId = env.DISCORD_CLIENT_ID;
+  if (!clientId) {
+    return Response.redirect(DISCORD_GUEST_INVITE_URL, 302);
+  }
+  const url = new URL(request.url);
+  const redirectUri = `${url.origin}/api/discord/callback`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'identify',
+  });
+  return Response.redirect(`${DISCORD_OAUTH_AUTHORIZE_URL}?${params.toString()}`, 302);
+}
+
+function handleDiscordCallback(request) {
+  const url = new URL(request.url);
+  const error = url.searchParams.get('error');
+  if (error || !url.searchParams.get('code')) {
+    return Response.redirect(`${url.origin}/`, 302);
+  }
+  return Response.redirect(`${url.origin}/?${DISCORD_AUTH_COMPLETE_PARAM}=1`, 302);
+}
+
 export class HotspotStore {
   constructor(state) {
     this.state = state;
@@ -278,6 +307,14 @@ export default {
     if (url.pathname.startsWith('/api/aquarium/shrimp-clip/')) {
       const clipId = url.pathname.split('/').pop() || '';
       return handleShrimpClipProxy(request, env, clipId);
+    }
+
+    if (url.pathname === '/api/discord/auth') {
+      return handleDiscordAuth(request, env);
+    }
+
+    if (url.pathname === '/api/discord/callback') {
+      return handleDiscordCallback(request);
     }
 
     if (url.pathname === '/api/hotspots') {
