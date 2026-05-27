@@ -2216,18 +2216,54 @@
         });
       }
 
+      function getBigTvVideoFullscreenTarget(targetOverlayEl) {
+        if (!targetOverlayEl) {
+          return null;
+        }
+        const activeVideo = targetOverlayEl.querySelector(
+          '.nedry-gate-overlay.is-active .nedry-gate-video, .discord-static-overlay.is-active .discord-static-video'
+        );
+        if (activeVideo instanceof HTMLVideoElement) {
+          return activeVideo;
+        }
+        const fallbackVideo = targetOverlayEl.querySelector('.nedry-gate-video, .discord-static-video');
+        return fallbackVideo instanceof HTMLVideoElement ? fallbackVideo : null;
+      }
+
+      function enterBigTvVideoFullscreenFallback(targetOverlayEl) {
+        const targetVideo = getBigTvVideoFullscreenTarget(targetOverlayEl);
+        if (!targetVideo || typeof targetVideo.webkitEnterFullscreen !== 'function') {
+          return false;
+        }
+        try {
+          targetVideo.webkitEnterFullscreen();
+          return true;
+        } catch (error) {
+          console.warn('Unable to enter iOS video fullscreen mode.', error);
+          return false;
+        }
+      }
+
       async function enterBigTvFullscreen(targetOverlayEl = getActiveBigTvFullscreenTarget()) {
-        if (
-          !targetOverlayEl ||
-          document.fullscreenElement === targetOverlayEl ||
-          typeof targetOverlayEl.requestFullscreen !== 'function'
-        ) {
+        if (!targetOverlayEl || document.fullscreenElement === targetOverlayEl) {
+          return;
+        }
+        if (isIOSDevice && enterBigTvVideoFullscreenFallback(targetOverlayEl)) {
+          return;
+        }
+        if (typeof targetOverlayEl.requestFullscreen !== 'function') {
+          if (!enterBigTvVideoFullscreenFallback(targetOverlayEl)) {
+            console.warn('Unable to enter big TV fullscreen mode: API unavailable.');
+          }
           return;
         }
         try {
           await targetOverlayEl.requestFullscreen();
         } catch (error) {
           console.warn('Unable to enter big TV fullscreen mode.', error);
+          if (!enterBigTvVideoFullscreenFallback(targetOverlayEl)) {
+            console.warn('Unable to enter big TV fullscreen fallback mode.');
+          }
         }
       }
 
