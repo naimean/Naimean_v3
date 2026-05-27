@@ -2037,8 +2037,7 @@
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
       const MIN_MONITOR_RATIO_DENOMINATOR = 0.0001; // Prevents divide-by-zero when converting between screen-window and frame bounds.
-      const LEGACY_MONITOR_OVERLAY_FRAME_TOLERANCE_PX = 12; // Legacy monitor overlay controls were frame-sized and may drift slightly from expected frame bounds.
-      const LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX = 12; // Legacy side-frame hotspot saves can drift by a few pixels from computed screen-window bounds.
+      const LEGACY_MONITOR_BOUNDS_TOLERANCE_PX = 12; // Legacy monitor control bounds may drift slightly from expected monitor frame/screen-window coordinates.
       const COMMODORE_HITBOX_HORIZONTAL_INSET = 40; // Shrinks Commodore click area while preserving overlay artwork width.
       const COMMODORE_HITBOX_VERTICAL_INSET = 70; // Shrinks Commodore click area while preserving overlay artwork height.
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
@@ -3250,10 +3249,10 @@
         const legacyFrameBounds = MONITOR_FRAME_BOUNDS_BY_OVERLAY_CONTROL_ID.get(spot.id);
         if (!insets || !legacyFrameBounds) return spot;
         const resemblesLegacyFrameBounds =
-          Math.abs(spot.x - legacyFrameBounds.x) <= LEGACY_MONITOR_OVERLAY_FRAME_TOLERANCE_PX &&
-          Math.abs(spot.y - legacyFrameBounds.y) <= LEGACY_MONITOR_OVERLAY_FRAME_TOLERANCE_PX &&
-          Math.abs(spot.w - legacyFrameBounds.w) <= LEGACY_MONITOR_OVERLAY_FRAME_TOLERANCE_PX &&
-          Math.abs(spot.h - legacyFrameBounds.h) <= LEGACY_MONITOR_OVERLAY_FRAME_TOLERANCE_PX;
+          Math.abs(spot.x - legacyFrameBounds.x) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.y - legacyFrameBounds.y) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.w - legacyFrameBounds.w) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.h - legacyFrameBounds.h) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX;
         if (!resemblesLegacyFrameBounds) {
           return spot;
         }
@@ -3272,8 +3271,8 @@
         if (!insets) return spot;
         const legacyScreenBounds = frameBoundsToScreenBounds(fallback, insets);
         const resemblesLegacyScreenBounds =
-          Math.abs(spot.w - legacyScreenBounds.w) <= LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX &&
-          Math.abs(spot.h - legacyScreenBounds.h) <= LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX;
+          Math.abs(spot.w - legacyScreenBounds.w) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.h - legacyScreenBounds.h) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX;
         if (!resemblesLegacyScreenBounds) {
           return spot;
         }
