@@ -2141,16 +2141,24 @@
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
         const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
-          discordOverlayEl.style.visibility = shouldShowBigTvOverlay ? 'hidden' : 'visible';
+          const shouldHideDiscordOverlay = shouldShowBigTvOverlay && fullscreenElement !== discordOverlayEl;
+          discordOverlayEl.style.visibility = shouldHideDiscordOverlay ? 'hidden' : 'visible';
         }
         if (aquariumOverlayEl) {
           aquariumOverlayEl.classList.toggle('is-active', shouldShowBigTvOverlay);
         }
         if (
-          (shouldShowBigTvOverlay && fullscreenElement === discordOverlayEl) ||
-          (!shouldShowBigTvOverlay && fullscreenElement === aquariumOverlayEl)
+          shouldShowBigTvOverlay &&
+          fullscreenElement === discordOverlayEl &&
+          aquariumOverlayEl
         ) {
-          void exitBigTvFullscreen();
+          void enterBigTvFullscreen(aquariumOverlayEl);
+        } else if (
+          !shouldShowBigTvOverlay &&
+          fullscreenElement === aquariumOverlayEl &&
+          discordOverlayEl
+        ) {
+          void enterBigTvFullscreen(discordOverlayEl);
         }
       }
 
