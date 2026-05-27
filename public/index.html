@@ -4154,6 +4154,41 @@
         monitorPowerTimeoutIds = [];
       }
 
+      function isMonitorShadowTransparent(shadowOverlayEl) {
+        return !!shadowOverlayEl && shadowOverlayEl.classList.contains('is-monitor-on');
+      }
+
+      function isBigTvMonitorInteractive() {
+        return isMonitorShadowTransparent(bigTvShadowOverlayEl);
+      }
+
+      function isLeftMonitorInteractive() {
+        return isMonitorShadowTransparent(leftMonitorShadowOverlayEl);
+      }
+
+      function isRightMonitorInteractive() {
+        return isMonitorShadowTransparent(rightMonitorShadowOverlayEl);
+      }
+
+      function resetMonitorsToOffState() {
+        stopAquariumPlaybackSequence();
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+        stopZeldaSecretAudioPlayback();
+        stopMonitorFlickerLoops();
+        if (rightMonitorShrimpLogoOverlayEl) {
+          rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
+        }
+        discordButtonSelected = false;
+        aquariumRightMonitorButtonStateBeforeSequence = false;
+        syncDiscordButtonUi();
+        setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
+        if (isBigTvFullscreenTarget(document.fullscreenElement)) {
+          void exitBigTvFullscreen();
+        }
+      }
+
       function animateMonitorShadowOn(el) {
         if (!el) return;
         if (el.classList.contains('is-monitor-on') && !el.classList.contains('tv-turning-off')) return;
@@ -4191,6 +4226,7 @@
         if (isCommodorePoweringOn) {
           isCommodorePoweringOn = false;
           cancelMonitorPowerTimeouts();
+          resetMonitorsToOffState();
           if (commodorePowerButtonEl) {
             commodorePowerButtonEl.classList.remove('on');
           }
@@ -4569,6 +4605,9 @@
               return;
             }
             if (spot.id === DISCORD_OVERLAY_CONTROL_ID) {
+              if (!isBigTvMonitorInteractive()) {
+                return;
+              }
               void enterBigTvFullscreen();
               return;
             }
@@ -4578,10 +4617,16 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
+              if (!isBigTvMonitorInteractive()) {
+                return;
+              }
               playAquariumHotspotSequence();
               return;
             }
             if (NEDRY_GATE_TRIGGER_HOTSPOT_IDS.has(spot.id)) {
+              if (!isRightMonitorInteractive()) {
+                return;
+              }
               activateBigTvPromptMode();
               return;
             }
@@ -4804,6 +4849,9 @@
 
           if (BIG_TV_FULLSCREEN_OVERLAY_IDS.has(overlay.id)) {
             el.addEventListener('click', (event) => {
+              if (!isBigTvMonitorInteractive()) {
+                return;
+              }
               if (
                 event.target instanceof Element &&
                 event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-fullscreen-exit-button')
@@ -4844,6 +4892,9 @@
               segment.addEventListener('pointerdown', (event) => event.stopPropagation());
               segment.addEventListener('click', (event) => {
                 event.stopPropagation();
+                if (!isLeftMonitorInteractive()) {
+                  return;
+                }
                 interruptAquariumPlaybackSequence();
                 setLeftMonitorState(
                   state === leftMonitorSelectedState
@@ -4930,6 +4981,9 @@
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
             button.addEventListener('click', (event) => {
               event.stopPropagation();
+              if (!isRightMonitorInteractive()) {
+                return;
+              }
               window.location.assign(DISCORD_AUTH_PATH);
             });
 
