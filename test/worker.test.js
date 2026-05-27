@@ -235,6 +235,96 @@ test('worker supports trailing slash on Discord callback route', async () => {
   assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
 });
 
+test('worker enriches Discord callback redirect with profile details after successful OAuth exchange', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    const requestUrl = typeof input === 'string' ? input : input.url;
+
+    if (requestUrl === 'https://discord.com/api/v10/oauth2/token') {
+      assert.equal(init.method, 'POST');
+      assert.equal(init.headers['Content-Type'], 'application/x-www-form-urlencoded');
+      assert.equal(
+        init.body.toString(),
+        'client_id=1234567890&client_secret=super-secret&grant_type=authorization_code&code=abc123&redirect_uri=https%3A%2F%2Fexample.com%2Fapi%2Fdiscord%2Fcallback'
+      );
+      return new Response(JSON.stringify({ access_token: 'discord-access-token' }), {
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    if (requestUrl === 'https://discord.com/api/v10/users/@me') {
+      assert.equal(init.headers.Authorization.startsWith('Bearer '), true);
+      return new Response(JSON.stringify({
+        id: '424242',
+        username: 'naimean',
+        global_name: 'Noah',
+        discriminator: '0',
+        avatar: 'avatarhash'
+      }), {
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    throw new Error(`Unexpected fetch URL: ${requestUrl}`);
+  };
+
+  try {
+    const response = await router.fetch(
+      new Request('https://example.com/api/discord/callback?code=abc123'),
+      {
+        DISCORD_CLIENT_ID: '1234567890',
+        DISCORD_CLIENT_SECRET: 'super-secret',
+        ASSETS: {
+          async fetch() {
+            throw new Error('ASSETS should not be used for Discord callback routes');
+          }
+        }
+      }
+    );
+
+    assert.equal(response.status, 302);
+    assert.equal(
+      response.headers.get('location'),
+      'https://example.com/?discord_auth_complete=1&login=success&discord_username=naimean&discord_display_name=Noah&discord_user_id=424242&discord_discriminator=0&discord_avatar_url=https%3A%2F%2Fcdn.discordapp.com%2Favatars%2F424242%2Favatarhash.png%3Fsize%3D128&username=naimean'
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker falls back to auth-complete redirect when Discord OAuth exchange fails', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const requestUrl = typeof input === 'string' ? input : input.url;
+
+    if (requestUrl === 'https://discord.com/api/v10/oauth2/token') {
+      return new Response('upstream error', { status: 500 });
+    }
+
+    throw new Error(`Unexpected fetch URL: ${requestUrl}`);
+  };
+
+  try {
+    const response = await router.fetch(
+      new Request('https://example.com/api/discord/callback?code=abc123'),
+      {
+        DISCORD_CLIENT_ID: '1234567890',
+        DISCORD_CLIENT_SECRET: 'super-secret',
+        ASSETS: {
+          async fetch() {
+            throw new Error('ASSETS should not be used for Discord callback routes');
+          }
+        }
+      }
+    );
+
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('worker supports V2 Discord login route aliases and uses canonical callback redirect URI', async () => {
   const env = {
     DISCORD_CLIENT_ID: '1234567890',
