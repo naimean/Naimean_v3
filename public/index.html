@@ -2037,8 +2037,7 @@
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
       const MIN_MONITOR_RATIO_DENOMINATOR = 0.0001; // Prevents divide-by-zero when converting between screen-window and frame bounds.
-      const LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER = 1.35; // Legacy monitor controls were frame-sized and are ~35% larger than the modern screen-window controls.
-      const LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX = 12; // Legacy side-frame hotspot saves can drift by a few pixels from computed screen-window bounds.
+      const LEGACY_MONITOR_BOUNDS_TOLERANCE_PX = 12; // Legacy monitor control bounds may drift slightly from expected monitor frame/screen-window coordinates.
       const COMMODORE_HITBOX_HORIZONTAL_INSET = 40; // Shrinks Commodore click area while preserving overlay artwork width.
       const COMMODORE_HITBOX_VERTICAL_INSET = 70; // Shrinks Commodore click area while preserving overlay artwork height.
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
@@ -2088,6 +2087,10 @@
       const MONITOR_SCREEN_INSETS_BY_CONTROL_ID = new Map([
         [LEFT_MONITOR_OVERLAY_CONTROL_ID, LEFT_MONITOR_SCREEN_WINDOW_INSETS],
         [RIGHT_MONITOR_OVERLAY_CONTROL_ID, RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
+      ]);
+      const MONITOR_FRAME_BOUNDS_BY_OVERLAY_CONTROL_ID = new Map([
+        [LEFT_MONITOR_OVERLAY_CONTROL_ID, LEFT_MONITOR_FRAME_BOUNDS],
+        [RIGHT_MONITOR_OVERLAY_CONTROL_ID, RIGHT_MONITOR_FRAME_BOUNDS]
       ]);
       const MONITOR_SCREEN_INSETS_BY_SIDE_FRAME_CONTROL_ID = new Map([
         [LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, LEFT_MONITOR_SCREEN_WINDOW_INSETS],
@@ -3240,12 +3243,17 @@
         };
       }
 
-      function normalizeLegacyMonitorOverlayControlBounds(spot, fallback) {
+      function normalizeLegacyMonitorOverlayControlBounds(spot, fallback, { allowLegacyNormalization = true } = {}) {
+        if (!allowLegacyNormalization) return spot;
         const insets = MONITOR_SCREEN_INSETS_BY_CONTROL_ID.get(spot.id);
-        if (!insets) return spot;
-        const legacyWidthThreshold = Math.round(fallback.w * LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER);
-        const legacyHeightThreshold = Math.round(fallback.h * LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER);
-        if (spot.w < legacyWidthThreshold && spot.h < legacyHeightThreshold) {
+        const legacyFrameBounds = MONITOR_FRAME_BOUNDS_BY_OVERLAY_CONTROL_ID.get(spot.id);
+        if (!insets || !legacyFrameBounds) return spot;
+        const resemblesLegacyFrameBounds =
+          Math.abs(spot.x - legacyFrameBounds.x) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.y - legacyFrameBounds.y) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.w - legacyFrameBounds.w) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.h - legacyFrameBounds.h) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX;
+        if (!resemblesLegacyFrameBounds) {
           return spot;
         }
         const normalizedScreenBounds = frameBoundsToScreenBounds(spot, insets);
@@ -3263,8 +3271,8 @@
         if (!insets) return spot;
         const legacyScreenBounds = frameBoundsToScreenBounds(fallback, insets);
         const resemblesLegacyScreenBounds =
-          Math.abs(spot.w - legacyScreenBounds.w) <= LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX &&
-          Math.abs(spot.h - legacyScreenBounds.h) <= LEGACY_MONITOR_SIDE_FRAME_TOLERANCE_PX;
+          Math.abs(spot.w - legacyScreenBounds.w) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX &&
+          Math.abs(spot.h - legacyScreenBounds.h) <= LEGACY_MONITOR_BOUNDS_TOLERANCE_PX;
         if (!resemblesLegacyScreenBounds) {
           return spot;
         }
@@ -3331,6 +3339,9 @@
           if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string') return;
           entriesById.set(entry.id, entry);
         });
+        const hasModernMonitorSideFrameControls =
+          entriesById.has(LEFT_MONITOR_SIDE_FRAME_CONTROL_ID) ||
+          entriesById.has(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID);
 
         return defaultHotspots.map((fallback) => {
           const entry = entriesById.get(fallback.id);
@@ -3348,7 +3359,9 @@
             w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
             h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
           };
-          const normalizedOverlayControlBounds = normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback);
+          const normalizedOverlayControlBounds = normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback, {
+            allowLegacyNormalization: !hasModernMonitorSideFrameControls
+          });
           return normalizeLegacyMonitorSideFrameControlBounds(normalizedOverlayControlBounds, fallback);
         });
       }
