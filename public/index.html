@@ -450,6 +450,49 @@
       animation: none;
     }
 
+    @keyframes commodore-tv-turn-on {
+      0% {
+        clip-path: inset(0%);
+        filter: brightness(1);
+        opacity: 1;
+      }
+
+      40% {
+        clip-path: inset(47% 0);
+        filter: brightness(1.2);
+        opacity: 1;
+      }
+
+      65% {
+        clip-path: inset(49.2% 0);
+        filter: brightness(4);
+        opacity: 1;
+      }
+
+      80% {
+        clip-path: inset(49.7% 0);
+        filter: brightness(8);
+        opacity: 1;
+      }
+
+      92% {
+        clip-path: inset(49.9% 0);
+        filter: brightness(12);
+        opacity: 0.85;
+      }
+
+      100% {
+        clip-path: inset(50%);
+        filter: brightness(1);
+        opacity: 0;
+      }
+    }
+
+    .commodore-shadow-overlay.tv-turning-on {
+      animation: commodore-tv-turn-on 2s ease-in forwards;
+      pointer-events: none;
+    }
+
     @keyframes commodore-power-pulse {
       0% {
         box-shadow: 0 0 18px 8px #ff6600, 0 0 2px 1px #fff;
