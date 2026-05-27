@@ -237,10 +237,14 @@ const DISCORD_AUTH_ROUTE_ALIASES = new Set([
   '/api/discord/oauth/',
   '/api/discord/0auth',
   '/api/discord/0auth/',
+  '/auth/discord/login',
+  '/auth/discord/login/',
 ]);
 const DISCORD_CALLBACK_ROUTE_ALIASES = new Set([
   '/api/discord/callback',
   '/api/discord/callback/',
+  '/auth/discord/callback',
+  '/auth/discord/callback/',
 ]);
 
 function handleDiscordAuth(request, env) {
@@ -249,7 +253,8 @@ function handleDiscordAuth(request, env) {
     return Response.redirect(DISCORD_GUEST_INVITE_URL, 302);
   }
   const url = new URL(request.url);
-  const redirectUri = `${url.origin}/api/discord/callback`;
+  const callbackPath = url.pathname.startsWith('/auth/') ? '/auth/discord/callback' : '/api/discord/callback';
+  const redirectUri = `${url.origin}${callbackPath}`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,

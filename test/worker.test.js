@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import router, { HotspotStore } from '../src/worker.js';
-import { onRequest } from '../functions/api/hotspots.js';
+import { onRequest as onHotspotsRequest } from '../functions/api/hotspots.js';
+import { onRequest as onApiDiscordAuthRequest } from '../functions/api/discord/auth.js';
+import { onRequest as onApiDiscordCallbackRequest } from '../functions/api/discord/callback.js';
+import { onRequest as onAuthDiscordLoginRequest } from '../functions/auth/discord/login.js';
+import { onRequest as onAuthDiscordCallbackRequest } from '../functions/auth/discord/callback.js';
 
 function makeState(initialHotspots) {
   let stored = initialHotspots;
@@ -231,6 +235,85 @@ test('worker supports trailing slash on Discord callback route', async () => {
   assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
 });
 
+test('worker supports V2 Discord login route aliases and uses /auth callback redirect URI', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: '1234567890',
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord auth routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/auth/discord/login'), env);
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('worker supports V2 Discord callback route aliases', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord callback routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(
+    new Request('https://example.com/auth/discord/callback/?code=abc123'),
+    env
+  );
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
+});
+
+test('functions/api/discord/auth redirects to Discord OAuth authorize URL', async () => {
+  const response = await onApiDiscordAuthRequest({
+    request: new Request('https://example.com/api/discord/auth'),
+    env: { DISCORD_CLIENT_ID: '1234567890' }
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fapi%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('functions/auth/discord/login redirects to Discord OAuth authorize URL using /auth callback', async () => {
+  const response = await onAuthDiscordLoginRequest({
+    request: new Request('https://example.com/auth/discord/login'),
+    env: { DISCORD_CLIENT_ID: '1234567890' }
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('functions Discord callback routes redirect to auth-complete marker', async () => {
+  const apiResponse = await onApiDiscordCallbackRequest({
+    request: new Request('https://example.com/api/discord/callback?code=abc123'),
+    env: {}
+  });
+  const authResponse = await onAuthDiscordCallbackRequest({
+    request: new Request('https://example.com/auth/discord/callback?code=abc123'),
+    env: {}
+  });
+
+  assert.equal(apiResponse.status, 302);
+  assert.equal(apiResponse.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
+  assert.equal(authResponse.status, 302);
+  assert.equal(authResponse.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
+});
+
 test('worker serves non-api requests through ASSETS binding', async () => {
   const calls = { assetsFetch: [] };
   const env = {
@@ -364,7 +447,7 @@ test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object
     }
   };
 
-  const response = await onRequest({ request: new Request('https://example.com/api/hotspots'), env });
+  const response = await onHotspotsRequest({ request: new Request('https://example.com/api/hotspots'), env });
 
   assert.equal(response, expected);
   assert.deepEqual(calls.idFromName, ['den-hotspots']);
@@ -373,7 +456,7 @@ test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object
 });
 
 test('functions/api/hotspots onRequest returns 500 when HOTSPOT_STORE binding is missing', async () => {
-  const response = await onRequest({
+  const response = await onHotspotsRequest({
     request: new Request('https://example.com/api/hotspots', { method: 'POST' }),
     env: {}
   });
@@ -934,7 +1017,7 @@ test('functions HotspotStore returns 405 for unsupported methods', async () => {
 // --- functions/api/hotspots.js onRequest additional coverage ---
 
 test('functions/api/hotspots onRequest handles OPTIONS preflight', async () => {
-  const response = await onRequest({
+  const response = await onHotspotsRequest({
     request: new Request('https://example.com/api/hotspots', { method: 'OPTIONS' }),
     env: {}
   });
@@ -956,7 +1039,7 @@ test('functions/api/hotspots onRequest returns 500 when stub.fetch throws', asyn
     }
   };
 
-  const response = await onRequest({
+  const response = await onHotspotsRequest({
     request: new Request('https://example.com/api/hotspots', { method: 'GET' }),
     env
   });
@@ -986,7 +1069,7 @@ test('functions/api/hotspots onRequest delegates POST requests', async () => {
     }
   };
 
-  const response = await onRequest({
+  const response = await onHotspotsRequest({
     request: new Request('https://example.com/api/hotspots', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -1089,7 +1172,7 @@ test('functions/api/hotspots onRequest returns unknown error text when durable o
     }
   };
 
-  const response = await onRequest({
+  const response = await onHotspotsRequest({
     request: new Request('https://example.com/api/hotspots', { method: 'GET' }),
     env
   });
