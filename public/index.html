@@ -1988,19 +1988,14 @@
       HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
       HOTSPOT_READABLE_LABELS.set(DISCORD_OVERLAY_CONTROL_ID, 'Fullscreen Big TV');
+      HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_OVERLAY_CONTROL_ID, 'Left Monitor Overlay');
       HOTSPOT_READABLE_LABELS.set(LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Left Monitor Side Frame');
+      HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_OVERLAY_CONTROL_ID, 'Right Monitor Overlay');
       HOTSPOT_READABLE_LABELS.set(RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, 'Right Monitor Side Frame');
       const LOCKED_DEBUG_HOTSPOT_IDS = new Set([
         COMMODORE_OVERLAY_CONTROL_ID,
-        // Keep monitor screen controls fixed to the frame bounds so debug edits only move the shared frame anchor.
-        LEFT_MONITOR_OVERLAY_CONTROL_ID,
-        RIGHT_MONITOR_OVERLAY_CONTROL_ID,
         'overlay-monitor-screen-control', // Keep legacy monitor control id locked if present in persisted hotspot data.
         'overlaymonitorscreencontrol'
-      ]);
-      const MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS = new Map([
-        ['overlay-left-monitor', LEFT_MONITOR_SIDE_FRAME_CONTROL_ID],
-        ['overlay-right-monitor', RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID]
       ]);
       const OVERLAY_CONTROL_BINDINGS = [
         { controlId: DISCORD_OVERLAY_CONTROL_ID, overlayId: DISCORD_OVERLAY_ID },
@@ -3231,9 +3226,6 @@
 
       function getOverlayRect(overlayId) {
         let controlHotspotId = OVERLAY_ID_TO_CONTROL_ID.get(overlayId);
-        if (MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.has(overlayId)) {
-          controlHotspotId = MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.get(overlayId);
-        }
         if (!controlHotspotId && overlayId === AQUARIUM_OVERLAY_ID) {
           controlHotspotId = DISCORD_OVERLAY_CONTROL_ID;
         }
@@ -3259,9 +3251,7 @@
 
       function syncControlledOverlaysFromHotspots() {
         OVERLAY_CONTROL_TO_OVERLAY_ID.forEach((overlayId, controlHotspotId) => {
-          const effectiveControlHotspotId =
-            MONITOR_CONTENT_OVERLAY_FRAME_CONTROL_IDS.get(overlayId) ?? controlHotspotId;
-          const hotspotEl = document.getElementById(effectiveControlHotspotId);
+          const hotspotEl = document.getElementById(controlHotspotId);
           const overlayEl = overlayElementsById.get(overlayId);
           if (!hotspotEl || !overlayEl) return;
           if (overlayId === 'overlay-commodore-screen') {
