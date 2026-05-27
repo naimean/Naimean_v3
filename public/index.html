@@ -2791,7 +2791,7 @@
 
       function getDiscordDefaultAvatarUrl(userId, discriminator) {
         if (/^\d+$/.test(discriminator) && discriminator !== '0') {
-          const avatarIndex = Number.parseInt(discriminator, 10) % 5;
+          const avatarIndex = Number.parseInt(discriminator, 10) % 6;
           return `https://cdn.discordapp.com/embed/avatars/${avatarIndex}.png`;
         }
         if (/^\d+$/.test(userId)) {
@@ -2891,19 +2891,18 @@
         if (profileFromUrl) {
           discordAuthProfile = profileFromUrl;
           persistDiscordProfile(discordAuthProfile);
+          discordButtonSelected = true;
           return;
         }
         discordAuthProfile = readDiscordProfileFromStorage();
+        discordButtonSelected = !!discordAuthProfile;
       }
 
       function syncDiscordButtonUi() {
         const hasDiscordProfile = !!discordAuthProfile;
-        if (hasDiscordProfile) {
-          discordButtonSelected = true;
-        }
 
         if (discordButtonImgEl) {
-          discordButtonImgEl.src = discordButtonSelected
+          discordButtonImgEl.src = (discordButtonSelected || hasDiscordProfile)
             ? DISCORD_BUTTON_GREEN_IMAGE_URL
             : DISCORD_BUTTON_IMAGE_URL;
         }

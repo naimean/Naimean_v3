@@ -288,7 +288,7 @@ function buildDiscordAvatarUrl(userData) {
   const discriminator = typeof userData?.discriminator === 'string' ? userData.discriminator : '';
   let fallbackAvatarIndex = 0;
   if (/^\d+$/.test(discriminator) && discriminator !== '0') {
-    fallbackAvatarIndex = Number.parseInt(discriminator, 10) % 5;
+    fallbackAvatarIndex = Number.parseInt(discriminator, 10) % 6;
   } else if (/^\d+$/.test(userId)) {
     fallbackAvatarIndex = Number(BigInt(userId) % 6n);
   }
