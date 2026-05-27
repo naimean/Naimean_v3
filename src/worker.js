@@ -226,7 +226,6 @@ const HTML_ROUTE_ALIASES = new Map([
   ['/den.html', '/index.html'],
   ['/hallway', '/index.html'],
   ['/', '/index.html'],
-  ['/index.html', '/index.html'],
 ]);
 
 export class HotspotStore {
