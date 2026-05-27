@@ -1,9 +1,20 @@
 const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
 const DISCORD_OAUTH_AUTHORIZE_URL = 'https://discord.com/api/oauth2/authorize';
 const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
+const DEFAULT_DISCORD_CALLBACK_PATH = '/api/discord/callback';
 
-function getCallbackPath(pathname) {
-  return pathname.startsWith('/auth/') ? '/auth/discord/callback' : '/api/discord/callback';
+function getCallbackPath(env) {
+  const configuredPath = typeof env.DISCORD_CALLBACK_PATH === 'string'
+    ? env.DISCORD_CALLBACK_PATH.trim()
+    : '';
+  return configuredPath.startsWith('/') ? configuredPath : DEFAULT_DISCORD_CALLBACK_PATH;
+}
+
+function getRedirectUri(url, env) {
+  const configuredRedirectUri = typeof env.DISCORD_REDIRECT_URI === 'string'
+    ? env.DISCORD_REDIRECT_URI.trim()
+    : '';
+  return configuredRedirectUri || `${url.origin}${getCallbackPath(env)}`;
 }
 
 export function handleDiscordAuthRequest(request, env) {
@@ -15,7 +26,7 @@ export function handleDiscordAuthRequest(request, env) {
   const url = new URL(request.url);
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${url.origin}${getCallbackPath(url.pathname)}`,
+    redirect_uri: getRedirectUri(url, env),
     response_type: 'code',
     scope: 'identify',
   });
