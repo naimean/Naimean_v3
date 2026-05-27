@@ -1703,6 +1703,61 @@
       display: block;
     }
 
+    #debug-object-controls {
+      position: fixed;
+      right: 12px;
+      bottom: 68px;
+      z-index: 1000;
+      display: none;
+      width: min(260px, calc(100vw - 24px));
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.7);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    body.debug #debug-object-controls {
+      display: flex;
+    }
+
+    #debug-object-select {
+      width: 100%;
+      min-height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(10, 10, 10, 0.85);
+      color: rgba(255, 255, 255, 0.95);
+      padding: 0 8px;
+      font-size: 12px;
+    }
+
+    #debug-object-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .debug-object-action-btn {
+      flex: 1;
+      min-height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    .debug-object-action-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
     #save-hotspots-btn:focus-visible {
       outline: 2px solid rgba(65, 229, 255, 0.95);
       outline-offset: 2px;
@@ -1797,6 +1852,14 @@
   </div>
   <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
   <button id="save-hotspots-btn" type="button" aria-label="Save hotspot positions">Save</button>
+  <div id="debug-object-controls" aria-label="Debug object controls">
+    <label for="debug-object-select">Object</label>
+    <select id="debug-object-select" aria-label="Select object for debug lock state"></select>
+    <div id="debug-object-actions">
+      <button id="debug-object-lock-btn" class="debug-object-action-btn" type="button">Lock</button>
+      <button id="debug-object-unlock-btn" class="debug-object-action-btn" type="button">Unlock</button>
+    </div>
+  </div>
   <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
     <div id="save-modal-inner">
       <p id="save-modal-title">Unable to save to the server — copy the code below to update source manually</p>
@@ -2084,6 +2147,9 @@
       const screenOverlayLayer = document.getElementById('screen-overlay-layer');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
+      const debugObjectSelect = document.getElementById('debug-object-select');
+      const debugObjectLockButton = document.getElementById('debug-object-lock-btn');
+      const debugObjectUnlockButton = document.getElementById('debug-object-unlock-btn');
       const saveBtn = document.getElementById('save-hotspots-btn');
       const saveModal = document.getElementById('save-modal');
       const saveModalTitle = document.getElementById('save-modal-title');
@@ -3631,6 +3697,83 @@
         label.textContent = `${readableLabel} (${x}, ${y}) ${w}×${h}`;
       }
 
+      function getDebugHotspotElements() {
+        return Array.from(hotspotLayer.querySelectorAll('.hotspot'));
+      }
+
+      function getDebugHotspotLabel(hotspotEl) {
+        return hotspotEl.dataset.label || hotspotEl.id;
+      }
+
+      function getSelectedDebugHotspotElement() {
+        const selectedId = debugObjectSelect?.value;
+        if (!selectedId) return null;
+        return document.getElementById(selectedId);
+      }
+
+      function refreshDebugObjectActions() {
+        if (!debugObjectLockButton || !debugObjectUnlockButton || !debugObjectSelect) {
+          return;
+        }
+        const selectedEl = getSelectedDebugHotspotElement();
+        const hasSelection = !!selectedEl;
+        const isLocked = hasSelection && selectedEl.classList.contains('locked-debug-hotspot');
+        debugObjectLockButton.disabled = !hasSelection || isLocked;
+        debugObjectUnlockButton.disabled = !hasSelection || !isLocked;
+      }
+
+      function refreshDebugObjectSelectOptions() {
+        if (!debugObjectSelect) {
+          return;
+        }
+
+        const previousSelection = debugObjectSelect.value;
+        const hotspotElements = getDebugHotspotElements()
+          .sort((a, b) => getDebugHotspotLabel(a).localeCompare(getDebugHotspotLabel(b)));
+
+        debugObjectSelect.textContent = '';
+
+        if (!hotspotElements.length) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No objects available';
+          debugObjectSelect.appendChild(option);
+          debugObjectSelect.disabled = true;
+          refreshDebugObjectActions();
+          return;
+        }
+
+        hotspotElements.forEach((hotspotEl) => {
+          const option = document.createElement('option');
+          option.value = hotspotEl.id;
+          option.textContent = getDebugHotspotLabel(hotspotEl);
+          debugObjectSelect.appendChild(option);
+        });
+
+        debugObjectSelect.disabled = false;
+        if (previousSelection && hotspotElements.some((hotspotEl) => hotspotEl.id === previousSelection)) {
+          debugObjectSelect.value = previousSelection;
+        } else {
+          debugObjectSelect.value = hotspotElements[0].id;
+        }
+        refreshDebugObjectActions();
+      }
+
+      function setHotspotDebugLockState(hotspotId, isLocked) {
+        const hotspotEl = document.getElementById(hotspotId);
+        if (!hotspotEl) {
+          return;
+        }
+
+        hotspotEl.classList.toggle('locked-debug-hotspot', isLocked);
+        if (isLocked) {
+          LOCKED_DEBUG_HOTSPOT_IDS.add(hotspotId);
+        } else {
+          LOCKED_DEBUG_HOTSPOT_IDS.delete(hotspotId);
+        }
+        refreshDebugObjectActions();
+      }
+
       // ── Flip Clock helpers ────────────────────────────────
 
       function openClockApp() {
@@ -3953,6 +4096,7 @@
 
           hotspotLayer.appendChild(el);
         });
+        refreshDebugObjectSelectOptions();
       }
 
       function createOverlays() {
@@ -4835,6 +4979,10 @@
 
       function setDebugMode(enabled) {
         document.body.classList.toggle('debug', enabled);
+        if (enabled) {
+          refreshDebugObjectSelectOptions();
+        }
+        refreshDebugObjectActions();
         debugStatus.textContent = enabled
           ? 'Debug mode enabled'
           : 'Debug mode disabled';
@@ -4935,6 +5083,17 @@
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
       debugToggleButton.addEventListener('click', toggleDebugMode);
+      debugObjectSelect.addEventListener('change', refreshDebugObjectActions);
+      debugObjectLockButton.addEventListener('click', () => {
+        const selectedEl = getSelectedDebugHotspotElement();
+        if (!selectedEl) return;
+        setHotspotDebugLockState(selectedEl.id, true);
+      });
+      debugObjectUnlockButton.addEventListener('click', () => {
+        const selectedEl = getSelectedDebugHotspotElement();
+        if (!selectedEl) return;
+        setHotspotDebugLockState(selectedEl.id, false);
+      });
 
       saveBtn.addEventListener('click', saveHotspots);
 
