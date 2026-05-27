@@ -2100,6 +2100,7 @@
       let aquariumStaticVideoEl = null;
       let aquariumSequenceToken = 0;
       let aquariumLoopOwnerToken = 0;
+      let isRightMonitorAquariumSequenceRunning = false;
       let bigTvPromptOverlayEl = null;
       let bigTvPromptSecretBoxEl = null;
       let bigTvPromptSecretEl = null;
@@ -2304,12 +2305,34 @@
         aquariumSequenceToken += 1;
       }
 
+      function isAquariumPlaybackSequenceActive() {
+        return aquariumLoopOwnerToken !== 0 && aquariumLoopOwnerToken === aquariumSequenceToken;
+      }
+
+      function stopAquariumPlaybackSequence() {
+        cancelAquariumPlaybackSequence();
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+        aquariumLoopOwnerToken = 0;
+      }
+
+      function replayAquariumPlaybackSequenceFromStatic() {
+        if (!isAquariumPlaybackSequenceActive()) {
+          return false;
+        }
+        cancelAquariumPlaybackSequence();
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+        hideBigTvPromptOverlay({ clearInput: false });
+        const sequenceToken = aquariumSequenceToken;
+        aquariumLoopOwnerToken = sequenceToken;
+        void runAquariumPlaybackSequence(sequenceToken, { startWithStatic: true });
+        return true;
+      }
+
       function interruptAquariumPlaybackSequence() {
-        if (aquariumLoopOwnerToken !== 0 && aquariumLoopOwnerToken === aquariumSequenceToken) {
-          cancelAquariumPlaybackSequence();
-          hideNedryGateOverlay();
-          hideAquariumStaticOverlay();
-          aquariumLoopOwnerToken = 0;
+        if (isAquariumPlaybackSequenceActive()) {
+          stopAquariumPlaybackSequence();
         }
       }
 
@@ -2453,84 +2476,18 @@
         return hasEnded && sequenceToken === aquariumSequenceToken;
       }
 
-      function restoreRightMonitorAfterAquariumSequence() {
-        discordButtonSelected = aquariumRightMonitorButtonStateBeforeSequence;
-        syncDiscordButtonUi();
-      }
-
-      async function playRightMonitorAquariumSequence(sequenceToken) {
-        if (!rightMonitorStaticOverlayEl || !rightMonitorStaticVideoEl || !rightMonitorShrimpLogoOverlayEl) {
-          return;
-        }
-
-        // Phase 1: play static.mp4 once (non-looping)
-        rightMonitorStaticVideoEl.loop = false;
-        rightMonitorStaticVideoEl.currentTime = 0;
-        rightMonitorStaticOverlayEl.classList.add('is-active');
-        try {
-          await rightMonitorStaticVideoEl.play();
-        } catch (error) {
-          if (error?.name !== 'AbortError') {
-            console.warn('Unable to play right monitor static (aquarium).', error);
+      async function runAquariumPlaybackSequence(sequenceToken, { startWithStatic = false } = {}) {
+        if (startWithStatic) {
+          const staticEnded = await playAquariumStaticPass(sequenceToken);
+          if (!staticEnded || sequenceToken !== aquariumSequenceToken) {
+            hideAquariumStaticOverlay();
+            if (aquariumLoopOwnerToken === sequenceToken) {
+              aquariumLoopOwnerToken = 0;
+            }
+            return;
           }
-          rightMonitorStaticOverlayEl.classList.remove('is-active');
-          rightMonitorStaticVideoEl.loop = true;
-          restoreRightMonitorAfterAquariumSequence();
-          return;
-        }
-        const firstStaticEnded = await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
-        rightMonitorStaticOverlayEl.classList.remove('is-active');
-        if (!firstStaticEnded || sequenceToken !== aquariumSequenceToken) {
-          rightMonitorStaticVideoEl.loop = true;
-          restoreRightMonitorAfterAquariumSequence();
-          return;
         }
 
-        // Phase 2: show shrimp logo while aquarium sequence runs
-        rightMonitorShrimpLogoOverlayEl.classList.add('is-active');
-        while (sequenceToken === aquariumSequenceToken) {
-          await wait(100);
-        }
-        rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
-
-        // Phase 3: on interruption, play static.mp4 once, then restore original button state
-        rightMonitorStaticVideoEl.currentTime = 0;
-        rightMonitorStaticOverlayEl.classList.add('is-active');
-        try {
-          await rightMonitorStaticVideoEl.play();
-        } catch (error) {
-          if (error?.name !== 'AbortError') {
-            console.warn('Unable to play right monitor static (aquarium end).', error);
-          }
-          rightMonitorStaticOverlayEl.classList.remove('is-active');
-          rightMonitorStaticVideoEl.loop = true;
-          restoreRightMonitorAfterAquariumSequence();
-          return;
-        }
-        await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
-        rightMonitorStaticOverlayEl.classList.remove('is-active');
-        rightMonitorStaticVideoEl.loop = true;
-        restoreRightMonitorAfterAquariumSequence();
-      }
-
-      async function playAquariumHotspotSequence() {
-        if (aquariumLoopOwnerToken !== 0 && aquariumLoopOwnerToken === aquariumSequenceToken) {
-          cancelAquariumPlaybackSequence();
-          hideNedryGateOverlay();
-          hideAquariumStaticOverlay();
-          aquariumLoopOwnerToken = 0;
-          return;
-        }
-
-        aquariumSequenceToken += 1;
-        const sequenceToken = aquariumSequenceToken;
-        aquariumLoopOwnerToken = sequenceToken;
-        aquariumRightMonitorButtonStateBeforeSequence = discordButtonSelected;
-        hideNedryGateOverlay();
-        hideAquariumStaticOverlay();
-        hideBigTvPromptOverlay({ clearInput: false });
-        syncBigTvContentVisibility();
-        playRightMonitorAquariumSequence(sequenceToken);
         while (sequenceToken === aquariumSequenceToken) {
           const clipEnded = await playAquariumClipPass(sequenceToken, getRandomShrimpClipUrl());
           if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
@@ -2547,6 +2504,94 @@
         if (aquariumLoopOwnerToken === sequenceToken) {
           aquariumLoopOwnerToken = 0;
         }
+      }
+
+      function restoreRightMonitorAfterAquariumSequence() {
+        discordButtonSelected = aquariumRightMonitorButtonStateBeforeSequence;
+        syncDiscordButtonUi();
+      }
+
+      async function playRightMonitorAquariumSequence() {
+        if (!rightMonitorStaticOverlayEl || !rightMonitorStaticVideoEl || !rightMonitorShrimpLogoOverlayEl) {
+          return;
+        }
+        if (isRightMonitorAquariumSequenceRunning) {
+          return;
+        }
+        isRightMonitorAquariumSequenceRunning = true;
+
+        try {
+          // Phase 1: play static.mp4 once (non-looping)
+          rightMonitorStaticVideoEl.loop = false;
+          rightMonitorStaticVideoEl.currentTime = 0;
+          rightMonitorStaticOverlayEl.classList.add('is-active');
+          try {
+            await rightMonitorStaticVideoEl.play();
+          } catch (error) {
+            if (error?.name !== 'AbortError') {
+              console.warn('Unable to play right monitor static (aquarium).', error);
+            }
+            rightMonitorStaticOverlayEl.classList.remove('is-active');
+            rightMonitorStaticVideoEl.loop = true;
+            restoreRightMonitorAfterAquariumSequence();
+            return;
+          }
+          const firstStaticEnded = await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
+          rightMonitorStaticOverlayEl.classList.remove('is-active');
+          if (!firstStaticEnded || aquariumLoopOwnerToken === 0) {
+            rightMonitorStaticVideoEl.loop = true;
+            restoreRightMonitorAfterAquariumSequence();
+            return;
+          }
+
+          // Phase 2: show shrimp logo while aquarium sequence runs (including replay-to-next transitions)
+          rightMonitorShrimpLogoOverlayEl.classList.add('is-active');
+          while (aquariumLoopOwnerToken !== 0) {
+            await wait(100);
+          }
+          rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
+
+          // Phase 3: on interruption, play static.mp4 once, then restore original button state
+          rightMonitorStaticVideoEl.currentTime = 0;
+          rightMonitorStaticOverlayEl.classList.add('is-active');
+          try {
+            await rightMonitorStaticVideoEl.play();
+          } catch (error) {
+            if (error?.name !== 'AbortError') {
+              console.warn('Unable to play right monitor static (aquarium end).', error);
+            }
+            rightMonitorStaticOverlayEl.classList.remove('is-active');
+            rightMonitorStaticVideoEl.loop = true;
+            restoreRightMonitorAfterAquariumSequence();
+            return;
+          }
+          await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
+          rightMonitorStaticOverlayEl.classList.remove('is-active');
+          rightMonitorStaticVideoEl.loop = true;
+          restoreRightMonitorAfterAquariumSequence();
+        } finally {
+          rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
+          isRightMonitorAquariumSequenceRunning = false;
+        }
+      }
+
+      async function playAquariumHotspotSequence() {
+        if (replayAquariumPlaybackSequenceFromStatic()) {
+          return;
+        }
+
+        aquariumSequenceToken += 1;
+        const sequenceToken = aquariumSequenceToken;
+        aquariumLoopOwnerToken = sequenceToken;
+        aquariumRightMonitorButtonStateBeforeSequence = discordButtonSelected;
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+        hideBigTvPromptOverlay({ clearInput: false });
+        syncBigTvContentVisibility();
+        if (!isRightMonitorAquariumSequenceRunning) {
+          void playRightMonitorAquariumSequence();
+        }
+        await runAquariumPlaybackSequence(sequenceToken);
       }
 
       function hideNedryGateOverlay({ resetPlayback = true } = {}) {
@@ -2568,10 +2613,8 @@
           return;
         }
 
-        cancelAquariumPlaybackSequence();
+        stopAquariumPlaybackSequence();
         stopZeldaSecretAudioPlayback();
-        hideAquariumStaticOverlay();
-        hideNedryGateOverlay();
         playBigTvPromptIntroSequence();
       }
 
@@ -3847,6 +3890,13 @@
               if (
                 event.target instanceof Element &&
                 event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-fullscreen-exit-button')
+              ) {
+                return;
+              }
+              if (
+                overlay.id === AQUARIUM_OVERLAY_ID &&
+                document.fullscreenElement === el &&
+                replayAquariumPlaybackSequenceFromStatic()
               ) {
                 return;
               }
