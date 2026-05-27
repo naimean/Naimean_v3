@@ -1971,6 +1971,8 @@
       const COMMODORE_POWER_BUTTON_OVERLAY_ID = 'overlay-commodore-power-button';
       const COMMODORE_POWER_BUTTON_CONTROL_ID = 'overlay-commodore-power-button-control';
       const MIN_HOTSPOT_SIZE = 20; // Keep editable hotspots large enough to remain targetable in debug mode.
+      const MIN_MONITOR_RATIO_DENOMINATOR = 0.0001; // Prevents divide-by-zero when converting between screen-window and frame bounds.
+      const LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER = 1.35; // Legacy monitor controls were frame-sized and are ~35% larger than the modern screen-window controls.
       const COMMODORE_HITBOX_HORIZONTAL_INSET = 40; // Shrinks Commodore click area while preserving overlay artwork width.
       const COMMODORE_HITBOX_VERTICAL_INSET = 70; // Shrinks Commodore click area while preserving overlay artwork height.
       const COMMODORE_MIN_SOURCE_HITBOX_WIDTH = MIN_HOTSPOT_SIZE + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2);
@@ -1984,6 +1986,10 @@
       const COMMODORE_POWER_BUTTON_BOUNDS = Object.freeze({ x: 2143, y: 1637, w: 55, h: 39 });
       const LEFT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1331, y: 1020, w: 280, h: 220 });
       const RIGHT_MONITOR_FRAME_BOUNDS = Object.freeze({ x: 1758, y: 1014, w: 288, h: 228 });
+      const LEFT_MONITOR_SCREEN_WINDOW_INSETS = Object.freeze({ top: 0.1709, right: 0.24414, bottom: 0.29297, left: 0.252 });
+      const RIGHT_MONITOR_SCREEN_WINDOW_INSETS = Object.freeze({ top: 0.29297, right: 0.2526, bottom: 0.1709, left: 0.24414 });
+      const LEFT_MONITOR_SCREEN_BOUNDS = Object.freeze(frameBoundsToScreenBounds(LEFT_MONITOR_FRAME_BOUNDS, LEFT_MONITOR_SCREEN_WINDOW_INSETS));
+      const RIGHT_MONITOR_SCREEN_BOUNDS = Object.freeze(frameBoundsToScreenBounds(RIGHT_MONITOR_FRAME_BOUNDS, RIGHT_MONITOR_SCREEN_WINDOW_INSETS));
       HOTSPOT_READABLE_LABELS.set(COMMODORE_OVERLAY_CONTROL_ID, 'Commodore Screen');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_SHADOW_CONTROL_ID, 'Commodore Shadow');
       HOTSPOT_READABLE_LABELS.set(COMMODORE_POWER_BUTTON_CONTROL_ID, 'Commodore Power Button');
@@ -2014,6 +2020,14 @@
       const OVERLAY_ID_TO_CONTROL_ID = new Map(
         OVERLAY_CONTROL_BINDINGS.map(({ controlId, overlayId }) => [overlayId, controlId])
       );
+      const MONITOR_SCREEN_INSETS_BY_CONTROL_ID = new Map([
+        [LEFT_MONITOR_OVERLAY_CONTROL_ID, LEFT_MONITOR_SCREEN_WINDOW_INSETS],
+        [RIGHT_MONITOR_OVERLAY_CONTROL_ID, RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
+      ]);
+      const MONITOR_SCREEN_INSETS_BY_OVERLAY_ID = new Map([
+        ['overlay-left-monitor', LEFT_MONITOR_SCREEN_WINDOW_INSETS],
+        ['overlay-right-monitor', RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
+      ]);
 
       // Fixed pixel hotspots in design-space coordinates.
       // Edit x/y/w/h values as artwork alignment is refined.
@@ -2028,10 +2042,10 @@
         { id: COMMODORE_OVERLAY_CONTROL_ID, x: 1703, y: 994, w: 372, h: 246 },
         { id: COMMODORE_SHADOW_CONTROL_ID, x: 1682, y: 1095, w: 414, h: 198 },
         { id: COMMODORE_POWER_BUTTON_CONTROL_ID, ...COMMODORE_POWER_BUTTON_BOUNDS },
-        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
+        { id: RIGHT_MONITOR_OVERLAY_CONTROL_ID, ...RIGHT_MONITOR_SCREEN_BOUNDS },
         { id: RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, ...RIGHT_MONITOR_FRAME_BOUNDS },
         { id: FLIP_CLOCK_OVERLAY_CONTROL_ID, x: 990, y: 1740, w: 360, h: 156 },
-        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS },
+        { id: LEFT_MONITOR_OVERLAY_CONTROL_ID, ...LEFT_MONITOR_SCREEN_BOUNDS },
         { id: LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, ...LEFT_MONITOR_FRAME_BOUNDS }
       ];
 
@@ -3124,6 +3138,54 @@
         return typeof value === 'number' && Number.isFinite(value);
       }
 
+      function frameBoundsToScreenBounds(frameBounds, insets) {
+        const usableWidthRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.left - insets.right);
+        const usableHeightRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.top - insets.bottom);
+        const x = frameBounds.x + (frameBounds.w * insets.left);
+        const y = frameBounds.y + (frameBounds.h * insets.top);
+        const w = frameBounds.w * usableWidthRatio;
+        const h = frameBounds.h * usableHeightRatio;
+        return {
+          x: Math.round(x),
+          y: Math.round(y),
+          w: Math.round(w),
+          h: Math.round(h)
+        };
+      }
+
+      function screenBoundsToFrameBounds(screenBounds, insets) {
+        const usableWidthRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.left - insets.right);
+        const usableHeightRatio = Math.max(MIN_MONITOR_RATIO_DENOMINATOR, 1 - insets.top - insets.bottom);
+        const w = screenBounds.w / usableWidthRatio;
+        const h = screenBounds.h / usableHeightRatio;
+        const x = screenBounds.x - (w * insets.left);
+        const y = screenBounds.y - (h * insets.top);
+        return {
+          x: Math.round(x),
+          y: Math.round(y),
+          w: Math.round(w),
+          h: Math.round(h)
+        };
+      }
+
+      function normalizeLegacyMonitorOverlayControlBounds(spot, fallback) {
+        const insets = MONITOR_SCREEN_INSETS_BY_CONTROL_ID.get(spot.id);
+        if (!insets) return spot;
+        const legacyWidthThreshold = Math.round(fallback.w * LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER);
+        const legacyHeightThreshold = Math.round(fallback.h * LEGACY_MONITOR_BOUNDS_THRESHOLD_MULTIPLIER);
+        if (spot.w < legacyWidthThreshold && spot.h < legacyHeightThreshold) {
+          return spot;
+        }
+        const normalizedScreenBounds = frameBoundsToScreenBounds(spot, insets);
+        return {
+          ...spot,
+          x: normalizedScreenBounds.x,
+          y: normalizedScreenBounds.y,
+          w: Math.max(MIN_HOTSPOT_SIZE, normalizedScreenBounds.w),
+          h: Math.max(MIN_HOTSPOT_SIZE, normalizedScreenBounds.h)
+        };
+      }
+
       function sourceHotspotsToRuntime(sourceHotspots) {
         return sourceHotspots.map((spot) => {
           const runtimeSpot = {
@@ -3187,13 +3249,14 @@
             ? COMMODORE_MIN_SOURCE_HITBOX_HEIGHT
             : MIN_HOTSPOT_SIZE;
           if (!entry) return { ...fallback };
-          return {
+          const sanitizedEntry = {
             id: fallback.id,
             x: isFiniteNumber(entry.x) ? Math.round(entry.x) : fallback.x,
             y: isFiniteNumber(entry.y) ? Math.round(entry.y) : fallback.y,
             w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
             h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
           };
+          return normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback);
         });
       }
 
@@ -3240,6 +3303,10 @@
                 h: controlledSpot.h + (COMMODORE_HITBOX_VERTICAL_INSET * 2)
               };
             }
+            const monitorInsets = MONITOR_SCREEN_INSETS_BY_OVERLAY_ID.get(overlayId);
+            if (monitorInsets) {
+              return screenBoundsToFrameBounds(controlledSpot, monitorInsets);
+            }
             return rectFromBounds(controlledSpot);
           }
         }
@@ -3263,6 +3330,23 @@
             overlayEl.style.top = `${hotspotTop - COMMODORE_HITBOX_VERTICAL_INSET}px`;
             overlayEl.style.width = `${hotspotWidth + (COMMODORE_HITBOX_HORIZONTAL_INSET * 2)}px`;
             overlayEl.style.height = `${hotspotHeight + (COMMODORE_HITBOX_VERTICAL_INSET * 2)}px`;
+            return;
+          }
+          const monitorInsets = MONITOR_SCREEN_INSETS_BY_OVERLAY_ID.get(overlayId);
+          if (monitorInsets) {
+            const frameBounds = screenBoundsToFrameBounds(
+              {
+                x: parseFloat(hotspotEl.style.left),
+                y: parseFloat(hotspotEl.style.top),
+                w: parseFloat(hotspotEl.style.width),
+                h: parseFloat(hotspotEl.style.height)
+              },
+              monitorInsets
+            );
+            overlayEl.style.left = `${frameBounds.x}px`;
+            overlayEl.style.top = `${frameBounds.y}px`;
+            overlayEl.style.width = `${frameBounds.w}px`;
+            overlayEl.style.height = `${frameBounds.h}px`;
             return;
           }
           overlayEl.style.left = hotspotEl.style.left;
