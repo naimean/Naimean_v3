@@ -445,9 +445,9 @@
     }
 
     .commodore-power-button-button.on::before {
-      background: #222;
-      box-shadow: none;
-      animation: none;
+      background: radial-gradient(circle, #8cff91 60%, #1cd646 100%);
+      box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
+      animation: commodore-power-pulse-on 1.6s infinite ease-in-out;
     }
 
     @keyframes commodore-tv-turn-on {
@@ -614,6 +614,23 @@
 
       100% {
         box-shadow: 0 0 18px 8px #ff6600, 0 0 2px 1px #fff;
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes commodore-power-pulse-on {
+      0% {
+        box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
+        filter: brightness(1);
+      }
+
+      50% {
+        box-shadow: 0 0 24px 12px #1cd646, 0 0 2px 1px #d4ffd7;
+        filter: brightness(1.12);
+      }
+
+      100% {
+        box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
         filter: brightness(1);
       }
     }
