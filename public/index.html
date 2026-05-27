@@ -2444,6 +2444,13 @@
             if (mediaEl.ended) {
               return;
             }
+            // On iOS, native fullscreen exit fires 'pause' before 'ended' when a clip
+            // finishes. If the playhead is at (or within 0.5 s of) the end of the
+            // duration, don't break the sequence — let the 'ended' event resolve it.
+            const dur = mediaEl.duration;
+            if (Number.isFinite(dur) && dur > 0 && mediaEl.currentTime >= dur - 0.5) {
+              return;
+            }
             cleanup();
             resolve(false);
           };
