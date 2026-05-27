@@ -1854,9 +1854,10 @@
         'right-monitor'
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
-      const AQUARIUM_SHRIMP_CLIPS = Object.freeze(
+      const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
       );
+      const AQUARIUM_CLIP_CATALOG_API_URL = '/api/aquarium/shrimp-clips';
       const RADIO_TUNING_AUDIO_URLS = [
         'assets/audio/frequency_search.mp3',
         'assets/audio/freesound_community-radio-tuning-switching-through-frequencies-german-radio-stations-14846.mp3',
@@ -2104,6 +2105,7 @@
       let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
       let discordButtonImgEl = null;
       let discordButtonSelected = false;
+      let aquariumShrimpClips = [...AQUARIUM_LOCAL_SHRIMP_CLIPS];
       let aquariumShrimpClipQueue = [];
       let aquariumRightMonitorButtonStateBeforeSequence = false;
       let commodorePowerButtonEl = null;
@@ -2289,10 +2291,29 @@
 
       function getRandomShrimpClipUrl() {
         if (aquariumShrimpClipQueue.length === 0) {
-          aquariumShrimpClipQueue = [...AQUARIUM_SHRIMP_CLIPS];
+          aquariumShrimpClipQueue = [...aquariumShrimpClips];
           shuffleArrayInPlace(aquariumShrimpClipQueue);
         }
         return aquariumShrimpClipQueue.pop();
+      }
+
+      async function loadAquariumShrimpClipCatalog() {
+        try {
+          const response = await fetch(AQUARIUM_CLIP_CATALOG_API_URL, { method: 'GET' });
+          if (!response.ok) {
+            return;
+          }
+          const payload = await response.json();
+          const clips = Array.isArray(payload?.clips)
+            ? payload.clips.filter((clipUrl) => typeof clipUrl === 'string' && clipUrl.trim().length > 0)
+            : [];
+          if (clips.length > 0) {
+            aquariumShrimpClips = clips;
+            aquariumShrimpClipQueue = [];
+          }
+        } catch {
+          // Keep local fallback clips.
+        }
       }
 
       function waitForMediaPlaybackToEnd(mediaEl) {
@@ -2359,7 +2380,7 @@
         if (!nedryGateOverlayEl || !nedryGateVideoEl) {
           return false;
         }
-        const shrimpClipUrl = AQUARIUM_SHRIMP_CLIPS.includes(clipUrl)
+        const shrimpClipUrl = aquariumShrimpClips.includes(clipUrl)
           ? clipUrl
           : getRandomShrimpClipUrl();
         setNedryGateVideoSource(shrimpClipUrl);
@@ -4489,6 +4510,7 @@
       }
 
       async function initializeScene() {
+        await loadAquariumShrimpClipCatalog();
         const serverHotspots = await loadHotspotsFromServer();
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
         hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);

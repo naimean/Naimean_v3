@@ -581,6 +581,114 @@ test('worker serves non-hotspot /api/* requests through ASSETS binding', async (
   assert.deepEqual(calls.assetsFetch, ['/api/other']);
 });
 
+test('worker serves shrimp clip catalog from local fallback when Drive config is missing', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be called for shrimp clip catalog API');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clips'), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.source, 'local-fallback');
+  assert.equal(body.clips.length, 23);
+  assert.equal(body.clips[0], 'assets/video/shrimp/sh1.mp4');
+});
+
+test('worker serves shrimp clip catalog from Google Drive when configured', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be called for shrimp clip catalog API');
+      }
+    },
+    GOOGLE_DRIVE_API_KEY: 'test-api-key',
+    GOOGLE_DRIVE_SHRIMP_FOLDER_ID: '1DPzSJbcN9v_D1mSy4nIXjPOBhFHJpvSi'
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /googleapis\.com\/drive\/v3\/files\?/);
+    return Response.json({
+      files: [
+        { id: 'abc1234567890', name: 'shrimp-a.mp4', mimeType: 'video/mp4' },
+        { id: 'def1234567890', name: 'shrimp-b.webm', mimeType: 'video/webm' },
+        { id: 'nonvideo12345', name: 'shrimp.txt', mimeType: 'text/plain' }
+      ]
+    });
+  };
+
+  try {
+    const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clips'), env);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.source, 'google-drive');
+    assert.deepEqual(body.clips, [
+      '/api/aquarium/shrimp-clip/abc1234567890',
+      '/api/aquarium/shrimp-clip/def1234567890'
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker proxies Drive shrimp clip media through API endpoint', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be called for shrimp clip proxy API');
+      }
+    },
+    GOOGLE_DRIVE_API_KEY: 'test-api-key'
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /googleapis\.com\/drive\/v3\/files\/abc1234567890\?/);
+    return new Response('video-bytes', {
+      status: 200,
+      headers: {
+        'content-type': 'video/mp4',
+        'content-length': '11'
+      }
+    });
+  };
+
+  try {
+    const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clip/abc1234567890'), env);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'video/mp4');
+    assert.equal(response.headers.get('cache-control'), 'public, max-age=300');
+    assert.equal(await response.text(), 'video-bytes');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker rejects invalid shrimp clip id for proxy endpoint', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be called for shrimp clip proxy API');
+      }
+    },
+    GOOGLE_DRIVE_API_KEY: 'test-api-key'
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/aquarium/shrimp-clip/../bad'), env);
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid clip id.' });
+});
+
 test('worker serves root path through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {

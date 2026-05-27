@@ -16,6 +16,10 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "GOOGLE_DRIVE_SHRIMP_FOLDER_ID": "1DPzSJbcN9v_D1mSy4nIXjPOBhFHJpvSi",
+    "AQUARIUM_LOCAL_CLIP_COUNT": "23"
+  },
   "durable_objects": {
     "bindings": [
       {
