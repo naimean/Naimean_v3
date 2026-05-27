@@ -2221,12 +2221,12 @@
           return null;
         }
         const activeVideo = targetOverlayEl.querySelector(
-          '.nedry-gate-overlay.is-active video, .discord-static-overlay.is-active video'
+          '.nedry-gate-overlay.is-active .nedry-gate-video, .discord-static-overlay.is-active .discord-static-video'
         );
         if (activeVideo instanceof HTMLVideoElement) {
           return activeVideo;
         }
-        const fallbackVideo = targetOverlayEl.querySelector('video');
+        const fallbackVideo = targetOverlayEl.querySelector('.nedry-gate-video, .discord-static-video');
         return fallbackVideo instanceof HTMLVideoElement ? fallbackVideo : null;
       }
 
@@ -2252,14 +2252,18 @@
           return;
         }
         if (typeof targetOverlayEl.requestFullscreen !== 'function') {
-          enterBigTvVideoFullscreenFallback(targetOverlayEl);
+          if (!enterBigTvVideoFullscreenFallback(targetOverlayEl)) {
+            console.warn('Unable to enter big TV fullscreen mode: API unavailable.');
+          }
           return;
         }
         try {
           await targetOverlayEl.requestFullscreen();
         } catch (error) {
           console.warn('Unable to enter big TV fullscreen mode.', error);
-          enterBigTvVideoFullscreenFallback(targetOverlayEl);
+          if (!enterBigTvVideoFullscreenFallback(targetOverlayEl)) {
+            console.warn('Unable to enter big TV fullscreen fallback mode.');
+          }
         }
       }
 
