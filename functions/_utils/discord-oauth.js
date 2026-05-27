@@ -1,14 +1,14 @@
 export function getDiscordAuthUrl(env, request) {
   const url = new URL(request.url);
   
-  // Force the redirect to use the /auth/ path instead of /api/
-  const redirectUri = `${url.protocol}//${url.host}/auth/discord/callback`;
+  // Explicitly force the redirect URI to point to the api folder
+  const redirectUri = `${url.protocol}//${url.host}/api/discord/callback`;
   
   const params = new URLSearchParams({
     client_id: env.DISCORD_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'identify',
+    scope: 'identify email', // Added email scope in case you want to use it later
   });
 
   return `https://discord.com/oauth2/authorize?${params.toString()}`;
@@ -16,7 +16,7 @@ export function getDiscordAuthUrl(env, request) {
 
 export async function exchangeCodeForToken(env, request, code) {
   const url = new URL(request.url);
-  const redirectUri = `${url.protocol}//${url.host}/auth/discord/callback`;
+  const redirectUri = `${url.protocol}//${url.host}/api/discord/callback`;
 
   const params = new URLSearchParams({
     client_id: env.DISCORD_CLIENT_ID,
