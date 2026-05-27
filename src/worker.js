@@ -230,6 +230,18 @@ const HTML_ROUTE_ALIASES = new Map([
 const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
 const DISCORD_OAUTH_AUTHORIZE_URL = 'https://discord.com/api/oauth2/authorize';
 const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
+const DISCORD_AUTH_ROUTE_ALIASES = new Set([
+  '/api/discord/auth',
+  '/api/discord/auth/',
+  '/api/discord/oauth',
+  '/api/discord/oauth/',
+  '/api/discord/0auth',
+  '/api/discord/0auth/',
+]);
+const DISCORD_CALLBACK_ROUTE_ALIASES = new Set([
+  '/api/discord/callback',
+  '/api/discord/callback/',
+]);
 
 function handleDiscordAuth(request, env) {
   const clientId = env.DISCORD_CLIENT_ID;
@@ -309,11 +321,11 @@ export default {
       return handleShrimpClipProxy(request, env, clipId);
     }
 
-    if (url.pathname === '/api/discord/auth') {
+    if (DISCORD_AUTH_ROUTE_ALIASES.has(url.pathname)) {
       return handleDiscordAuth(request, env);
     }
 
-    if (url.pathname === '/api/discord/callback') {
+    if (DISCORD_CALLBACK_ROUTE_ALIASES.has(url.pathname)) {
       return handleDiscordCallback(request);
     }
 
