@@ -2143,6 +2143,8 @@
       let aquariumShrimpClipQueue = [];
       let aquariumShrimpClipSource = AQUARIUM_CLIP_SOURCE_LOCAL_FALLBACK;
       let aquariumRightMonitorButtonStateBeforeSequence = false;
+      let aquariumClipHistory = []; // URLs of clips that have been played, newest last
+      let aquariumHistoryPointer = 0; // 0 = live (at newest), >0 = N steps back in history
       let commodorePowerButtonEl = null;
       let commodorePowerOnTimeoutId = null;
       let isCommodorePoweringOn = false;
@@ -2381,6 +2383,53 @@
         if (isAquariumPlaybackSequenceActive()) {
           stopAquariumPlaybackSequence();
         }
+      }
+
+      function recordAquariumClipInHistory(clipUrl) {
+        if (aquariumHistoryPointer > 0) {
+          aquariumClipHistory = aquariumClipHistory.slice(0, aquariumClipHistory.length - aquariumHistoryPointer);
+          aquariumHistoryPointer = 0;
+        }
+        aquariumClipHistory.push(clipUrl);
+        if (aquariumClipHistory.length > 50) {
+          aquariumClipHistory.shift();
+        }
+      }
+
+      function skipToAquariumClip(clipUrl, { recordInHistory = true } = {}) {
+        if (!isAquariumPlaybackSequenceActive()) {
+          return false;
+        }
+        cancelAquariumPlaybackSequence();
+        hideNedryGateOverlay();
+        hideAquariumStaticOverlay();
+        hideBigTvPromptOverlay({ clearInput: false });
+        const sequenceToken = aquariumSequenceToken;
+        aquariumLoopOwnerToken = sequenceToken;
+        void runAquariumPlaybackSequence(sequenceToken, { startClipUrl: clipUrl, recordStartClip: recordInHistory });
+        return true;
+      }
+
+      function skipAquariumToNextClip() {
+        if (aquariumHistoryPointer > 0) {
+          aquariumHistoryPointer -= 1;
+          const targetUrl = aquariumClipHistory[aquariumClipHistory.length - 1 - aquariumHistoryPointer];
+          if (targetUrl) {
+            return skipToAquariumClip(targetUrl, { recordInHistory: false });
+          }
+          aquariumHistoryPointer = 0;
+        }
+        return skipToAquariumClip(null, { recordInHistory: true });
+      }
+
+      function skipAquariumToPreviousClip() {
+        const targetPointer = aquariumHistoryPointer + 1;
+        const targetUrl = aquariumClipHistory[aquariumClipHistory.length - 1 - targetPointer];
+        if (!targetUrl) {
+          return false;
+        }
+        aquariumHistoryPointer = targetPointer;
+        return skipToAquariumClip(targetUrl, { recordInHistory: false });
       }
 
       function shuffleArrayInPlace(values) {
@@ -2629,7 +2678,7 @@
         return hasEnded && sequenceToken === aquariumSequenceToken;
       }
 
-      async function runAquariumPlaybackSequence(sequenceToken, { startWithStatic = false } = {}) {
+      async function runAquariumPlaybackSequence(sequenceToken, { startWithStatic = false, startClipUrl = null, recordStartClip = true } = {}) {
         if (startWithStatic) {
           const staticEnded = await playAquariumStaticPass(sequenceToken);
           if (!staticEnded || sequenceToken !== aquariumSequenceToken) {
@@ -2641,8 +2690,21 @@
           }
         }
 
+        let firstClip = true;
         while (sequenceToken === aquariumSequenceToken) {
-          const clipEnded = await playAquariumClipPass(sequenceToken, getRandomShrimpClipUrl());
+          let clipUrl;
+          if (firstClip && startClipUrl !== null) {
+            clipUrl = startClipUrl;
+            if (recordStartClip) {
+              recordAquariumClipInHistory(clipUrl);
+            }
+          } else {
+            clipUrl = getRandomShrimpClipUrl();
+            recordAquariumClipInHistory(clipUrl);
+          }
+          firstClip = false;
+
+          const clipEnded = await playAquariumClipPass(sequenceToken, clipUrl);
           if (!clipEnded || sequenceToken !== aquariumSequenceToken) {
             break;
           }
@@ -4059,7 +4121,7 @@
               if (
                 overlay.id === AQUARIUM_OVERLAY_ID &&
                 document.fullscreenElement === el &&
-                replayAquariumPlaybackSequenceFromStatic()
+                skipAquariumToNextClip()
               ) {
                 return;
               }
@@ -4731,6 +4793,16 @@
 
         if (event.code === 'Backquote' || debugComboPressed) {
           toggleDebugMode();
+        }
+
+        if (document.fullscreenElement === aquariumOverlayEl) {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            skipAquariumToPreviousClip();
+          } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            skipAquariumToNextClip();
+          }
         }
       }
 
