@@ -1,5 +1,5 @@
 import { handleDiscordCallbackRequest } from '../../_utils/discord-oauth.js';
 
 export function onRequest(context) {
-  return handleDiscordCallbackRequest(context.request);
+  return handleDiscordCallbackRequest(context.request, context.env);
 }

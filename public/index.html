@@ -676,6 +676,54 @@
       -webkit-user-drag: none;
     }
 
+    .discord-user-chip {
+      position: absolute;
+      top: 12%;
+      right: 10%;
+      bottom: 12%;
+      left: 10%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      background: rgba(12, 15, 28, 0.88);
+      box-sizing: border-box;
+      color: #f4f7ff;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.15;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .discord-user-chip[hidden] {
+      display: none;
+    }
+
+    .discord-user-avatar {
+      width: clamp(36px, 28%, 54px);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+    }
+
+    .discord-user-name {
+      min-width: 0;
+      flex: 1 1 auto;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .left-monitor-screen-window {
       --left-monitor-inner-boundary-top: 3%;
       --left-monitor-inner-boundary-right: 2.4%;
@@ -2239,10 +2287,18 @@
       const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
       const DISCORD_AUTH_PATH = '/auth/discord/login';
       const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
+      const DISCORD_PROFILE_STORAGE_KEY = 'naimean.discord.profile';
       const DISCORD_GUILD_ID = '';
       const DISCORD_WIDGET_URL = DISCORD_GUILD_ID
         ? `https://discord.com/widget?id=${DISCORD_GUILD_ID}&theme=dark`
         : null;
+      const DISCORD_QUERY_PARAM_KEYS = Object.freeze({
+        username: 'discord_username',
+        displayName: 'discord_display_name',
+        userId: 'discord_user_id',
+        discriminator: 'discord_discriminator',
+        avatarUrl: 'discord_avatar_url',
+      });
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
       const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
       const STARSHRIMP_LOGO_IMAGE_URL = 'assets/images/starshrimp_logo.png';
@@ -2533,7 +2589,12 @@
       let leftMonitorStaticVideoEl = null;
       let leftMonitorContentImageEl = null;
       let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
+      let discordJoinButtonEl = null;
       let discordButtonImgEl = null;
+      let discordUserChipEl = null;
+      let discordUserChipAvatarEl = null;
+      let discordUserChipNameEl = null;
+      let discordAuthProfile = null;
       let discordButtonSelected = false;
       let aquariumShrimpClips = [...AQUARIUM_LOCAL_SHRIMP_CLIPS];
       let aquariumShrimpClipSet = new Set(aquariumShrimpClips);
@@ -2728,11 +2789,149 @@
         });
       }
 
+      function getDiscordDefaultAvatarUrl(userId, discriminator) {
+        if (/^\d+$/.test(discriminator) && discriminator !== '0') {
+          const avatarIndex = Number.parseInt(discriminator, 10) % 5;
+          return `https://cdn.discordapp.com/embed/avatars/${avatarIndex}.png`;
+        }
+        if (/^\d+$/.test(userId)) {
+          const avatarIndex = Number(BigInt(userId) % 6n);
+          return `https://cdn.discordapp.com/embed/avatars/${avatarIndex}.png`;
+        }
+        return 'https://cdn.discordapp.com/embed/avatars/0.png';
+      }
+
+      function sanitizeDiscordAvatarUrl(urlValue) {
+        if (typeof urlValue !== 'string') {
+          return '';
+        }
+        const trimmed = urlValue.trim();
+        if (!trimmed) {
+          return '';
+        }
+        try {
+          const parsed = new URL(trimmed, window.location.origin);
+          const hostname = parsed.hostname.toLowerCase();
+          if (
+            parsed.protocol !== 'https:' ||
+            (hostname !== 'cdn.discordapp.com' && hostname !== 'media.discordapp.net')
+          ) {
+            return '';
+          }
+          return parsed.toString();
+        } catch {
+          return '';
+        }
+      }
+
+      function normalizeDiscordProfile(profile) {
+        if (!profile || typeof profile !== 'object') {
+          return null;
+        }
+
+        const username = typeof profile.username === 'string' ? profile.username.trim() : '';
+        const displayName = typeof profile.displayName === 'string' ? profile.displayName.trim() : '';
+        const userId = typeof profile.userId === 'string' ? profile.userId.trim() : '';
+        const discriminator = typeof profile.discriminator === 'string' ? profile.discriminator.trim() : '';
+        const avatarUrl = sanitizeDiscordAvatarUrl(profile.avatarUrl);
+        const label = displayName || username;
+        if (!label) {
+          return null;
+        }
+
+        return {
+          username,
+          displayName,
+          userId,
+          discriminator,
+          avatarUrl: avatarUrl || getDiscordDefaultAvatarUrl(userId, discriminator),
+        };
+      }
+
+      function readDiscordProfileFromStorage() {
+        try {
+          const raw = window.localStorage.getItem(DISCORD_PROFILE_STORAGE_KEY);
+          if (!raw) {
+            return null;
+          }
+          return normalizeDiscordProfile(JSON.parse(raw));
+        } catch {
+          return null;
+        }
+      }
+
+      function persistDiscordProfile(profile) {
+        try {
+          if (!profile) {
+            window.localStorage.removeItem(DISCORD_PROFILE_STORAGE_KEY);
+            return;
+          }
+          window.localStorage.setItem(DISCORD_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+        } catch {
+          // Ignore unavailable storage.
+        }
+      }
+
+      function readDiscordProfileFromUrl(pageUrl) {
+        const usernameFromParam = pageUrl.searchParams.get(DISCORD_QUERY_PARAM_KEYS.username)
+          || pageUrl.searchParams.get('username')
+          || '';
+        const profile = normalizeDiscordProfile({
+          username: usernameFromParam,
+          displayName: pageUrl.searchParams.get(DISCORD_QUERY_PARAM_KEYS.displayName) || '',
+          userId: pageUrl.searchParams.get(DISCORD_QUERY_PARAM_KEYS.userId) || '',
+          discriminator: pageUrl.searchParams.get(DISCORD_QUERY_PARAM_KEYS.discriminator) || '',
+          avatarUrl: pageUrl.searchParams.get(DISCORD_QUERY_PARAM_KEYS.avatarUrl) || '',
+        });
+        return profile;
+      }
+
+      function initializeDiscordProfileState(pageUrl) {
+        const profileFromUrl = readDiscordProfileFromUrl(pageUrl);
+        if (profileFromUrl) {
+          discordAuthProfile = profileFromUrl;
+          persistDiscordProfile(discordAuthProfile);
+          return;
+        }
+        discordAuthProfile = readDiscordProfileFromStorage();
+      }
+
       function syncDiscordButtonUi() {
+        const hasDiscordProfile = !!discordAuthProfile;
+        if (hasDiscordProfile) {
+          discordButtonSelected = true;
+        }
+
         if (discordButtonImgEl) {
           discordButtonImgEl.src = discordButtonSelected
             ? DISCORD_BUTTON_GREEN_IMAGE_URL
             : DISCORD_BUTTON_IMAGE_URL;
+        }
+
+        if (discordJoinButtonEl) {
+          discordJoinButtonEl.hidden = hasDiscordProfile;
+          discordJoinButtonEl.setAttribute('aria-hidden', hasDiscordProfile ? 'true' : 'false');
+        }
+
+        if (discordUserChipEl) {
+          discordUserChipEl.hidden = !hasDiscordProfile;
+          discordUserChipEl.setAttribute('aria-hidden', hasDiscordProfile ? 'false' : 'true');
+        }
+
+        if (discordUserChipNameEl) {
+          discordUserChipNameEl.textContent = hasDiscordProfile
+            ? (discordAuthProfile.displayName || discordAuthProfile.username)
+            : '';
+        }
+
+        if (discordUserChipAvatarEl) {
+          if (hasDiscordProfile) {
+            discordUserChipAvatarEl.src = discordAuthProfile.avatarUrl;
+            discordUserChipAvatarEl.hidden = false;
+          } else {
+            discordUserChipAvatarEl.removeAttribute('src');
+            discordUserChipAvatarEl.hidden = true;
+          }
         }
       }
 
@@ -4623,6 +4822,11 @@
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
         rightMonitorShrimpLogoOverlayEl = null;
+        discordJoinButtonEl = null;
+        discordButtonImgEl = null;
+        discordUserChipEl = null;
+        discordUserChipAvatarEl = null;
+        discordUserChipNameEl = null;
         leftMonitorStaticOverlayEl = null;
         leftMonitorStaticVideoEl = null;
         leftMonitorContentImageEl = null;
@@ -4932,6 +5136,7 @@
               event.stopPropagation();
               window.location.assign(DISCORD_AUTH_PATH);
             });
+            discordJoinButtonEl = button;
 
             const img = document.createElement('img');
             img.className = 'join-discord-button-image';
@@ -4942,6 +5147,27 @@
             discordButtonImgEl = img;
             button.appendChild(img);
             monitorScreenWindowEl.appendChild(button);
+
+            const userChip = document.createElement('div');
+            userChip.className = 'discord-user-chip';
+            userChip.hidden = true;
+            userChip.setAttribute('aria-hidden', 'true');
+
+            const avatar = document.createElement('img');
+            avatar.className = 'discord-user-avatar';
+            avatar.alt = '';
+            avatar.loading = 'lazy';
+            avatar.decoding = 'async';
+            avatar.hidden = true;
+            discordUserChipAvatarEl = avatar;
+
+            const name = document.createElement('span');
+            name.className = 'discord-user-name';
+            discordUserChipNameEl = name;
+
+            userChip.append(avatar, name);
+            discordUserChipEl = userChip;
+            monitorScreenWindowEl.appendChild(userChip);
 
             rightMonitorStaticOverlayEl = document.createElement('div');
             rightMonitorStaticOverlayEl.className = 'overlay-static-layer';
@@ -5209,6 +5435,7 @@
           screenOverlayLayer.appendChild(el);
           overlayElementsById.set(overlay.id, el);
         });
+        syncDiscordButtonUi();
       }
 
       function applyTransforms() {
@@ -5563,6 +5790,8 @@
       }
 
       async function initializeScene() {
+        const pageUrl = new URL(window.location.href);
+        initializeDiscordProfileState(pageUrl);
         await loadAquariumShrimpClipCatalog();
         const serverHotspots = await loadHotspotsFromServer();
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
@@ -5588,7 +5817,6 @@
             : 'Server hotspots unavailable; loaded bundled default hotspots.';
         }
 
-        const pageUrl = new URL(window.location.href);
         if (shouldStartNedryGateFromDiscordAuth(pageUrl)) {
           [
             DISCORD_AUTH_COMPLETE_PARAM,
@@ -5597,7 +5825,12 @@
             'error',
             'error_description',
             'login',
-            'username'
+            'username',
+            DISCORD_QUERY_PARAM_KEYS.username,
+            DISCORD_QUERY_PARAM_KEYS.displayName,
+            DISCORD_QUERY_PARAM_KEYS.userId,
+            DISCORD_QUERY_PARAM_KEYS.discriminator,
+            DISCORD_QUERY_PARAM_KEYS.avatarUrl
           ].forEach((paramName) => pageUrl.searchParams.delete(paramName));
           window.history.replaceState(null, '', pageUrl.toString());
           hideAllMonitorShadows();
