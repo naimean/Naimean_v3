@@ -2024,6 +2024,10 @@
         [LEFT_MONITOR_OVERLAY_CONTROL_ID, LEFT_MONITOR_SCREEN_WINDOW_INSETS],
         [RIGHT_MONITOR_OVERLAY_CONTROL_ID, RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
       ]);
+      const MONITOR_SCREEN_INSETS_BY_SIDE_FRAME_CONTROL_ID = new Map([
+        [LEFT_MONITOR_SIDE_FRAME_CONTROL_ID, LEFT_MONITOR_SCREEN_WINDOW_INSETS],
+        [RIGHT_MONITOR_SIDE_FRAME_CONTROL_ID, RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
+      ]);
       const MONITOR_SCREEN_INSETS_BY_OVERLAY_ID = new Map([
         ['overlay-left-monitor', LEFT_MONITOR_SCREEN_WINDOW_INSETS],
         ['overlay-right-monitor', RIGHT_MONITOR_SCREEN_WINDOW_INSETS]
@@ -3186,6 +3190,27 @@
         };
       }
 
+      function normalizeLegacyMonitorSideFrameControlBounds(spot, fallback) {
+        const insets = MONITOR_SCREEN_INSETS_BY_SIDE_FRAME_CONTROL_ID.get(spot.id);
+        if (!insets) return spot;
+        const legacyScreenBounds = frameBoundsToScreenBounds(fallback, insets);
+        const legacyTolerancePx = 12;
+        const resemblesLegacyScreenBounds =
+          Math.abs(spot.w - legacyScreenBounds.w) <= legacyTolerancePx &&
+          Math.abs(spot.h - legacyScreenBounds.h) <= legacyTolerancePx;
+        if (!resemblesLegacyScreenBounds) {
+          return spot;
+        }
+        const normalizedFrameBounds = screenBoundsToFrameBounds(spot, insets);
+        return {
+          ...spot,
+          x: normalizedFrameBounds.x,
+          y: normalizedFrameBounds.y,
+          w: Math.max(MIN_HOTSPOT_SIZE, normalizedFrameBounds.w),
+          h: Math.max(MIN_HOTSPOT_SIZE, normalizedFrameBounds.h)
+        };
+      }
+
       function sourceHotspotsToRuntime(sourceHotspots) {
         return sourceHotspots.map((spot) => {
           const runtimeSpot = {
@@ -3256,7 +3281,8 @@
             w: isFiniteNumber(entry.w) ? Math.max(minWidth, Math.round(entry.w)) : fallback.w,
             h: isFiniteNumber(entry.h) ? Math.max(minHeight, Math.round(entry.h)) : fallback.h
           };
-          return normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback);
+          const normalizedOverlayControlBounds = normalizeLegacyMonitorOverlayControlBounds(sanitizedEntry, fallback);
+          return normalizeLegacyMonitorSideFrameControlBounds(normalizedOverlayControlBounds, fallback);
         });
       }
 
