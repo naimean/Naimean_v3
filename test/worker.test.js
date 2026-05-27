@@ -235,7 +235,7 @@ test('worker supports trailing slash on Discord callback route', async () => {
   assert.equal(response.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
 });
 
-test('worker supports V2 Discord login route aliases and uses /auth callback redirect URI', async () => {
+test('worker supports V2 Discord login route aliases and uses canonical callback redirect URI', async () => {
   const env = {
     DISCORD_CLIENT_ID: '1234567890',
     ASSETS: {
@@ -250,7 +250,7 @@ test('worker supports V2 Discord login route aliases and uses /auth callback red
   assert.equal(response.status, 302);
   assert.equal(
     response.headers.get('location'),
-    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fauth%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fapi%2Fdiscord%2Fcallback&response_type=code&scope=identify'
   );
 });
 
@@ -285,10 +285,46 @@ test('functions/api/discord/auth redirects to Discord OAuth authorize URL', asyn
   );
 });
 
-test('functions/auth/discord/login redirects to Discord OAuth authorize URL using /auth callback', async () => {
+test('functions/auth/discord/login redirects to Discord OAuth authorize URL using canonical callback', async () => {
   const response = await onAuthDiscordLoginRequest({
     request: new Request('https://example.com/auth/discord/login'),
     env: { DISCORD_CLIENT_ID: '1234567890' }
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fexample.com%2Fapi%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('worker prefers configured Discord redirect URI override', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: '1234567890',
+    DISCORD_REDIRECT_URI: 'https://naimean.com/auth/discord/callback',
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord auth routes');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/auth/discord/login'), env);
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    'https://discord.com/api/oauth2/authorize?client_id=1234567890&redirect_uri=https%3A%2F%2Fnaimean.com%2Fauth%2Fdiscord%2Fcallback&response_type=code&scope=identify'
+  );
+});
+
+test('functions/auth/discord/login prefers configured callback path override', async () => {
+  const response = await onAuthDiscordLoginRequest({
+    request: new Request('https://example.com/auth/discord/login'),
+    env: {
+      DISCORD_CLIENT_ID: '1234567890',
+      DISCORD_CALLBACK_PATH: '/auth/discord/callback'
+    }
   });
 
   assert.equal(response.status, 302);
