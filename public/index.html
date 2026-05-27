@@ -1881,6 +1881,10 @@
       const AQUARIUM_CLIP_CATALOG_API_URL = '/api/aquarium/shrimp-clips';
       const AQUARIUM_CLIP_SOURCE_GOOGLE_DRIVE = 'google-drive';
       const AQUARIUM_CLIP_SOURCE_LOCAL_FALLBACK = 'local-fallback';
+      // On iOS, native fullscreen exit fires 'pause' before 'ended'. This tolerance
+      // (in seconds) lets the 'ended' event arrive before treating the pause as an
+      // interruption of the playback sequence.
+      const MEDIA_ENDED_PAUSE_TOLERANCE_S = 0.5;
       const BIG_TV_DEBUG_WATERMARK_SERVER_ASSET = 'Server_Asset';
       const BIG_TV_DEBUG_WATERMARK_SHRIMP_CITY = 'shrimp_city';
       const RADIO_TUNING_AUDIO_URLS = [
@@ -2445,10 +2449,10 @@
               return;
             }
             // On iOS, native fullscreen exit fires 'pause' before 'ended' when a clip
-            // finishes. If the playhead is at (or within 0.5 s of) the end of the
-            // duration, don't break the sequence — let the 'ended' event resolve it.
+            // finishes. If the playhead is at (or within the tolerance of) the end of
+            // the duration, don't break the sequence — let the 'ended' event resolve it.
             const dur = mediaEl.duration;
-            if (Number.isFinite(dur) && dur > 0 && mediaEl.currentTime >= dur - 0.5) {
+            if (Number.isFinite(dur) && dur > 0 && mediaEl.currentTime >= dur - MEDIA_ENDED_PAUSE_TOLERANCE_S) {
               return;
             }
             cleanup();
