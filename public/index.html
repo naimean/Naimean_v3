@@ -2110,6 +2110,10 @@
       const DISCORD_GUEST_INVITE_URL = 'https://discord.gg/kTkD7N3JN';
       const DISCORD_AUTH_PATH = '/api/discord/auth';
       const DISCORD_AUTH_COMPLETE_PARAM = 'discord_auth_complete';
+      const DISCORD_GUILD_ID = '';
+      const DISCORD_WIDGET_URL = DISCORD_GUILD_ID
+        ? `https://discord.com/widget?id=${DISCORD_GUILD_ID}&theme=dark`
+        : null;
       const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
       const DISCORD_BUTTON_GREEN_IMAGE_URL = 'assets/images/join_disc_green.png';
       const STARSHRIMP_LOGO_IMAGE_URL = 'assets/images/starshrimp_logo.png';
@@ -4004,6 +4008,7 @@
 
       function animateMonitorShadowOn(el) {
         if (!el) return;
+        if (el.classList.contains('is-monitor-on') && !el.classList.contains('tv-turning-off')) return;
         el.classList.remove('is-monitor-on', 'tv-turning-off', 'tv-turning-on');
         void el.offsetHeight;
         el.classList.add('tv-turning-on');
@@ -4496,6 +4501,15 @@
 
           if (overlay.id === DISCORD_OVERLAY_ID) {
             el.classList.add('discord-widget-overlay', 'big-tv-fullscreen-target');
+            if (DISCORD_WIDGET_URL) {
+              const widgetFrame = document.createElement('iframe');
+              widgetFrame.className = 'discord-widget-frame';
+              widgetFrame.src = DISCORD_WIDGET_URL;
+              widgetFrame.title = 'Discord server widget';
+              widgetFrame.setAttribute('allowtransparency', 'true');
+              widgetFrame.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+              el.appendChild(widgetFrame);
+            }
             el.appendChild(createBigTvFullscreenExitButton());
           }
 
@@ -5403,6 +5417,7 @@
         hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
 
         createOverlays();
+        animateMonitorShadowOn(bigTvShadowOverlayEl);
         createSceneTiles();
         createAshtraySmokeEffect();
         createAshtrayCigaretteEffect();
