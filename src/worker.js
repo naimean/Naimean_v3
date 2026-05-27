@@ -1,24 +1,70 @@
 const DEFAULT_HOTSPOTS = [
-  { id: '1', name: 'Hotspot 1', x: 100, y: 100 },
-  { id: '2', name: 'Hotspot 2', x: 200, y: 200 },
+  { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 },
+  { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
+  { id: 'rca-board', x: 738, y: 380, w: 470, h: 1060 },
+  { id: 'chapel', x: 3840, y: 0, w: 3840, h: 2160 },
+  { id: 'pencil-sharpener', x: 2562, y: 1220, w: 221, h: 245 },
+  { id: 'overlay-big-tv-control', x: 1469, y: 330, w: 1000, h: 572 },
+  { id: 'overlay-flip-clock-control', x: 990, y: 1740, w: 360, h: 156 },
+  { id: 'overlay-left-monitor-control', x: 1322, y: 1028, w: 298, h: 206 },
+  { id: 'overlay-right-monitor-control', x: 1758, y: 1014, w: 288, h: 228 },
 ];
 
+const HOTSPOT_LIMITS = {
+  minX: 0,
+  maxX: 3840,
+  minY: 0,
+  maxY: 2160,
+  minW: 20,
+  maxW: 3840,
+  minH: 20,
+  maxH: 2160
+};
+
 const JSON_HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
+  'content-type': 'application/json; charset=UTF-8',
+  'cache-control': 'no-store',
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-headers': 'content-type'
 };
 const DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]{10,}$/;
 const GOOGLE_DRIVE_LIST_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
 const GOOGLE_DRIVE_MEDIA_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
 const DEFAULT_AQUARIUM_LOCAL_CLIP_COUNT = 23;
 
-function sanitizeHotspots(hotspots) {
-  return (hotspots || []).map(h => ({
-    id: String(h.id),
-    name: String(h.name || ''),
-    x: Number(h.x || 0),
-    y: Number(h.y || 0),
-  }));
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
+}
+
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function sanitizeHotspots(input) {
+  if (!Array.isArray(input)) return DEFAULT_HOTSPOTS;
+
+  const entriesById = new Map();
+  input.forEach((entry) => {
+    if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string') return;
+    entriesById.set(entry.id, entry);
+  });
+
+  return DEFAULT_HOTSPOTS.map((fallback) => {
+    const entry = entriesById.get(fallback.id);
+    if (!entry) return { ...fallback };
+
+    const x = isFiniteNumber(entry.x) ? clamp(Math.round(entry.x), HOTSPOT_LIMITS.minX, HOTSPOT_LIMITS.maxX) : fallback.x;
+    const y = isFiniteNumber(entry.y) ? clamp(Math.round(entry.y), HOTSPOT_LIMITS.minY, HOTSPOT_LIMITS.maxY) : fallback.y;
+    const w = isFiniteNumber(entry.w) ? clamp(Math.round(entry.w), HOTSPOT_LIMITS.minW, HOTSPOT_LIMITS.maxW) : fallback.w;
+    const h = isFiniteNumber(entry.h) ? clamp(Math.round(entry.h), HOTSPOT_LIMITS.minH, HOTSPOT_LIMITS.maxH) : fallback.h;
+
+    return { id: fallback.id, x, y, w, h };
+  });
 }
 
 function rewriteRequestPath(request, newPath) {
@@ -49,23 +95,16 @@ function isVideoMimeType(mimeType) {
 }
 
 function buildApiError(status, error) {
-  return Response.json({ error }, { status, headers: JSON_HEADERS });
+  return jsonResponse({ error }, status);
 }
 
 function buildClipCatalogResponse(clips, source) {
-  return Response.json(
-    {
-      clips,
-      source,
-      count: clips.length,
+  return new Response(JSON.stringify({ clips, source, count: clips.length }), {
+    headers: {
+      ...JSON_HEADERS,
+      'cache-control': 'public, max-age=300',
     },
-    {
-      headers: {
-        ...JSON_HEADERS,
-        'Cache-Control': 'public, max-age=300',
-      },
-    }
-  );
+  });
 }
 
 async function fetchDriveShrimpClipCatalog(env) {
@@ -186,6 +225,7 @@ const HTML_ROUTE_ALIASES = new Map([
   ['/den', '/index.html'],
   ['/den.html', '/index.html'],
   ['/hallway', '/index.html'],
+  ['/', '/index.html'],
 ]);
 
 export class HotspotStore {
@@ -201,9 +241,9 @@ export class HotspotStore {
     if (request.method === 'GET') {
       try {
         const saved = await this.state.storage.get('hotspots');
-        return Response.json({ hotspots: sanitizeHotspots(saved) });
+        return jsonResponse({ hotspots: sanitizeHotspots(saved) });
       } catch (error) {
-        return Response.json({ error: `Failed to load hotspots: ${error?.message || 'Unknown error'}` }, { status: 500 });
+        return jsonResponse({ error: `Failed to load hotspots: ${error?.message || 'Unknown error'}` }, 500);
       }
     }
 
@@ -212,19 +252,19 @@ export class HotspotStore {
       try {
         body = await request.json();
       } catch {
-        return Response.json({ error: 'Invalid JSON body.' }, { status: 400 });
+        return jsonResponse({ error: 'Invalid JSON body.' }, 400);
       }
 
       try {
         const hotspots = sanitizeHotspots(body?.hotspots);
         await this.state.storage.put('hotspots', hotspots);
-        return Response.json({ ok: true, hotspots });
+        return jsonResponse({ ok: true, hotspots });
       } catch (error) {
-        return Response.json({ error: `Failed to save hotspots: ${error?.message || 'Unknown error'}` }, { status: 500 });
+        return jsonResponse({ error: `Failed to save hotspots: ${error?.message || 'Unknown error'}` }, 500);
       }
     }
 
-    return Response.json({ error: 'Method not allowed.' }, { status: 405 });
+    return jsonResponse({ error: 'Method not allowed.' }, 405);
   }
 }
 
@@ -243,14 +283,14 @@ export default {
 
     if (url.pathname === '/api/hotspots') {
       if (!env.HOTSPOT_STORE) {
-        return Response.json({ error: 'HOTSPOT_STORE binding is missing.' }, { status: 500 });
+        return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       }
       const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
       return env.HOTSPOT_STORE.get(id).fetch(request);
     }
 
     const aliasedPath = HTML_ROUTE_ALIASES.get(url.pathname);
-    
+
     if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
       if (aliasedPath) {
         return env.ASSETS.fetch(rewriteRequestPath(request, aliasedPath));
