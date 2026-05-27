@@ -707,7 +707,7 @@ test('worker returns 503 for shrimp clip proxy when Drive API key is missing', a
   assert.deepEqual(await response.json(), { error: 'Google Drive API key is not configured.' });
 });
 
-test('worker serves root path through the index asset alias', async () => {
+test('worker serves root path without rewriting to /index.html', async () => {
   const calls = { assetsFetch: [] };
   const env = {
     HOTSPOT_STORE: {},
@@ -723,7 +723,30 @@ test('worker serves root path through the index asset alias', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), 'den');
-  assert.deepEqual(calls.assetsFetch, ['/index.html']);
+  assert.deepEqual(calls.assetsFetch, ['/']);
+});
+
+test('worker avoids root redirect loops when /index.html canonicalizes to /', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch(request) {
+        const path = new URL(request.url).pathname;
+        calls.assetsFetch.push(path);
+        if (path === '/index.html') {
+          return Response.redirect('https://example.com/', 301);
+        }
+        return new Response('den', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'den');
+  assert.deepEqual(calls.assetsFetch, ['/']);
 });
 
 test('worker serves /index.html through the index asset alias', async () => {
