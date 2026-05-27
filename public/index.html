@@ -1875,6 +1875,8 @@
         'right-monitor'
       ]);
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const STATIC_VIDEO_SEGMENT_COUNT = 3;
+      const STATIC_VIDEO_FRAGMENT_PRECISION = 3;
       const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
       );
@@ -2458,6 +2460,97 @@
         });
       }
 
+      function waitForMediaMetadata(mediaEl) {
+        if (Number.isFinite(mediaEl.duration) && mediaEl.duration > 0) {
+          return Promise.resolve(true);
+        }
+        return new Promise((resolve) => {
+          const onLoadedMetadata = () => {
+            cleanup();
+            resolve(true);
+          };
+          const onError = () => {
+            cleanup();
+            resolve(false);
+          };
+          const cleanup = () => {
+            mediaEl.removeEventListener('loadedmetadata', onLoadedMetadata);
+            mediaEl.removeEventListener('error', onError);
+          };
+          mediaEl.addEventListener('loadedmetadata', onLoadedMetadata);
+          mediaEl.addEventListener('error', onError);
+        });
+      }
+
+      function setMediaSource(mediaEl, sourceUrl) {
+        if (!mediaEl) {
+          return;
+        }
+        if (mediaEl.getAttribute('src') === sourceUrl) {
+          return;
+        }
+        mediaEl.setAttribute('src', sourceUrl);
+        mediaEl.src = sourceUrl;
+        mediaEl.load();
+      }
+
+      function rememberStaticVideoDuration(videoEl) {
+        if (!videoEl) {
+          return;
+        }
+        const sourceUrl = videoEl.getAttribute('src') || '';
+        if (sourceUrl.includes('#t=')) {
+          return;
+        }
+        if (!Number.isFinite(videoEl.duration) || videoEl.duration <= 0) {
+          return;
+        }
+        videoEl.dataset.baseDuration = String(videoEl.duration);
+      }
+
+      function formatMediaFragmentTime(seconds) {
+        return Number(seconds.toFixed(STATIC_VIDEO_FRAGMENT_PRECISION)).toString();
+      }
+
+      function getRandomStaticVideoSegmentSource(videoEl) {
+        const baseUrl = videoEl?.dataset.baseSrc || AQUARIUM_STATIC_VIDEO_URL;
+        const baseDuration = Number(videoEl?.dataset.baseDuration);
+        if (!Number.isFinite(baseDuration) || baseDuration <= 0) {
+          return baseUrl;
+        }
+        const segmentDuration = baseDuration / STATIC_VIDEO_SEGMENT_COUNT;
+        const segmentIndex = Math.floor(Math.random() * STATIC_VIDEO_SEGMENT_COUNT);
+        const startTime = segmentDuration * segmentIndex;
+        const endTime = segmentIndex === STATIC_VIDEO_SEGMENT_COUNT - 1
+          ? baseDuration
+          : segmentDuration * (segmentIndex + 1);
+        return `${baseUrl}#t=${formatMediaFragmentTime(startTime)},${formatMediaFragmentTime(endTime)}`;
+      }
+
+      async function prepareStaticVideoForPlayback(videoEl, { loop = false } = {}) {
+        if (!videoEl) {
+          return false;
+        }
+        const baseUrl = videoEl.dataset.baseSrc || AQUARIUM_STATIC_VIDEO_URL;
+        const storedBaseDuration = Number(videoEl.dataset.baseDuration);
+        if (!Number.isFinite(storedBaseDuration) || storedBaseDuration <= 0) {
+          setMediaSource(videoEl, baseUrl);
+          const hasBaseMetadata = await waitForMediaMetadata(videoEl);
+          if (!hasBaseMetadata) {
+            return false;
+          }
+          rememberStaticVideoDuration(videoEl);
+        }
+        setMediaSource(videoEl, getRandomStaticVideoSegmentSource(videoEl));
+        const hasSegmentMetadata = await waitForMediaMetadata(videoEl);
+        if (!hasSegmentMetadata) {
+          return false;
+        }
+        videoEl.loop = loop;
+        videoEl.currentTime = 0;
+        return true;
+      }
+
       function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
@@ -2476,8 +2569,10 @@
           return false;
         }
         aquariumStaticOverlayEl.classList.add('is-active');
-        aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
+        if (!await prepareStaticVideoForPlayback(aquariumStaticVideoEl)) {
+          return false;
+        }
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
@@ -2563,9 +2658,13 @@
 
         try {
           // Phase 1: play static.mp4 once (non-looping)
-          rightMonitorStaticVideoEl.loop = false;
-          rightMonitorStaticVideoEl.currentTime = 0;
           rightMonitorStaticOverlayEl.classList.add('is-active');
+          if (!await prepareStaticVideoForPlayback(rightMonitorStaticVideoEl)) {
+            rightMonitorStaticOverlayEl.classList.remove('is-active');
+            rightMonitorStaticVideoEl.loop = true;
+            restoreRightMonitorAfterAquariumSequence();
+            return;
+          }
           try {
             await rightMonitorStaticVideoEl.play();
           } catch (error) {
@@ -2593,8 +2692,13 @@
           rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
 
           // Phase 3: on interruption, play static.mp4 once, then restore original button state
-          rightMonitorStaticVideoEl.currentTime = 0;
           rightMonitorStaticOverlayEl.classList.add('is-active');
+          if (!await prepareStaticVideoForPlayback(rightMonitorStaticVideoEl)) {
+            rightMonitorStaticOverlayEl.classList.remove('is-active');
+            rightMonitorStaticVideoEl.loop = true;
+            restoreRightMonitorAfterAquariumSequence();
+            return;
+          }
           try {
             await rightMonitorStaticVideoEl.play();
           } catch (error) {
@@ -2691,11 +2795,16 @@
           return;
         }
         if (shouldShowStatic) {
-          staticVideoEl.currentTime = 0;
-          const playPromise = staticVideoEl.play();
-          if (playPromise && typeof playPromise.catch === 'function') {
-            playPromise.catch(() => {});
-          }
+          void (async () => {
+            const isReady = await prepareStaticVideoForPlayback(staticVideoEl, { loop: true });
+            if (!isReady || !staticOverlayEl.classList.contains('is-active')) {
+              return;
+            }
+            const playPromise = staticVideoEl.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(() => {});
+            }
+          })();
           return;
         }
         staticVideoEl.pause();
@@ -2832,15 +2941,7 @@
       }
 
       function setNedryGateVideoSource(sourceUrl) {
-        if (!nedryGateVideoEl) {
-          return;
-        }
-        if (nedryGateVideoEl.getAttribute('src') === sourceUrl) {
-          return;
-        }
-        nedryGateVideoEl.setAttribute('src', sourceUrl);
-        nedryGateVideoEl.src = sourceUrl;
-        nedryGateVideoEl.load();
+        setMediaSource(nedryGateVideoEl, sourceUrl);
       }
 
       async function playBigTvStaticPass(sequenceToken) {
@@ -2848,8 +2949,10 @@
           return false;
         }
         aquariumStaticOverlayEl.classList.add('is-active');
-        aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
+        if (!await prepareStaticVideoForPlayback(aquariumStaticVideoEl)) {
+          return false;
+        }
         try {
           await aquariumStaticVideoEl.play();
         } catch (error) {
@@ -3801,6 +3904,7 @@
 
             aquariumStaticVideoEl = document.createElement('video');
             aquariumStaticVideoEl.className = 'discord-static-video';
+            aquariumStaticVideoEl.dataset.baseSrc = AQUARIUM_STATIC_VIDEO_URL;
             aquariumStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
             aquariumStaticVideoEl.preload = 'auto';
             aquariumStaticVideoEl.muted = true;
@@ -3808,6 +3912,8 @@
             aquariumStaticVideoEl.playsInline = true;
             aquariumStaticVideoEl.setAttribute('playsinline', '');
             aquariumStaticVideoEl.setAttribute('webkit-playsinline', '');
+            const aquariumStaticVideo = aquariumStaticVideoEl;
+            aquariumStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(aquariumStaticVideo));
             aquariumStaticOverlayEl.appendChild(aquariumStaticVideoEl);
             el.appendChild(aquariumStaticOverlayEl);
 
@@ -3986,6 +4092,7 @@
             leftMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
             leftMonitorStaticVideoEl = document.createElement('video');
             leftMonitorStaticVideoEl.className = 'overlay-static-video';
+            leftMonitorStaticVideoEl.dataset.baseSrc = AQUARIUM_STATIC_VIDEO_URL;
             leftMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
             leftMonitorStaticVideoEl.preload = 'auto';
             leftMonitorStaticVideoEl.muted = true;
@@ -3994,6 +4101,8 @@
             leftMonitorStaticVideoEl.playsInline = true;
             leftMonitorStaticVideoEl.setAttribute('playsinline', '');
             leftMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            const leftMonitorStaticVideo = leftMonitorStaticVideoEl;
+            leftMonitorStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(leftMonitorStaticVideo));
             leftMonitorStaticOverlayEl.appendChild(leftMonitorStaticVideoEl);
             monitorScreenWindowEl.appendChild(leftMonitorStaticOverlayEl);
           }
@@ -4065,6 +4174,7 @@
             rightMonitorStaticOverlayEl.setAttribute('aria-hidden', 'true');
             rightMonitorStaticVideoEl = document.createElement('video');
             rightMonitorStaticVideoEl.className = 'overlay-static-video';
+            rightMonitorStaticVideoEl.dataset.baseSrc = AQUARIUM_STATIC_VIDEO_URL;
             rightMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
             rightMonitorStaticVideoEl.preload = 'auto';
             rightMonitorStaticVideoEl.muted = true;
@@ -4073,6 +4183,8 @@
             rightMonitorStaticVideoEl.playsInline = true;
             rightMonitorStaticVideoEl.setAttribute('playsinline', '');
             rightMonitorStaticVideoEl.setAttribute('webkit-playsinline', '');
+            const rightMonitorStaticVideo = rightMonitorStaticVideoEl;
+            rightMonitorStaticVideo.addEventListener('loadedmetadata', () => rememberStaticVideoDuration(rightMonitorStaticVideo));
             rightMonitorStaticOverlayEl.appendChild(rightMonitorStaticVideoEl);
             monitorScreenWindowEl.appendChild(rightMonitorStaticOverlayEl);
 
