@@ -350,6 +350,55 @@ test('functions Discord callback routes redirect to auth-complete marker', async
   assert.equal(authResponse.headers.get('location'), 'https://example.com/?discord_auth_complete=1');
 });
 
+test('worker and functions Discord callback routes share enriched redirect behavior', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: 'client-id',
+    DISCORD_CLIENT_SECRET: 'client-secret',
+    ASSETS: {
+      async fetch() {
+        throw new Error('ASSETS should not be used for Discord callback routes');
+      }
+    }
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith('/oauth2/token')) {
+      return Response.json({ access_token: 'access-token' });
+    }
+    if (String(url).endsWith('/users/@me')) {
+      return Response.json({
+        id: '123456789012345678',
+        username: 'naimean',
+        global_name: 'Naimean',
+        discriminator: '0',
+        avatar: 'avatarhash'
+      });
+    }
+    throw new Error(`Unexpected fetch URL: ${url}`);
+  };
+
+  try {
+    const workerResponse = await router.fetch(
+      new Request('https://example.com/api/discord/callback?code=abc123'),
+      env
+    );
+    const functionsResponse = await onApiDiscordCallbackRequest({
+      request: new Request('https://example.com/api/discord/callback?code=abc123'),
+      env
+    });
+
+    assert.equal(workerResponse.status, 302);
+    assert.equal(functionsResponse.status, 302);
+    assert.equal(workerResponse.headers.get('location'), functionsResponse.headers.get('location'));
+    assert.equal(
+      workerResponse.headers.get('location'),
+      'https://example.com/?discord_auth_complete=1&login=success&discord_username=naimean&discord_display_name=Naimean&discord_user_id=123456789012345678&discord_discriminator=0&discord_avatar_url=https%3A%2F%2Fcdn.discordapp.com%2Favatars%2F123456789012345678%2Favatarhash.png%3Fsize%3D128&username=naimean'
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('worker serves non-api requests through ASSETS binding', async () => {
   const calls = { assetsFetch: [] };
   const env = {
