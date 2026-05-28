@@ -3453,6 +3453,7 @@
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
         hideBigTvPromptOverlay({ clearInput: false });
+        setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
         syncBigTvContentVisibility();
         if (!isRightMonitorAquariumSequenceRunning) {
           void playRightMonitorAquariumSequence();
@@ -4919,6 +4920,7 @@
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
+              setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
               void enterBigTvFullscreen();
               return;
             }
