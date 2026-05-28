@@ -1153,23 +1153,63 @@
     }
 
     .big-tv-tools-menu-item {
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      align-items: center;
-      gap: 14px;
+      display: flex;
+      align-items: stretch;
       width: 100%;
       border: 1px solid rgba(6, 32, 51, 0.14);
       border-radius: 18px;
-      padding: 14px;
-      text-align: left;
-      cursor: pointer;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(230, 247, 255, 0.86));
       box-shadow:
         0 0 24px rgba(88, 235, 255, 0.14),
         inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+      overflow: hidden;
+    }
+
+    .big-tv-tools-menu-item-launch {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      background: transparent;
+      border: none;
       color: inherit;
       font: inherit;
+      min-width: 0;
+    }
+
+    .big-tv-tools-menu-item-launch:hover {
+      background: rgba(88, 235, 255, 0.08);
+    }
+
+    .big-tv-tools-menu-item-edit {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 68px;
+      padding: 0 8px;
+      border: none;
+      border-left: 1px solid rgba(6, 32, 51, 0.1);
+      border-radius: 0;
+      background: rgba(230, 247, 255, 0.5);
+      color: rgba(6, 32, 51, 0.6);
+      font-size: 36px;
+      cursor: pointer;
+    }
+
+    .big-tv-tools-menu-item-edit:hover {
+      background: rgba(88, 235, 255, 0.22);
+      color: #062033;
+    }
+
+    .big-tv-tools-menu-item-edit:focus-visible {
+      outline: 2px solid rgba(21, 180, 255, 0.92);
+      outline-offset: -2px;
     }
 
     .big-tv-tools-menu-item-name {
@@ -1265,7 +1305,7 @@
     }
 
     @media (max-width: 700px) {
-      .big-tv-tools-menu-item {
+      .big-tv-tools-menu-item-launch {
         grid-template-columns: 1fr;
         gap: 6px;
       }
@@ -3142,13 +3182,19 @@
           if (!hasAnyValue) {
             return;
           }
-          const itemButton = document.createElement('button');
-          itemButton.type = 'button';
-          itemButton.className = 'big-tv-tools-menu-item';
-          itemButton.addEventListener('pointerdown', (event) => event.stopPropagation());
-          itemButton.addEventListener('click', (event) => {
+          const itemRow = document.createElement('div');
+          itemRow.className = 'big-tv-tools-menu-item';
+          itemRow.addEventListener('pointerdown', (event) => event.stopPropagation());
+
+          const launchButton = document.createElement('button');
+          launchButton.type = 'button';
+          launchButton.className = 'big-tv-tools-menu-item-launch';
+          launchButton.setAttribute('aria-label', `${trimmedName || 'Unnamed Tool'} — opens in new tab`);
+          launchButton.addEventListener('click', (event) => {
             event.stopPropagation();
-            showBigTvToolsEditor({ focusRowIndex: index, focusField: 'url' });
+            if (trimmedUrl) {
+              window.open(trimmedUrl, '_blank', 'noopener,noreferrer');
+            }
           });
           const itemName = document.createElement('span');
           itemName.className = 'big-tv-tools-menu-item-name';
@@ -3156,8 +3202,21 @@
           const itemUrl = document.createElement('span');
           itemUrl.className = 'big-tv-tools-menu-item-url';
           itemUrl.textContent = trimmedUrl || 'No URL yet';
-          itemButton.append(itemName, itemUrl);
-          bigTvToolsListEl.appendChild(itemButton);
+          launchButton.append(itemName, itemUrl);
+
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.className = 'big-tv-tools-menu-item-edit';
+          editButton.setAttribute('aria-label', `Edit ${trimmedName || 'tool'}`);
+          editButton.textContent = '✎';
+          editButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+          editButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            showBigTvToolsEditor({ focusRowIndex: index, focusField: 'url' });
+          });
+
+          itemRow.append(launchButton, editButton);
+          bigTvToolsListEl.appendChild(itemRow);
         });
       }
 
