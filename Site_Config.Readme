@@ -37,7 +37,8 @@ Top-Level Structure
   - Worker-focused tests executed by `npm test`.
 
 - `functions/api/hotspots.js`
-  - Legacy function location retained in repo.
+  - Legacy Cloudflare Pages function retained only for historical reference.
+  - Active hotspot API logic is in `src/worker.js` (`/api/hotspots`).
 
 - `wrangler.jsonc`
   - Cloudflare deployment configuration:
