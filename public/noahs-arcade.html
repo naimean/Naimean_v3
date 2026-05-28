@@ -21,7 +21,7 @@
       --floor-h: 9vh;
       --cab-h: calc(100vh - var(--ceiling-h) - var(--floor-h));
       --cab-w: calc(var(--cab-h) * 0.54);
-      --cab-gap: clamp(16px, 2.2vw, 44px);
+      --cab-gap: clamp(8px, 1.1vw, 22px);
       --cab-pad: clamp(28px, 7vw, 120px);
       --text: #f0dfc0;
       --muted: rgba(240, 223, 192, 0.62);
@@ -497,6 +497,15 @@
         return normalizeUrl(cabinet.url) || '';
       }
 
+      function getCabinetLabel(url, fallback) {
+        if (!url) return fallback;
+        try {
+          return new URL(url, window.location.href).hostname || fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
       /* ── Accent-glow helper ───────────────────────────────── */
       function accentToGlow(hex, alpha) {
         if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return `rgba(255,157,61,${alpha})`;
@@ -739,7 +748,7 @@
 
           const label = document.createElement('span');
           label.className = 'cabinet-label';
-          label.textContent = cabinet.name;
+          label.textContent = getCabinetLabel(url, cabinet.name);
           card.appendChild(label);
 
           world.appendChild(card);
