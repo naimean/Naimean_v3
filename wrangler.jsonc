@@ -20,9 +20,7 @@
     "GOOGLE_DRIVE_SHRIMP_FOLDER_ID": "1DPzSJbcN9v_D1mSy4nIXjPOBhFHJpvSi",
     "GOOGLE_DRIVE_PAGE_SIZE": "100",
     "AQUARIUM_LOCAL_CLIP_COUNT": "23",
-    // Set DISCORD_CLIENT_ID to your Discord application's client ID to enable OAuth login.
-    // The matching DISCORD_CLIENT_SECRET must be added as a Wrangler secret (not stored here).
-    // Optional: set DISCORD_CALLBACK_PATH or DISCORD_REDIRECT_URI when Discord must use a specific callback.
+    // Keep Discord credentials available here for a future rebuild.
     "DISCORD_CLIENT_ID": "1495879141638275213"
   },
   "durable_objects": {
