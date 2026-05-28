@@ -1037,6 +1037,172 @@
       visibility: visible;
     }
 
+    .big-tv-tools-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: clamp(14px, 2vw, 22px);
+      padding:
+        calc(env(safe-area-inset-top, 0px) + clamp(20px, 3vw, 34px))
+        clamp(20px, 3vw, 34px)
+        calc(env(safe-area-inset-bottom, 0px) + clamp(20px, 3vw, 34px));
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 42%),
+        linear-gradient(180deg, rgba(245, 252, 255, 0.96), rgba(227, 247, 255, 0.94));
+      color: #062033;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 4;
+      transition: opacity 120ms ease;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        inset 0 0 80px rgba(112, 238, 255, 0.3),
+        0 0 48px rgba(255, 255, 255, 0.18);
+    }
+
+    .big-tv-tools-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .big-tv-tools-header {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 0 10px;
+      z-index: 2;
+    }
+
+    .big-tv-tools-logo {
+      width: min(100%, 320px);
+      max-height: clamp(56px, 10vw, 90px);
+      object-fit: contain;
+      filter:
+        drop-shadow(0 0 8px rgba(255, 255, 255, 0.9))
+        drop-shadow(0 0 20px rgba(88, 235, 255, 0.48));
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .big-tv-tools-list {
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 4px 6px 4px 2px;
+    }
+
+    .big-tv-tools-list:empty::before {
+      content: 'Press + to add a tool.';
+      display: block;
+      padding: 20px;
+      border: 1px dashed rgba(6, 32, 51, 0.26);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.52);
+      color: rgba(6, 32, 51, 0.72);
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    .big-tv-tools-row {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid rgba(6, 32, 51, 0.14);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(230, 247, 255, 0.86));
+      box-shadow:
+        0 0 24px rgba(88, 235, 255, 0.14),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+    }
+
+    .big-tv-tools-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .big-tv-tools-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(6, 32, 51, 0.62);
+    }
+
+    .big-tv-tools-input {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid rgba(6, 32, 51, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #062033;
+      font: inherit;
+      box-sizing: border-box;
+      box-shadow: inset 0 0 14px rgba(88, 235, 255, 0.12);
+    }
+
+    .big-tv-tools-input::placeholder {
+      color: rgba(6, 32, 51, 0.4);
+    }
+
+    .big-tv-tools-input:focus-visible,
+    .big-tv-tools-add-button:focus-visible {
+      outline: 2px solid rgba(21, 180, 255, 0.92);
+      outline-offset: 2px;
+    }
+
+    .big-tv-tools-footer {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      justify-content: center;
+      padding-top: 6px;
+      z-index: 2;
+    }
+
+    .big-tv-tools-add-button {
+      min-width: 56px;
+      height: 56px;
+      padding: 0 22px;
+      border: 1px solid rgba(6, 32, 51, 0.18);
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(219, 245, 255, 0.94));
+      color: #062033;
+      font-size: 30px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow:
+        0 0 24px rgba(88, 235, 255, 0.24),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.88);
+    }
+
+    .big-tv-tools-add-button:hover {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(230, 250, 255, 0.98));
+    }
+
+    @media (max-width: 700px) {
+      .big-tv-tools-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .discord-static-video {
       width: 100%;
       height: 100%;
@@ -2249,6 +2415,12 @@
       const BIG_TV_PROMPT_PREFIX = 'Z:>';
       const BIG_TV_PROMPT_SECRET_TEXT = 'You didn\'t say the MAGIC WORD';
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
+      const BIG_TV_TOOLS_STORAGE_KEY = 'naimean.bigTvTools.entries';
+      const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
+      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button';
+      // Keep values comfortably within localStorage and the on-screen form layout.
+      const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
+      const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
@@ -2516,6 +2688,11 @@
       let isBigTvPromptActive = false;
       let bigTvPromptInputValue = '';
       let bigTvPromptSequenceToken = 0;
+      let bigTvToolsOverlayEl = null;
+      let bigTvToolsListEl = null;
+      let isBigTvToolsActive = false;
+      let bigTvToolsSequenceToken = 0;
+      let bigTvToolsEntries = loadBigTvToolsEntries();
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
       let bigTvDebugWatermarkEl = null;
@@ -2570,7 +2747,8 @@
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
-        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive;
+        const toolsActive = isBigTvToolsActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive;
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
         const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
@@ -2740,6 +2918,156 @@
           leftMonitorContentImageEl.src = imageUrl;
         }
         syncLeftMonitorSelectionUi();
+        if (nextState === 'tools' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          void activateBigTvToolsMode();
+        } else {
+          hideBigTvToolsOverlay();
+        }
+      }
+
+      function loadBigTvToolsEntries() {
+        try {
+          const storedValue = window.localStorage.getItem(BIG_TV_TOOLS_STORAGE_KEY);
+          if (!storedValue) {
+            return [];
+          }
+          const parsedValue = JSON.parse(storedValue);
+          if (!Array.isArray(parsedValue)) {
+            return [];
+          }
+          return parsedValue
+            .map(normalizeBigTvToolEntry)
+            .filter((entry) => entry.name || entry.url);
+        } catch (error) {
+          console.warn('Unable to load big TV tools entries.', error);
+          return [];
+        }
+      }
+
+      function normalizeBigTvToolEntry(entry) {
+        return {
+          name: typeof entry?.name === 'string' ? entry.name.slice(0, BIG_TV_TOOLS_MAX_NAME_LENGTH) : '',
+          url: typeof entry?.url === 'string' ? entry.url.slice(0, BIG_TV_TOOLS_MAX_URL_LENGTH) : ''
+        };
+      }
+
+      function saveBigTvToolsEntries() {
+        try {
+          const sanitizedEntries = bigTvToolsEntries.map(normalizeBigTvToolEntry);
+          bigTvToolsEntries = sanitizedEntries;
+          window.localStorage.setItem(BIG_TV_TOOLS_STORAGE_KEY, JSON.stringify(sanitizedEntries));
+        } catch (error) {
+          console.warn('Unable to save big TV tools entries.', error);
+        }
+      }
+
+      function updateBigTvToolEntry(index, field, value) {
+        if (!bigTvToolsEntries[index] || (field !== 'name' && field !== 'url')) {
+          return;
+        }
+        bigTvToolsEntries[index][field] = value;
+        saveBigTvToolsEntries();
+      }
+
+      function renderBigTvToolsEntries({ focusRowIndex = null, focusField = 'name' } = {}) {
+        if (!bigTvToolsListEl) {
+          return;
+        }
+        bigTvToolsListEl.replaceChildren();
+        bigTvToolsEntries.forEach((entry, index) => {
+          const row = document.createElement('div');
+          row.className = 'big-tv-tools-row';
+
+          const nameField = document.createElement('label');
+          nameField.className = 'big-tv-tools-field';
+          const nameLabel = document.createElement('span');
+          nameLabel.className = 'big-tv-tools-label';
+          nameLabel.textContent = 'Tool Name';
+          const nameInput = document.createElement('input');
+          nameInput.className = 'big-tv-tools-input';
+          nameInput.type = 'text';
+          nameInput.placeholder = 'Add tool name';
+          nameInput.value = entry.name;
+          nameInput.setAttribute('autocomplete', 'off');
+          nameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
+          nameInput.addEventListener('click', (event) => event.stopPropagation());
+          nameInput.addEventListener('input', (event) => updateBigTvToolEntry(index, 'name', event.target.value));
+          nameField.append(nameLabel, nameInput);
+
+          const urlField = document.createElement('label');
+          urlField.className = 'big-tv-tools-field';
+          const urlLabel = document.createElement('span');
+          urlLabel.className = 'big-tv-tools-label';
+          urlLabel.textContent = 'Embed URL';
+          const urlInput = document.createElement('input');
+          urlInput.className = 'big-tv-tools-input';
+          urlInput.type = 'url';
+          urlInput.placeholder = 'Paste embed URL';
+          urlInput.value = entry.url;
+          urlInput.setAttribute('autocomplete', 'off');
+          urlInput.addEventListener('pointerdown', (event) => event.stopPropagation());
+          urlInput.addEventListener('click', (event) => event.stopPropagation());
+          urlInput.addEventListener('input', (event) => updateBigTvToolEntry(index, 'url', event.target.value));
+          urlField.append(urlLabel, urlInput);
+
+          row.append(nameField, urlField);
+          bigTvToolsListEl.appendChild(row);
+
+          if (focusRowIndex === index) {
+            const focusTarget = focusField === 'url' ? urlInput : nameInput;
+            window.requestAnimationFrame(() => focusTarget.focus());
+          }
+        });
+      }
+
+      function addBigTvToolEntry() {
+        bigTvToolsEntries.push({ name: '', url: '' });
+        renderBigTvToolsEntries({ focusRowIndex: bigTvToolsEntries.length - 1 });
+      }
+
+      function showBigTvToolsOverlay() {
+        if (!bigTvToolsOverlayEl) {
+          return;
+        }
+        isBigTvToolsActive = true;
+        renderBigTvToolsEntries();
+        bigTvToolsOverlayEl.classList.add('is-active');
+        bigTvToolsOverlayEl.setAttribute('aria-hidden', 'false');
+        syncBigTvContentVisibility();
+      }
+
+      function hideBigTvToolsOverlay({ cancelSequence = true } = {}) {
+        if (cancelSequence) {
+          bigTvToolsSequenceToken += 1;
+        }
+        isBigTvToolsActive = false;
+        if (bigTvToolsOverlayEl) {
+          bigTvToolsOverlayEl.classList.remove('is-active');
+          bigTvToolsOverlayEl.setAttribute('aria-hidden', 'true');
+        }
+        saveBigTvToolsEntries();
+        syncBigTvContentVisibility();
+      }
+
+      async function activateBigTvToolsMode() {
+        bigTvToolsSequenceToken += 1;
+        const sequenceToken = bigTvToolsSequenceToken;
+        stopAquariumPlaybackSequence();
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+        hideBigTvToolsOverlay({ cancelSequence: false });
+
+        const staticEnded = await playBigTvStaticPass(sequenceToken, () => bigTvToolsSequenceToken);
+        if (sequenceToken !== bigTvToolsSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        if (!staticEnded) {
+          return;
+        }
+        showBigTvToolsOverlay();
       }
 
       function cancelAquariumPlaybackSequence() {
@@ -3121,6 +3449,7 @@
         aquariumSequenceToken += 1;
         const sequenceToken = aquariumSequenceToken;
         aquariumLoopOwnerToken = sequenceToken;
+        hideBigTvToolsOverlay();
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
         hideBigTvPromptOverlay({ clearInput: false });
@@ -3150,6 +3479,7 @@
           return;
         }
 
+        hideBigTvToolsOverlay();
         stopAquariumPlaybackSequence();
         stopZeldaSecretAudioPlayback();
         playBigTvPromptIntroSequence();
@@ -3349,7 +3679,7 @@
         nedryGateVideoEl.load();
       }
 
-      async function playBigTvStaticPass(sequenceToken) {
+      async function playBigTvStaticPass(sequenceToken, getSequenceToken = () => bigTvPromptSequenceToken) {
         if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
           return false;
         }
@@ -3365,7 +3695,7 @@
           return false;
         }
         const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
-        return hasEnded && sequenceToken === bigTvPromptSequenceToken;
+        return hasEnded && sequenceToken === getSequenceToken();
       }
 
       async function playBigTvVideoPass(sequenceToken, sourceUrl) {
@@ -4147,6 +4477,7 @@
 
       function resetMonitorsToOffState() {
         stopAquariumPlaybackSequence();
+        hideBigTvToolsOverlay();
         hideBigTvPromptOverlay();
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
@@ -4171,6 +4502,13 @@
         el.addEventListener('animationend', () => {
           el.classList.remove('tv-turning-on');
           el.classList.add('is-monitor-on');
+          if (
+            leftMonitorSelectedState === 'tools' &&
+            isLeftMonitorInteractive() &&
+            isBigTvMonitorInteractive()
+          ) {
+            void activateBigTvToolsMode();
+          }
         }, { once: true });
       }
 
@@ -4638,6 +4976,9 @@
           bigTvPromptSecretRevealTimeoutId = null;
         }
         hideBigTvPromptOverlay();
+        bigTvToolsOverlayEl = null;
+        bigTvToolsListEl = null;
+        isBigTvToolsActive = false;
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
         rightMonitorShrimpLogoOverlayEl = null;
@@ -4799,6 +5140,43 @@
             bigTvPromptOverlayEl.appendChild(promptContent);
             el.appendChild(bigTvPromptOverlayEl);
 
+            bigTvToolsOverlayEl = document.createElement('div');
+            bigTvToolsOverlayEl.className = 'big-tv-tools-overlay';
+            bigTvToolsOverlayEl.setAttribute('aria-hidden', 'true');
+            bigTvToolsOverlayEl.addEventListener('pointerdown', (event) => event.stopPropagation());
+            bigTvToolsOverlayEl.addEventListener('click', (event) => event.stopPropagation());
+
+            const toolsHeader = document.createElement('div');
+            toolsHeader.className = 'big-tv-tools-header';
+            const toolsLogo = document.createElement('img');
+            toolsLogo.className = 'big-tv-tools-logo';
+            toolsLogo.src = BIG_TV_TOOLS_LOGO_URL;
+            toolsLogo.alt = 'Tools';
+            toolsLogo.loading = 'lazy';
+            toolsLogo.decoding = 'async';
+            toolsHeader.appendChild(toolsLogo);
+
+            bigTvToolsListEl = document.createElement('div');
+            bigTvToolsListEl.className = 'big-tv-tools-list';
+
+            const toolsFooter = document.createElement('div');
+            toolsFooter.className = 'big-tv-tools-footer';
+            const toolsAddButton = document.createElement('button');
+            toolsAddButton.type = 'button';
+            toolsAddButton.className = 'big-tv-tools-add-button';
+            toolsAddButton.setAttribute('aria-label', 'Add tool');
+            toolsAddButton.textContent = '+';
+            toolsAddButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+            toolsAddButton.addEventListener('click', (event) => {
+              event.stopPropagation();
+              addBigTvToolEntry();
+            });
+            toolsFooter.appendChild(toolsAddButton);
+
+            bigTvToolsOverlayEl.append(toolsHeader, bigTvToolsListEl, toolsFooter);
+            renderBigTvToolsEntries();
+            el.appendChild(bigTvToolsOverlayEl);
+
             nedryGateOverlayEl = document.createElement('div');
             nedryGateOverlayEl.className = 'nedry-gate-overlay';
             nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
@@ -4827,18 +5205,16 @@
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
-              if (
+              const clickedInteractiveBigTvUi =
                 event.target instanceof Element &&
-                event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-fullscreen-exit-button')
-              ) {
+                event.target.closest(BIG_TV_INTERACTIVE_UI_SELECTORS);
+              if (clickedInteractiveBigTvUi) {
                 return;
               }
-              if (
-                overlay.id === AQUARIUM_OVERLAY_ID &&
-                document.fullscreenElement === el &&
-                skipAquariumToNextClip()
-              ) {
-                return;
+              if (overlay.id === AQUARIUM_OVERLAY_ID && document.fullscreenElement === el) {
+                if (isBigTvToolsActive || skipAquariumToNextClip()) {
+                  return;
+                }
               }
               void enterBigTvFullscreen(el);
             });
@@ -5522,7 +5898,7 @@
           toggleDebugMode();
         }
 
-        if (document.fullscreenElement === aquariumOverlayEl) {
+        if (document.fullscreenElement === aquariumOverlayEl && !isBigTvToolsActive) {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();
             skipAquariumToPreviousClip();
