@@ -1009,12 +1009,6 @@
       outline-offset: -2px;
     }
 
-    @media (max-width: 700px) {
-      .big-tv-tools-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
     .discord-widget-frame {
       width: 100%;
       height: calc(178% - 10px);
@@ -1201,6 +1195,12 @@
     .big-tv-tools-add-button:hover {
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(230, 250, 255, 0.98));
+    }
+
+    @media (max-width: 700px) {
+      .big-tv-tools-row {
+        grid-template-columns: 1fr;
+      }
     }
 
     .discord-static-video {
@@ -2417,6 +2417,8 @@
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const BIG_TV_TOOLS_STORAGE_KEY = 'naimean.bigTvTools.entries';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
+      const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
+      const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
@@ -2932,10 +2934,7 @@
             return [];
           }
           return parsedValue
-            .map((entry) => ({
-              name: typeof entry?.name === 'string' ? entry.name.slice(0, 120) : '',
-              url: typeof entry?.url === 'string' ? entry.url.slice(0, 2000) : ''
-            }))
+            .map(normalizeBigTvToolEntry)
             .filter((entry) => entry.name || entry.url);
         } catch (error) {
           console.warn('Unable to load big TV tools entries.', error);
@@ -2943,12 +2942,16 @@
         }
       }
 
+      function normalizeBigTvToolEntry(entry) {
+        return {
+          name: typeof entry?.name === 'string' ? entry.name.slice(0, BIG_TV_TOOLS_MAX_NAME_LENGTH) : '',
+          url: typeof entry?.url === 'string' ? entry.url.slice(0, BIG_TV_TOOLS_MAX_URL_LENGTH) : ''
+        };
+      }
+
       function saveBigTvToolsEntries() {
         try {
-          const sanitizedEntries = bigTvToolsEntries.map((entry) => ({
-            name: typeof entry?.name === 'string' ? entry.name.slice(0, 120) : '',
-            url: typeof entry?.url === 'string' ? entry.url.slice(0, 2000) : ''
-          }));
+          const sanitizedEntries = bigTvToolsEntries.map(normalizeBigTvToolEntry);
           bigTvToolsEntries = sanitizedEntries;
           window.localStorage.setItem(BIG_TV_TOOLS_STORAGE_KEY, JSON.stringify(sanitizedEntries));
         } catch (error) {
@@ -3016,7 +3019,7 @@
       }
 
       function addBigTvToolEntry() {
-        bigTvToolsEntries = [...bigTvToolsEntries, { name: '', url: '' }];
+        bigTvToolsEntries.push({ name: '', url: '' });
         renderBigTvToolsEntries({ focusRowIndex: bigTvToolsEntries.length - 1 });
       }
 
@@ -3674,7 +3677,7 @@
         nedryGateVideoEl.load();
       }
 
-      async function playBigTvStaticPass(sequenceToken, getCurrentSequenceToken = () => bigTvPromptSequenceToken) {
+      async function playBigTvStaticPass(sequenceToken, getSequenceToken = () => bigTvPromptSequenceToken) {
         if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
           return false;
         }
@@ -3690,7 +3693,7 @@
           return false;
         }
         const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
-        return hasEnded && sequenceToken === getCurrentSequenceToken();
+        return hasEnded && sequenceToken === getSequenceToken();
       }
 
       async function playBigTvVideoPass(sequenceToken, sourceUrl) {
@@ -5200,21 +5203,16 @@
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
-              if (
+              const clickedInteractiveBigTvUi =
                 event.target instanceof Element &&
-                event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button')
-              ) {
+                event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button');
+              if (clickedInteractiveBigTvUi) {
                 return;
               }
-              if (overlay.id === AQUARIUM_OVERLAY_ID && isBigTvToolsActive && document.fullscreenElement === el) {
-                return;
-              }
-              if (
-                overlay.id === AQUARIUM_OVERLAY_ID &&
-                document.fullscreenElement === el &&
-                skipAquariumToNextClip()
-              ) {
-                return;
+              if (overlay.id === AQUARIUM_OVERLAY_ID && document.fullscreenElement === el) {
+                if (isBigTvToolsActive || skipAquariumToNextClip()) {
+                  return;
+                }
               }
               void enterBigTvFullscreen(el);
             });
