@@ -1319,6 +1319,154 @@
       }
     }
 
+    /* Login overlay — same color scheme as Tools header */
+    .login-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 42%),
+        linear-gradient(180deg, rgba(245, 252, 255, 0.96), rgba(227, 247, 255, 0.94));
+      color: #062033;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 120ms ease;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        inset 0 0 80px rgba(112, 238, 255, 0.3),
+        0 0 48px rgba(255, 255, 255, 0.18);
+      overflow-y: auto;
+    }
+
+    .login-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .login-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + clamp(18px, 2.8vw, 28px))
+        clamp(20px, 3vw, 34px)
+        clamp(12px, 1.8vw, 20px);
+      background: #f7f2e8;
+      border-bottom: 1px solid rgba(6, 32, 51, 0.16);
+      box-shadow: 0 10px 20px rgba(6, 32, 51, 0.08);
+    }
+
+    .login-logo {
+      width: min(100%, 800px);
+      max-height: clamp(140px, 25vw, 225px);
+      object-fit: contain;
+      filter:
+        drop-shadow(0 0 8px rgba(255, 255, 255, 0.9))
+        drop-shadow(0 0 20px rgba(88, 235, 255, 0.48));
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .login-body {
+      flex: 1;
+      width: 100%;
+      max-width: min(100%, 900px);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding:
+        clamp(28px, 4vw, 48px)
+        clamp(20px, 3vw, 34px)
+        calc(env(safe-area-inset-bottom, 0px) + clamp(20px, 3vw, 34px));
+      margin: 0 auto;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(16px, 2.5vw, 26px);
+    }
+
+    .login-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .login-label {
+      font-size: clamp(24px, 3vw, 32px);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(6, 32, 51, 0.62);
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1px solid rgba(6, 32, 51, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #062033;
+      font: inherit;
+      font-size: clamp(32px, 4vw, 44px);
+      box-sizing: border-box;
+      box-shadow: inset 0 0 14px rgba(88, 235, 255, 0.12);
+    }
+
+    .login-input::placeholder {
+      color: rgba(6, 32, 51, 0.36);
+    }
+
+    .login-input:focus-visible {
+      outline: 2px solid rgba(21, 180, 255, 0.92);
+      outline-offset: 2px;
+    }
+
+    .login-submit {
+      margin-top: clamp(8px, 1.5vw, 16px);
+      width: 100%;
+      padding: clamp(16px, 2.5vw, 24px) 24px;
+      border: 1px solid rgba(6, 32, 51, 0.18);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(219, 245, 255, 0.94));
+      color: #062033;
+      font: inherit;
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow:
+        0 0 24px rgba(88, 235, 255, 0.24),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.88);
+    }
+
+    .login-submit:hover {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(230, 250, 255, 0.98));
+    }
+
+    .login-submit:focus-visible {
+      outline: 2px solid rgba(21, 180, 255, 0.92);
+      outline-offset: 2px;
+    }
+
     .discord-static-video {
       width: 100%;
       height: 100%;
@@ -2575,7 +2723,8 @@
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const BIG_TV_TOOLS_STORAGE_KEY = 'naimean.bigTvTools.entries';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
-      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button';
+      const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
+      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .big-tv-fullscreen-exit-button';
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
@@ -2855,6 +3004,9 @@
       let bigTvToolsViewMode = 'menu';
       let bigTvToolsSequenceToken = 0;
       let bigTvToolsEntries = loadBigTvToolsEntries();
+      let loginOverlayEl = null;
+      let isLoginActive = false;
+      let loginSequenceToken = 0;
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
       let bigTvDebugWatermarkEl = null;
@@ -2911,7 +3063,8 @@
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
         const toolsActive = isBigTvToolsActive;
-        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive;
+        const loginActive = isLoginActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive;
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
         const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
@@ -3114,9 +3267,14 @@
         }
         syncLeftMonitorSelectionUi();
         if (nextState === 'tools' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          hideLoginOverlay();
           void activateBigTvToolsMode();
+        } else if (nextState === 'login' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          hideBigTvToolsOverlay();
+          void activateLoginMode();
         } else {
           hideBigTvToolsOverlay();
+          hideLoginOverlay();
         }
       }
 
@@ -3361,6 +3519,50 @@
           return;
         }
         showBigTvToolsOverlay();
+      }
+
+      function showLoginOverlay() {
+        if (!loginOverlayEl) {
+          return;
+        }
+        isLoginActive = true;
+        loginOverlayEl.classList.add('is-active');
+        loginOverlayEl.setAttribute('aria-hidden', 'false');
+        syncBigTvContentVisibility();
+      }
+
+      function hideLoginOverlay({ cancelSequence = true } = {}) {
+        if (cancelSequence) {
+          loginSequenceToken += 1;
+        }
+        isLoginActive = false;
+        if (loginOverlayEl) {
+          loginOverlayEl.classList.remove('is-active');
+          loginOverlayEl.setAttribute('aria-hidden', 'true');
+        }
+        syncBigTvContentVisibility();
+      }
+
+      async function activateLoginMode() {
+        loginSequenceToken += 1;
+        const sequenceToken = loginSequenceToken;
+        stopAquariumPlaybackSequence();
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+        hideBigTvToolsOverlay();
+        hideLoginOverlay({ cancelSequence: false });
+
+        const staticEnded = await playBigTvStaticPass(sequenceToken, () => loginSequenceToken);
+        if (sequenceToken !== loginSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        if (!staticEnded) {
+          return;
+        }
+        showLoginOverlay();
       }
 
       function cancelAquariumPlaybackSequence() {
@@ -4772,6 +4974,7 @@
       function resetMonitorsToOffState() {
         stopAquariumPlaybackSequence();
         hideBigTvToolsOverlay();
+        hideLoginOverlay();
         hideBigTvPromptOverlay();
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
@@ -4802,6 +5005,12 @@
             isBigTvMonitorInteractive()
           ) {
             void activateBigTvToolsMode();
+          } else if (
+            leftMonitorSelectedState === 'login' &&
+            isLeftMonitorInteractive() &&
+            isBigTvMonitorInteractive()
+          ) {
+            void activateLoginMode();
           }
         }, { once: true });
       }
@@ -5278,6 +5487,8 @@
         bigTvToolsHintEl = null;
         isBigTvToolsActive = false;
         bigTvToolsViewMode = 'menu';
+        loginOverlayEl = null;
+        isLoginActive = false;
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
         rightMonitorShrimpLogoOverlayEl = null;
@@ -5495,7 +5706,75 @@
             renderBigTvToolsEntries();
             el.appendChild(bigTvToolsOverlayEl);
 
-            nedryGateOverlayEl = document.createElement('div');
+            // Login overlay
+            loginOverlayEl = document.createElement('div');
+            loginOverlayEl.className = 'login-overlay';
+            loginOverlayEl.setAttribute('aria-hidden', 'true');
+            loginOverlayEl.addEventListener('pointerdown', (event) => event.stopPropagation());
+            loginOverlayEl.addEventListener('click', (event) => event.stopPropagation());
+
+            const loginHeader = document.createElement('div');
+            loginHeader.className = 'login-header';
+            const loginLogo = document.createElement('img');
+            loginLogo.className = 'login-logo';
+            loginLogo.src = LOGIN_LOGO_URL;
+            loginLogo.alt = 'Login';
+            loginLogo.loading = 'lazy';
+            loginLogo.decoding = 'async';
+            loginHeader.appendChild(loginLogo);
+
+            const loginBody = document.createElement('div');
+            loginBody.className = 'login-body';
+
+            const loginForm = document.createElement('form');
+            loginForm.className = 'login-form';
+            loginForm.addEventListener('submit', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+
+            const usernameField = document.createElement('div');
+            usernameField.className = 'login-field';
+            const usernameLabel = document.createElement('label');
+            usernameLabel.className = 'login-label';
+            usernameLabel.textContent = 'Username';
+            const usernameInput = document.createElement('input');
+            usernameInput.type = 'text';
+            usernameInput.className = 'login-input';
+            usernameInput.placeholder = 'Enter username';
+            usernameInput.autocomplete = 'username';
+            usernameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
+            usernameLabel.htmlFor = 'login-username-input';
+            usernameInput.id = 'login-username-input';
+            usernameField.append(usernameLabel, usernameInput);
+
+            const passwordField = document.createElement('div');
+            passwordField.className = 'login-field';
+            const passwordLabel = document.createElement('label');
+            passwordLabel.className = 'login-label';
+            passwordLabel.textContent = 'Password';
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.className = 'login-input';
+            passwordInput.placeholder = 'Enter password';
+            passwordInput.autocomplete = 'current-password';
+            passwordInput.addEventListener('pointerdown', (event) => event.stopPropagation());
+            passwordLabel.htmlFor = 'login-password-input';
+            passwordInput.id = 'login-password-input';
+            passwordField.append(passwordLabel, passwordInput);
+
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.className = 'login-submit';
+            submitButton.textContent = 'Sign In';
+            submitButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+
+            loginForm.append(usernameField, passwordField, submitButton);
+            loginBody.appendChild(loginForm);
+            loginOverlayEl.append(loginHeader, loginBody);
+            el.appendChild(loginOverlayEl);
+
+
             nedryGateOverlayEl.className = 'nedry-gate-overlay';
             nedryGateOverlayEl.setAttribute('aria-hidden', 'true');
 
