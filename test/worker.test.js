@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import router, { HotspotStore } from '../src/worker.js';
+import router, { HotspotStore, createSessionToken, verifySessionToken } from '../src/worker.js';
 import { onRequest as onHotspotsRequest } from '../functions/api/hotspots.js';
 
 function makeState(initialHotspots) {
@@ -1044,4 +1044,390 @@ test('functions/api/hotspots onRequest returns unknown error text when durable o
 
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: 'Hotspot store request failed: Unknown error' });
+});
+
+// ---- Discord OAuth tests ----
+
+const TEST_SESSION_SECRET = 'test-session-secret-32-bytes-long!!';
+
+test('createSessionToken produces a verifiable token', async () => {
+  const payload = { userId: '123', username: 'testuser', isMember: true, roles: ['roleA'], exp: Date.now() + 60000 };
+  const token = await createSessionToken(TEST_SESSION_SECRET, payload);
+  assert.equal(typeof token, 'string');
+  assert.ok(token.includes('.'));
+
+  const verified = await verifySessionToken(TEST_SESSION_SECRET, token);
+  assert.equal(verified.userId, '123');
+  assert.equal(verified.username, 'testuser');
+  assert.equal(verified.isMember, true);
+  assert.deepEqual(verified.roles, ['roleA']);
+});
+
+test('verifySessionToken rejects a tampered payload', async () => {
+  const payload = { userId: '123', exp: Date.now() + 60000 };
+  const token = await createSessionToken(TEST_SESSION_SECRET, payload);
+  const [encoded, sig] = [token.slice(0, token.lastIndexOf('.')), token.slice(token.lastIndexOf('.') + 1)];
+  const tampered = Buffer.from(JSON.stringify({ userId: 'HACKED', exp: Date.now() + 60000 })).toString('base64url');
+  const result = await verifySessionToken(TEST_SESSION_SECRET, `${tampered}.${sig}`);
+  assert.equal(result, null);
+});
+
+test('verifySessionToken returns null for an expired token', async () => {
+  const payload = { userId: '123', exp: Date.now() - 1000 };
+  const token = await createSessionToken(TEST_SESSION_SECRET, payload);
+  const result = await verifySessionToken(TEST_SESSION_SECRET, token);
+  assert.equal(result, null);
+});
+
+test('verifySessionToken returns null for null/undefined/empty', async () => {
+  assert.equal(await verifySessionToken(TEST_SESSION_SECRET, null), null);
+  assert.equal(await verifySessionToken(TEST_SESSION_SECRET, undefined), null);
+  assert.equal(await verifySessionToken(TEST_SESSION_SECRET, ''), null);
+  assert.equal(await verifySessionToken(TEST_SESSION_SECRET, 'nodot'), null);
+});
+
+test('worker /api/discord/auth redirects to Discord OAuth with state cookie', async () => {
+  const env = { DISCORD_CLIENT_ID: 'test-client-id', ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(new Request('https://naimean.com/api/discord/auth'), env);
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('Location');
+  assert.ok(location.startsWith('https://discord.com/oauth2/authorize?'));
+  assert.ok(location.includes('client_id=test-client-id'));
+  assert.ok(location.includes('response_type=code'));
+  assert.ok(location.includes('scope='));
+  assert.ok(location.includes('state='));
+
+  const setCookie = response.headers.get('Set-Cookie');
+  assert.ok(setCookie.includes('naimean_oauth_state='));
+  assert.ok(setCookie.includes('HttpOnly'));
+  assert.ok(setCookie.includes('SameSite=Lax'));
+});
+
+test('worker /api/discord/auth returns 503 when DISCORD_CLIENT_ID is missing', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(new Request('https://naimean.com/api/discord/auth'), env);
+  assert.equal(response.status, 503);
+});
+
+test('worker /api/discord/auth returns 405 for non-GET methods', async () => {
+  const env = { DISCORD_CLIENT_ID: 'cid', ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/auth', { method: 'POST' }),
+    env
+  );
+  assert.equal(response.status, 405);
+});
+
+test('worker /api/discord/callback returns 400 when code is missing', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?state=abc'),
+    env
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Missing code or state.' });
+});
+
+test('worker /api/discord/callback returns 400 when state is missing', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?code=mycode'),
+    env
+  );
+  assert.equal(response.status, 400);
+});
+
+test('worker /api/discord/callback returns 400 when state cookie is absent', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?code=mycode&state=abc'),
+    env
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid state parameter.' });
+});
+
+test('worker /api/discord/callback returns 400 when state does not match cookie', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?code=mycode&state=abc', {
+      headers: { Cookie: 'naimean_oauth_state=DIFFERENT' }
+    }),
+    env
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid state parameter.' });
+});
+
+test('worker /api/discord/callback returns 503 when secrets are not configured', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: 'cid',
+    // DISCORD_CLIENT_SECRET and SESSION_SECRET intentionally missing
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?code=mycode&state=abc', {
+      headers: { Cookie: 'naimean_oauth_state=abc' }
+    }),
+    env
+  );
+  assert.equal(response.status, 503);
+});
+
+test('worker /api/discord/callback returns 302 to error page when Discord returns error param', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/callback?error=access_denied'),
+    env
+  );
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=access_denied'));
+});
+
+test('worker /api/discord/callback succeeds, sets session cookie and redirects to /', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: 'cid',
+    DISCORD_CLIENT_SECRET: 'secret',
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    DISCORD_GUILD_ID: 'guild123',
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const state = 'teststate123';
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    const u = String(url);
+    if (u.includes('/oauth2/token')) {
+      return Response.json({ access_token: 'tok123', token_type: 'Bearer' });
+    }
+    if (u.includes('/users/@me/guilds/')) {
+      return Response.json({ roles: ['role-alpha', 'role-beta'] });
+    }
+    if (u.includes('/users/@me')) {
+      return Response.json({ id: 'user999', username: 'naimean_tester', avatar: 'avatarhash' });
+    }
+    throw new Error(`Unexpected fetch: ${u}`);
+  };
+
+  try {
+    const response = await router.fetch(
+      new Request(`https://naimean.com/api/discord/callback?code=code123&state=${state}`, {
+        headers: { Cookie: `naimean_oauth_state=${state}` }
+      }),
+      env
+    );
+
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('Location'), '/');
+
+    const cookies = response.headers.getSetCookie
+      ? response.headers.getSetCookie()
+      : [response.headers.get('Set-Cookie')];
+    const sessionCookie = cookies.find((c) => c.startsWith('naimean_session='));
+    assert.ok(sessionCookie, 'session cookie should be set');
+    assert.ok(sessionCookie.includes('HttpOnly'));
+    assert.ok(sessionCookie.includes('SameSite=Lax'));
+
+    const stateClearCookie = cookies.find((c) => c.startsWith('naimean_oauth_state=;'));
+    assert.ok(stateClearCookie, 'state cookie should be cleared');
+
+    // Verify the session payload
+    const tokenValue = sessionCookie.split(';')[0].split('=').slice(1).join('=');
+    const session = await verifySessionToken(TEST_SESSION_SECRET, tokenValue);
+    assert.equal(session.userId, 'user999');
+    assert.equal(session.username, 'naimean_tester');
+    assert.equal(session.isMember, true);
+    assert.deepEqual(session.roles, ['role-alpha', 'role-beta']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker /api/discord/callback sets isMember=false when user is not in guild', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: 'cid',
+    DISCORD_CLIENT_SECRET: 'secret',
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    DISCORD_GUILD_ID: 'guild123',
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const state = 'nonmemberstate';
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/oauth2/token')) {
+      return Response.json({ access_token: 'tok456', token_type: 'Bearer' });
+    }
+    if (u.includes('/users/@me/guilds/')) {
+      return new Response('Forbidden', { status: 403 });
+    }
+    if (u.includes('/users/@me')) {
+      return Response.json({ id: 'user111', username: 'outsider', avatar: null });
+    }
+    throw new Error(`Unexpected fetch: ${u}`);
+  };
+
+  try {
+    const response = await router.fetch(
+      new Request(`https://naimean.com/api/discord/callback?code=code456&state=${state}`, {
+        headers: { Cookie: `naimean_oauth_state=${state}` }
+      }),
+      env
+    );
+
+    assert.equal(response.status, 302);
+    const cookies = response.headers.getSetCookie
+      ? response.headers.getSetCookie()
+      : [response.headers.get('Set-Cookie')];
+    const sessionCookie = cookies.find((c) => c.startsWith('naimean_session='));
+    assert.ok(sessionCookie);
+
+    const tokenValue = sessionCookie.split(';')[0].split('=').slice(1).join('=');
+    const session = await verifySessionToken(TEST_SESSION_SECRET, tokenValue);
+    assert.equal(session.isMember, false);
+    assert.deepEqual(session.roles, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker /api/discord/callback returns 502 when token exchange fails', async () => {
+  const env = {
+    DISCORD_CLIENT_ID: 'cid',
+    DISCORD_CLIENT_SECRET: 'secret',
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const state = 'badtokenstate';
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/oauth2/token')) {
+      return new Response('Bad Request', { status: 400 });
+    }
+    throw new Error('Unexpected fetch');
+  };
+
+  try {
+    const response = await router.fetch(
+      new Request(`https://naimean.com/api/discord/callback?code=badcode&state=${state}`, {
+        headers: { Cookie: `naimean_oauth_state=${state}` }
+      }),
+      env
+    );
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'Failed to exchange authorization code.' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('worker /api/discord/me returns unauthenticated when no session cookie', async () => {
+  const env = {
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const response = await router.fetch(new Request('https://naimean.com/api/discord/me'), env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { authenticated: false });
+});
+
+test('worker /api/discord/me returns user info for valid session', async () => {
+  const env = {
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    DISCORD_ALLOWED_ROLE_IDS: 'role-alpha',
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const token = await createSessionToken(TEST_SESSION_SECRET, {
+    userId: 'u42',
+    username: 'member_user',
+    avatar: null,
+    isMember: true,
+    roles: ['role-alpha'],
+    exp: Date.now() + 60000,
+  });
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/me', {
+      headers: { Cookie: `naimean_session=${token}` }
+    }),
+    env
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.authenticated, true);
+  assert.equal(body.userId, 'u42');
+  assert.equal(body.username, 'member_user');
+  assert.equal(body.isMember, true);
+  assert.equal(body.hasRole, true);
+  assert.deepEqual(body.roles, ['role-alpha']);
+});
+
+test('worker /api/discord/me returns hasRole=false when user lacks required role', async () => {
+  const env = {
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    DISCORD_ALLOWED_ROLE_IDS: 'role-special',
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const token = await createSessionToken(TEST_SESSION_SECRET, {
+    userId: 'u43',
+    username: 'basic_user',
+    avatar: null,
+    isMember: true,
+    roles: ['role-other'],
+    exp: Date.now() + 60000,
+  });
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/me', {
+      headers: { Cookie: `naimean_session=${token}` }
+    }),
+    env
+  );
+  const body = await response.json();
+  assert.equal(body.authenticated, true);
+  assert.equal(body.hasRole, false);
+});
+
+test('worker /api/discord/me returns hasRole=true when DISCORD_ALLOWED_ROLE_IDS is empty', async () => {
+  const env = {
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    DISCORD_ALLOWED_ROLE_IDS: '',
+    ASSETS: { async fetch() { return new Response(''); } }
+  };
+  const token = await createSessionToken(TEST_SESSION_SECRET, {
+    userId: 'u44',
+    username: 'any_member',
+    avatar: null,
+    isMember: true,
+    roles: [],
+    exp: Date.now() + 60000,
+  });
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/me', {
+      headers: { Cookie: `naimean_session=${token}` }
+    }),
+    env
+  );
+  const body = await response.json();
+  assert.equal(body.hasRole, true);
+});
+
+test('worker /api/discord/logout clears session cookie', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/logout', { method: 'POST' }),
+    env
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true });
+  const setCookie = response.headers.get('Set-Cookie');
+  assert.ok(setCookie.includes('naimean_session=;'));
+  assert.ok(setCookie.includes('Max-Age=0'));
+});
+
+test('worker /api/discord/logout returns 405 for GET', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(new Request('https://naimean.com/api/discord/logout'), env);
+  assert.equal(response.status, 405);
 });

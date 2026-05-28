@@ -20,8 +20,11 @@
     "GOOGLE_DRIVE_SHRIMP_FOLDER_ID": "1DPzSJbcN9v_D1mSy4nIXjPOBhFHJpvSi",
     "GOOGLE_DRIVE_PAGE_SIZE": "100",
     "AQUARIUM_LOCAL_CLIP_COUNT": "23",
-    // Keep Discord credentials available here for a future rebuild.
-    "DISCORD_CLIENT_ID": "1495879141638275213"
+    // Discord OAuth — fill in DISCORD_GUILD_ID and DISCORD_ALLOWED_ROLE_IDS below.
+    // Secrets (set via `wrangler secret put`): DISCORD_CLIENT_SECRET, SESSION_SECRET
+    "DISCORD_CLIENT_ID": "1495879141638275213",
+    "DISCORD_GUILD_ID": "",
+    "DISCORD_ALLOWED_ROLE_IDS": ""
   },
   "durable_objects": {
     "bindings": [
