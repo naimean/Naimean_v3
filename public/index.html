@@ -3049,10 +3049,6 @@
         }
       }
 
-      function restoreRightMonitorAfterAquariumSequence() {
-        syncDiscordButtonUi();
-      }
-
       async function playRightMonitorAquariumSequence() {
         if (!rightMonitorStaticOverlayEl || !rightMonitorStaticVideoEl || !rightMonitorShrimpLogoOverlayEl) {
           return;
@@ -3075,14 +3071,14 @@
             }
             rightMonitorStaticOverlayEl.classList.remove('is-active');
             rightMonitorStaticVideoEl.loop = true;
-            restoreRightMonitorAfterAquariumSequence();
+            syncDiscordButtonUi();
             return;
           }
           const firstStaticEnded = await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
           rightMonitorStaticOverlayEl.classList.remove('is-active');
           if (!firstStaticEnded || aquariumLoopOwnerToken === 0) {
             rightMonitorStaticVideoEl.loop = true;
-            restoreRightMonitorAfterAquariumSequence();
+            syncDiscordButtonUi();
             return;
           }
 
@@ -3104,13 +3100,13 @@
             }
             rightMonitorStaticOverlayEl.classList.remove('is-active');
             rightMonitorStaticVideoEl.loop = true;
-            restoreRightMonitorAfterAquariumSequence();
+            syncDiscordButtonUi();
             return;
           }
           await waitForMediaPlaybackToEnd(rightMonitorStaticVideoEl);
           rightMonitorStaticOverlayEl.classList.remove('is-active');
           rightMonitorStaticVideoEl.loop = true;
-          restoreRightMonitorAfterAquariumSequence();
+          syncDiscordButtonUi();
         } finally {
           rightMonitorShrimpLogoOverlayEl.classList.remove('is-active');
           isRightMonitorAquariumSequenceRunning = false;
