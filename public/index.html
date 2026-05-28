@@ -1040,8 +1040,13 @@
     .big-tv-tools-overlay {
       position: absolute;
       inset: 0;
+<<<<<<< HEAD
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
+=======
+      display: flex;
+      flex-direction: column;
+>>>>>>> origin/main
       gap: clamp(14px, 2vw, 22px);
       padding:
         calc(env(safe-area-inset-top, 0px) + clamp(20px, 3vw, 34px))
@@ -1069,14 +1074,30 @@
     }
 
     .big-tv-tools-header {
+<<<<<<< HEAD
       position: sticky;
       top: 0;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: start;
       gap: 12px;
+=======
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+>>>>>>> origin/main
       padding: 0 0 10px;
-      z-index: 2;
+    }
+
+    .big-tv-tools-hint {
+      margin-top: clamp(10px, 1.5vw, 18px);
+      font-size: clamp(22px, 3vw, 32px);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(6, 32, 51, 0.62);
+      text-align: center;
     }
 
     .big-tv-tools-header-action {
@@ -1110,26 +1131,13 @@
     }
 
     .big-tv-tools-list {
+      flex: 1;
       min-height: 0;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 4px 6px 4px 2px;
-    }
-
-    .big-tv-tools-list:empty::before {
-      content: 'Press + to add a tool.';
-      display: block;
-      padding: 20px;
-      border: 1px dashed rgba(6, 32, 51, 0.26);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.52);
-      color: rgba(6, 32, 51, 0.72);
-      text-align: center;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 30px;
     }
 
     .big-tv-tools-row {
@@ -1227,10 +1235,18 @@
     }
 
     .big-tv-tools-footer {
+<<<<<<< HEAD
       display: flex;
       justify-content: flex-start;
       padding: 6px 2px 0;
       z-index: 2;
+=======
+      flex-shrink: 0;
+      margin-top: auto;
+      display: flex;
+      justify-content: center;
+      padding-top: 6px;
+>>>>>>> origin/main
     }
 
     .big-tv-tools-footer.is-hidden {
@@ -2754,8 +2770,12 @@
       let bigTvPromptSequenceToken = 0;
       let bigTvToolsOverlayEl = null;
       let bigTvToolsListEl = null;
+<<<<<<< HEAD
       let bigTvToolsHeaderActionButtonEl = null;
       let bigTvToolsFooterEl = null;
+=======
+      let bigTvToolsHintEl = null;
+>>>>>>> origin/main
       let isBigTvToolsActive = false;
       let bigTvToolsViewMode = 'menu';
       let bigTvToolsSequenceToken = 0;
@@ -3109,6 +3129,9 @@
           return;
         }
         bigTvToolsListEl.replaceChildren();
+        if (bigTvToolsHintEl) {
+          bigTvToolsHintEl.hidden = bigTvToolsEntries.length > 0;
+        }
         bigTvToolsEntries.forEach((entry, index) => {
           const row = document.createElement('div');
           row.className = 'big-tv-tools-row';
@@ -5345,6 +5368,11 @@
             toolsLogo.decoding = 'async';
             const toolsHeaderSpacer = document.createElement('div');
             toolsHeader.append(bigTvToolsHeaderActionButtonEl, toolsLogo, toolsHeaderSpacer);
+
+            bigTvToolsHintEl = document.createElement('p');
+            bigTvToolsHintEl.className = 'big-tv-tools-hint';
+            bigTvToolsHintEl.textContent = 'Press + to add a tool.';
+            toolsHeader.appendChild(bigTvToolsHintEl);
 
             bigTvToolsListEl = document.createElement('div');
             bigTvToolsListEl.className = 'big-tv-tools-list';
