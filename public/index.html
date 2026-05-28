@@ -2417,6 +2417,8 @@
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const BIG_TV_TOOLS_STORAGE_KEY = 'naimean.bigTvTools.entries';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
+      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button';
+      // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
@@ -2986,7 +2988,7 @@
           nameInput.type = 'text';
           nameInput.placeholder = 'Add tool name';
           nameInput.value = entry.name;
-          nameInput.autocomplete = 'off';
+          nameInput.setAttribute('autocomplete', 'off');
           nameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
           nameInput.addEventListener('click', (event) => event.stopPropagation());
           nameInput.addEventListener('input', (event) => updateBigTvToolEntry(index, 'name', event.target.value));
@@ -3002,7 +3004,7 @@
           urlInput.type = 'url';
           urlInput.placeholder = 'Paste embed URL';
           urlInput.value = entry.url;
-          urlInput.autocomplete = 'off';
+          urlInput.setAttribute('autocomplete', 'off');
           urlInput.addEventListener('pointerdown', (event) => event.stopPropagation());
           urlInput.addEventListener('click', (event) => event.stopPropagation());
           urlInput.addEventListener('input', (event) => updateBigTvToolEntry(index, 'url', event.target.value));
@@ -5205,7 +5207,7 @@
               }
               const clickedInteractiveBigTvUi =
                 event.target instanceof Element &&
-                event.target.closest('.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .big-tv-fullscreen-exit-button');
+                event.target.closest(BIG_TV_INTERACTIVE_UI_SELECTORS);
               if (clickedInteractiveBigTvUi) {
                 return;
               }
