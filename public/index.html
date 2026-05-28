@@ -3508,16 +3508,13 @@
         hideNedryGateOverlay();
         hideBigTvToolsOverlay({ cancelSequence: false });
 
-        const staticEnded = await playBigTvStaticPass(sequenceToken, () => bigTvToolsSequenceToken);
+        await playBigTvStaticPass(sequenceToken, () => bigTvToolsSequenceToken);
         if (sequenceToken !== bigTvToolsSequenceToken) {
           hideAquariumStaticOverlay();
           return;
         }
 
         hideAquariumStaticOverlay();
-        if (!staticEnded) {
-          return;
-        }
         showBigTvToolsOverlay();
       }
 
@@ -3552,16 +3549,13 @@
         hideBigTvToolsOverlay();
         hideLoginOverlay({ cancelSequence: false });
 
-        const staticEnded = await playBigTvStaticPass(sequenceToken, () => loginSequenceToken);
+        await playBigTvStaticPass(sequenceToken, () => loginSequenceToken);
         if (sequenceToken !== loginSequenceToken) {
           hideAquariumStaticOverlay();
           return;
         }
 
         hideAquariumStaticOverlay();
-        if (!staticEnded) {
-          return;
-        }
         showLoginOverlay();
       }
 
