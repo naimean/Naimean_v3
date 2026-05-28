@@ -1040,8 +1040,8 @@
     .big-tv-tools-overlay {
       position: absolute;
       inset: 0;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      display: flex;
+      flex-direction: column;
       gap: clamp(14px, 2vw, 22px);
       padding:
         calc(env(safe-area-inset-top, 0px) + clamp(20px, 3vw, 34px))
@@ -1069,13 +1069,21 @@
     }
 
     .big-tv-tools-header {
-      position: sticky;
-      top: 0;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      flex-shrink: 0;
       padding: 0 0 10px;
-      z-index: 2;
+    }
+
+    .big-tv-tools-hint {
+      margin-top: clamp(10px, 1.5vw, 18px);
+      font-size: clamp(22px, 3vw, 32px);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(6, 32, 51, 0.62);
+      text-align: center;
     }
 
     .big-tv-tools-logo {
@@ -1091,26 +1099,13 @@
     }
 
     .big-tv-tools-list {
+      flex: 1;
       min-height: 0;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 4px 6px 4px 2px;
-    }
-
-    .big-tv-tools-list:empty::before {
-      content: 'Press + to add a tool.';
-      display: block;
-      padding: 20px;
-      border: 1px dashed rgba(6, 32, 51, 0.26);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.52);
-      color: rgba(6, 32, 51, 0.72);
-      text-align: center;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 30px;
     }
 
     .big-tv-tools-row {
@@ -1168,12 +1163,11 @@
     }
 
     .big-tv-tools-footer {
-      position: sticky;
-      bottom: 0;
+      flex-shrink: 0;
+      margin-top: auto;
       display: flex;
       justify-content: center;
       padding-top: 6px;
-      z-index: 2;
     }
 
     .big-tv-tools-add-button {
@@ -2691,6 +2685,7 @@
       let bigTvPromptSequenceToken = 0;
       let bigTvToolsOverlayEl = null;
       let bigTvToolsListEl = null;
+      let bigTvToolsHintEl = null;
       let isBigTvToolsActive = false;
       let bigTvToolsSequenceToken = 0;
       let bigTvToolsEntries = loadBigTvToolsEntries();
@@ -3008,6 +3003,9 @@
           return;
         }
         bigTvToolsListEl.replaceChildren();
+        if (bigTvToolsHintEl) {
+          bigTvToolsHintEl.hidden = bigTvToolsEntries.length > 0;
+        }
         bigTvToolsEntries.forEach((entry, index) => {
           const row = document.createElement('div');
           row.className = 'big-tv-tools-row';
@@ -5191,6 +5189,11 @@
             toolsLogo.loading = 'lazy';
             toolsLogo.decoding = 'async';
             toolsHeader.appendChild(toolsLogo);
+
+            bigTvToolsHintEl = document.createElement('p');
+            bigTvToolsHintEl.className = 'big-tv-tools-hint';
+            bigTvToolsHintEl.textContent = 'Press + to add a tool.';
+            toolsHeader.appendChild(bigTvToolsHintEl);
 
             bigTvToolsListEl = document.createElement('div');
             bigTvToolsListEl.className = 'big-tv-tools-list';
