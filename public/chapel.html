@@ -144,6 +144,7 @@
       cursor: move;
       outline: 1px dashed rgba(65, 229, 255, 0.95);
       outline-offset: 0;
+      touch-action: none;
     }
 
     body.debug .power-button-visual {
@@ -380,7 +381,8 @@
           id: 'chapel-commodore-power-button',
           label: 'Commodore power button',
           variant: 'power-button',
-          anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight']
+          anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+          href: '/commodore.html'
         }
       ];
       const overlayLayer = document.getElementById('overlay-layer');
@@ -399,6 +401,7 @@
       let debugEditDir = null;
       let debugEditEl = null;
       let debugEditDefinition = null;
+      let debugEditPointerId = null;
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null;
@@ -482,6 +485,11 @@
           button.appendChild(label);
           addResizeHandles(button);
           applyRectToElement(button, definition, rect);
+          if (definition.href) {
+            button.addEventListener('click', () => {
+              window.location.assign(definition.href);
+            });
+          }
           overlayLayer.appendChild(button);
         });
       }
@@ -497,6 +505,8 @@
       function beginDebugEdit(event, definition, element, type, direction = null) {
         event.preventDefault();
         event.stopPropagation();
+        element.setPointerCapture(event.pointerId);
+        debugEditPointerId = event.pointerId;
         const rect = getHotspotRect(definition);
         if (!rect) return;
         debugEditType = type;
@@ -592,6 +602,7 @@
         debugEditDir = null;
         debugEditEl = null;
         debugEditDefinition = null;
+        debugEditPointerId = null;
         debugEditOrigRect = null;
       }
 
