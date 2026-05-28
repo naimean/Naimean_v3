@@ -28,6 +28,267 @@ const JSON_HEADERS = {
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'content-type'
 };
+
+// ---- Discord OAuth ----
+
+const DISCORD_API_ENDPOINT = 'https://discord.com/api/v10';
+const DISCORD_OAUTH_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize';
+const DISCORD_OAUTH_TOKEN_URL = `${DISCORD_API_ENDPOINT}/oauth2/token`;
+const DISCORD_REDIRECT_URI = 'https://naimean.com/api/discord/callback';
+const DISCORD_OAUTH_SCOPES = 'identify guilds.members.read';
+const SESSION_COOKIE_NAME = 'naimean_session';
+const OAUTH_STATE_COOKIE_NAME = 'naimean_oauth_state';
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const OAUTH_STATE_MAX_AGE_SECONDS = 600; // 10 minutes
+
+function base64urlEncode(data) {
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+  let binary = '';
+  bytes.forEach((b) => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function base64urlDecode(str) {
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const b64 = padded + '='.repeat((4 - padded.length % 4) % 4);
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function getHmacKey(secret) {
+  return crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+export async function createSessionToken(secret, payload) {
+  const encoded = base64urlEncode(JSON.stringify(payload));
+  const key = await getHmacKey(secret);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(encoded));
+  return `${encoded}.${base64urlEncode(new Uint8Array(sig))}`;
+}
+
+export async function verifySessionToken(secret, token) {
+  if (!token || typeof token !== 'string') return null;
+  const dotIndex = token.lastIndexOf('.');
+  if (dotIndex < 1) return null;
+  const encoded = token.slice(0, dotIndex);
+  const sig = token.slice(dotIndex + 1);
+  try {
+    const key = await getHmacKey(secret);
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      base64urlDecode(sig),
+      new TextEncoder().encode(encoded)
+    );
+    if (!valid) return null;
+    const payload = JSON.parse(new TextDecoder().decode(base64urlDecode(encoded)));
+    if (payload.exp && Date.now() > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function parseCookies(request) {
+  const header = request.headers.get('Cookie') || '';
+  const cookies = {};
+  for (const part of header.split(';')) {
+    const eqIndex = part.indexOf('=');
+    if (eqIndex < 0) continue;
+    const name = part.slice(0, eqIndex).trim();
+    const value = part.slice(eqIndex + 1).trim();
+    if (name) cookies[name] = value;
+  }
+  return cookies;
+}
+
+async function getSession(request, secret) {
+  if (!secret) return null;
+  const cookies = parseCookies(request);
+  const token = cookies[SESSION_COOKIE_NAME];
+  if (!token) return null;
+  return verifySessionToken(secret, token);
+}
+
+function hasRequiredRole(session, allowedRoleIds) {
+  if (!session || !session.isMember) return false;
+  if (!allowedRoleIds) return true;
+  const allowed = String(allowedRoleIds).split(',').map((s) => s.trim()).filter(Boolean);
+  if (allowed.length === 0) return true;
+  return Array.isArray(session.roles) && session.roles.some((r) => allowed.includes(r));
+}
+
+async function handleDiscordAuth(request, env) {
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405);
+  }
+  const clientId = env.DISCORD_CLIENT_ID;
+  if (!clientId) {
+    return jsonResponse({ error: 'Discord OAuth is not configured.' }, 503);
+  }
+  const stateBytes = crypto.getRandomValues(new Uint8Array(16));
+  const state = base64urlEncode(stateBytes);
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: DISCORD_REDIRECT_URI,
+    response_type: 'code',
+    scope: DISCORD_OAUTH_SCOPES,
+    state,
+  });
+  return new Response(null, {
+    status: 302,
+    headers: {
+      'Location': `${DISCORD_OAUTH_AUTHORIZE_URL}?${params.toString()}`,
+      'Set-Cookie': `${OAUTH_STATE_COOKIE_NAME}=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${OAUTH_STATE_MAX_AGE_SECONDS}`,
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+async function handleDiscordCallback(request, env) {
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405);
+  }
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const oauthError = url.searchParams.get('error');
+
+  if (oauthError) {
+    return new Response(null, {
+      status: 302,
+      headers: { 'Location': `/?discord_error=${encodeURIComponent(oauthError)}` },
+    });
+  }
+
+  if (!code || !state) {
+    return jsonResponse({ error: 'Missing code or state.' }, 400);
+  }
+
+  const cookies = parseCookies(request);
+  if (!cookies[OAUTH_STATE_COOKIE_NAME] || cookies[OAUTH_STATE_COOKIE_NAME] !== state) {
+    return jsonResponse({ error: 'Invalid state parameter.' }, 400);
+  }
+
+  const clientId = env.DISCORD_CLIENT_ID;
+  const clientSecret = env.DISCORD_CLIENT_SECRET;
+  const sessionSecret = env.SESSION_SECRET;
+
+  if (!clientId || !clientSecret || !sessionSecret) {
+    return jsonResponse({ error: 'Discord OAuth is not configured.' }, 503);
+  }
+
+  // Exchange authorization code for access token
+  const tokenRes = await fetch(DISCORD_OAUTH_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: DISCORD_REDIRECT_URI,
+    }).toString(),
+  });
+
+  if (!tokenRes.ok) {
+    return jsonResponse({ error: 'Failed to exchange authorization code.' }, 502);
+  }
+
+  const tokenData = await tokenRes.json();
+  const accessToken = tokenData.access_token;
+  if (!accessToken) {
+    return jsonResponse({ error: 'No access token received.' }, 502);
+  }
+
+  // Get Discord user identity
+  const userRes = await fetch(`${DISCORD_API_ENDPOINT}/users/@me`, {
+    headers: { Authorization: 'Bearer ' + accessToken },
+  });
+
+  if (!userRes.ok) {
+    return jsonResponse({ error: 'Failed to retrieve user identity.' }, 502);
+  }
+
+  const user = await userRes.json();
+
+  // Get guild membership and roles
+  let memberRoles = [];
+  let isMember = false;
+  const guildId = env.DISCORD_GUILD_ID;
+
+  if (guildId) {
+    const memberRes = await fetch(`${DISCORD_API_ENDPOINT}/users/@me/guilds/${guildId}/member`, {
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+    if (memberRes.ok) {
+      const memberData = await memberRes.json();
+      memberRoles = Array.isArray(memberData.roles) ? memberData.roles : [];
+      isMember = true;
+    }
+  }
+
+  // Build and sign session cookie
+  const sessionPayload = {
+    userId: user.id,
+    username: user.username,
+    avatar: user.avatar || null,
+    isMember,
+    roles: memberRoles,
+    exp: Date.now() + SESSION_MAX_AGE_SECONDS * 1000,
+  };
+  const sessionToken = await createSessionToken(sessionSecret, sessionPayload);
+
+  const headers = new Headers({ 'Location': '/', 'Cache-Control': 'no-store' });
+  headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}`);
+  headers.append('Set-Cookie', `${OAUTH_STATE_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
+
+  return new Response(null, { status: 302, headers });
+}
+
+async function handleDiscordMe(request, env) {
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405);
+  }
+  const session = await getSession(request, env.SESSION_SECRET);
+  if (!session) {
+    return jsonResponse({ authenticated: false });
+  }
+  const hasRole = hasRequiredRole(session, env.DISCORD_ALLOWED_ROLE_IDS);
+  return jsonResponse({
+    authenticated: true,
+    userId: session.userId,
+    username: session.username,
+    avatar: session.avatar,
+    isMember: session.isMember,
+    roles: session.roles,
+    hasRole,
+  });
+}
+
+async function handleDiscordLogout(request, env) {
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405);
+  }
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json; charset=UTF-8',
+      'cache-control': 'no-store',
+      'Set-Cookie': `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    },
+  });
+}
 const DRIVE_FILE_ID_PATTERN = /^[A-Za-z0-9_-]{10,}$/;
 const GOOGLE_DRIVE_LIST_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
 const GOOGLE_DRIVE_MEDIA_ENDPOINT = 'https://www.googleapis.com/drive/v3/files';
@@ -286,6 +547,22 @@ export default {
       }
       const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
       return env.HOTSPOT_STORE.get(id).fetch(request);
+    }
+
+    if (url.pathname === '/api/discord/auth') {
+      return handleDiscordAuth(request, env);
+    }
+
+    if (url.pathname === '/api/discord/callback') {
+      return handleDiscordCallback(request, env);
+    }
+
+    if (url.pathname === '/api/discord/me') {
+      return handleDiscordMe(request, env);
+    }
+
+    if (url.pathname === '/api/discord/logout') {
+      return handleDiscordLogout(request, env);
     }
 
     const aliasedPath = HTML_ROUTE_ALIASES.get(url.pathname);

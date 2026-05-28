@@ -2709,6 +2709,7 @@
       let leftMonitorSelectedState = DEFAULT_LEFT_MONITOR_STATE;
       let discordJoinButtonEl = null;
       let discordButtonImgEl = null;
+      let discordAuthState = null;
       let aquariumShrimpClips = [...AQUARIUM_LOCAL_SHRIMP_CLIPS];
       let aquariumShrimpClipSet = new Set(aquariumShrimpClips);
       let aquariumShrimpClipQueue = [];
@@ -2903,8 +2904,40 @@
       }
 
       function syncDiscordButtonUi() {
+        if (!discordJoinButtonEl) return;
+        if (discordAuthState && discordAuthState.authenticated) {
+          if (discordAuthState.isMember) {
+            discordJoinButtonEl.setAttribute('aria-label', `Discord: ${discordAuthState.username}`);
+            discordJoinButtonEl.title = `Signed in as ${discordAuthState.username}`;
+          } else {
+            discordJoinButtonEl.setAttribute('aria-label', 'Join our Discord');
+            discordJoinButtonEl.title = 'Join our Discord';
+          }
+        } else if (discordAuthState && !discordAuthState.authenticated) {
+          discordJoinButtonEl.setAttribute('aria-label', 'Sign in with Discord');
+          discordJoinButtonEl.title = 'Sign in with Discord';
+        }
         if (discordButtonImgEl) {
           discordButtonImgEl.src = DISCORD_BUTTON_IMAGE_URL;
+        }
+      }
+
+      function syncDiscordAuthBodyClass() {
+        if (discordAuthState && discordAuthState.hasRole) {
+          document.body.classList.add('has-discord-role');
+        } else {
+          document.body.classList.remove('has-discord-role');
+        }
+      }
+
+      async function fetchDiscordAuthState() {
+        try {
+          const res = await fetch('/api/discord/me');
+          if (res.ok) {
+            discordAuthState = await res.json();
+          }
+        } catch {
+          // Auth state remains null if request fails
         }
       }
 
@@ -5335,7 +5368,13 @@
               if (!isRightMonitorInteractive()) {
                 return;
               }
-              window.location.assign(DISCORD_GUEST_INVITE_URL);
+              if (discordAuthState && discordAuthState.authenticated) {
+                if (!discordAuthState.isMember) {
+                  window.location.assign(DISCORD_GUEST_INVITE_URL);
+                }
+              } else {
+                window.location.assign('/api/discord/auth');
+              }
             });
             discordJoinButtonEl = button;
 
@@ -5971,11 +6010,14 @@
 
       async function initializeScene() {
         await loadAquariumShrimpClipCatalog();
+        await fetchDiscordAuthState();
         const serverHotspots = await loadHotspotsFromServer();
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
         hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
 
         createOverlays();
+        syncDiscordAuthBodyClass();
+        syncDiscordButtonUi();
         createSceneTiles();
         createAshtraySmokeEffect();
         createAshtrayCigaretteEffect();
