@@ -3075,7 +3075,9 @@
         }
         bigTvToolsListEl.replaceChildren();
         bigTvToolsEntries.forEach((entry, index) => {
-          const hasAnyValue = entry.name.trim().length > 0 || entry.url.trim().length > 0;
+          const trimmedName = entry.name.trim();
+          const trimmedUrl = entry.url.trim();
+          const hasAnyValue = trimmedName.length > 0 || trimmedUrl.length > 0;
           if (!hasAnyValue) {
             return;
           }
@@ -3089,10 +3091,10 @@
           });
           const itemName = document.createElement('span');
           itemName.className = 'big-tv-tools-menu-item-name';
-          itemName.textContent = entry.name.trim() || `Tool ${index + 1}`;
+          itemName.textContent = trimmedName || 'Unnamed Tool';
           const itemUrl = document.createElement('span');
           itemUrl.className = 'big-tv-tools-menu-item-url';
-          itemUrl.textContent = entry.url.trim() || 'No URL yet';
+          itemUrl.textContent = trimmedUrl || 'No URL yet';
           itemButton.append(itemName, itemUrl);
           bigTvToolsListEl.appendChild(itemButton);
         });
@@ -3146,7 +3148,6 @@
               return;
             }
             event.preventDefault();
-            updateBigTvToolEntry(index, 'url', event.target.value);
             showBigTvToolsMenu();
           });
           urlField.append(urlLabel, urlInput);
