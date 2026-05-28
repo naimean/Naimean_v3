@@ -1104,10 +1104,11 @@ test('worker /api/discord/auth redirects to Discord OAuth with state cookie', as
   assert.ok(setCookie.includes('SameSite=Lax'));
 });
 
-test('worker /api/discord/auth returns 503 when DISCORD_CLIENT_ID is missing', async () => {
+test('worker /api/discord/auth redirects to /?discord_error=configuration_error when DISCORD_CLIENT_ID is missing', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(new Request('https://naimean.com/api/discord/auth'), env);
-  assert.equal(response.status, 503);
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=configuration_error'));
 });
 
 test('worker /api/discord/auth returns 405 for non-GET methods', async () => {
@@ -1119,36 +1120,37 @@ test('worker /api/discord/auth returns 405 for non-GET methods', async () => {
   assert.equal(response.status, 405);
 });
 
-test('worker /api/discord/callback returns 400 when code is missing', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=invalid_request when code is missing', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(
     new Request('https://naimean.com/api/discord/callback?state=abc'),
     env
   );
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), { error: 'Missing code or state.' });
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=invalid_request'));
 });
 
-test('worker /api/discord/callback returns 400 when state is missing', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=invalid_request when state is missing', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(
     new Request('https://naimean.com/api/discord/callback?code=mycode'),
     env
   );
-  assert.equal(response.status, 400);
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=invalid_request'));
 });
 
-test('worker /api/discord/callback returns 400 when state cookie is absent', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=state_mismatch when state cookie is absent', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(
     new Request('https://naimean.com/api/discord/callback?code=mycode&state=abc'),
     env
   );
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), { error: 'Invalid state parameter.' });
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=state_mismatch'));
 });
 
-test('worker /api/discord/callback returns 400 when state does not match cookie', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=state_mismatch when state does not match cookie', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(
     new Request('https://naimean.com/api/discord/callback?code=mycode&state=abc', {
@@ -1156,11 +1158,11 @@ test('worker /api/discord/callback returns 400 when state does not match cookie'
     }),
     env
   );
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), { error: 'Invalid state parameter.' });
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=state_mismatch'));
 });
 
-test('worker /api/discord/callback returns 503 when secrets are not configured', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=configuration_error when secrets are not configured', async () => {
   const env = {
     DISCORD_CLIENT_ID: 'cid',
     // DISCORD_CLIENT_SECRET and SESSION_SECRET intentionally missing
@@ -1172,7 +1174,8 @@ test('worker /api/discord/callback returns 503 when secrets are not configured',
     }),
     env
   );
-  assert.equal(response.status, 503);
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=configuration_error'));
 });
 
 test('worker /api/discord/callback returns 302 to error page when Discord returns error param', async () => {
@@ -1293,7 +1296,7 @@ test('worker /api/discord/callback sets isMember=false when user is not in guild
   }
 });
 
-test('worker /api/discord/callback returns 502 when token exchange fails', async () => {
+test('worker /api/discord/callback redirects to /?discord_error=token_exchange_failed when token exchange fails', async () => {
   const env = {
     DISCORD_CLIENT_ID: 'cid',
     DISCORD_CLIENT_SECRET: 'secret',
@@ -1317,8 +1320,8 @@ test('worker /api/discord/callback returns 502 when token exchange fails', async
       }),
       env
     );
-    assert.equal(response.status, 502);
-    assert.deepEqual(await response.json(), { error: 'Failed to exchange authorization code.' });
+    assert.equal(response.status, 302);
+    assert.ok(response.headers.get('Location').includes('discord_error=token_exchange_failed'));
   } finally {
     globalThis.fetch = originalFetch;
   }

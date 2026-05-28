@@ -128,13 +128,20 @@ function hasRequiredRole(session, allowedRoleIds) {
   return Array.isArray(session.roles) && session.roles.some((r) => allowed.includes(r));
 }
 
+function discordErrorRedirect(code) {
+  return new Response(null, {
+    status: 302,
+    headers: { 'Location': `/?discord_error=${encodeURIComponent(code)}`, 'Cache-Control': 'no-store' },
+  });
+}
+
 async function handleDiscordAuth(request, env) {
   if (request.method !== 'GET') {
     return jsonResponse({ error: 'Method not allowed.' }, 405);
   }
   const clientId = env.DISCORD_CLIENT_ID;
   if (!clientId) {
-    return jsonResponse({ error: 'Discord OAuth is not configured.' }, 503);
+    return discordErrorRedirect('configuration_error');
   }
   const stateBytes = crypto.getRandomValues(new Uint8Array(16));
   const state = base64urlEncode(stateBytes);
@@ -172,12 +179,12 @@ async function handleDiscordCallback(request, env) {
   }
 
   if (!code || !state) {
-    return jsonResponse({ error: 'Missing code or state.' }, 400);
+    return discordErrorRedirect('invalid_request');
   }
 
   const cookies = parseCookies(request);
   if (!cookies[OAUTH_STATE_COOKIE_NAME] || cookies[OAUTH_STATE_COOKIE_NAME] !== state) {
-    return jsonResponse({ error: 'Invalid state parameter.' }, 400);
+    return discordErrorRedirect('state_mismatch');
   }
 
   const clientId = env.DISCORD_CLIENT_ID;
@@ -185,7 +192,7 @@ async function handleDiscordCallback(request, env) {
   const sessionSecret = env.SESSION_SECRET;
 
   if (!clientId || !clientSecret || !sessionSecret) {
-    return jsonResponse({ error: 'Discord OAuth is not configured.' }, 503);
+    return discordErrorRedirect('configuration_error');
   }
 
   // Exchange authorization code for access token
@@ -202,13 +209,13 @@ async function handleDiscordCallback(request, env) {
   });
 
   if (!tokenRes.ok) {
-    return jsonResponse({ error: 'Failed to exchange authorization code.' }, 502);
+    return discordErrorRedirect('token_exchange_failed');
   }
 
   const tokenData = await tokenRes.json();
   const accessToken = tokenData.access_token;
   if (!accessToken) {
-    return jsonResponse({ error: 'No access token received.' }, 502);
+    return discordErrorRedirect('token_exchange_failed');
   }
 
   // Get Discord user identity
@@ -217,7 +224,7 @@ async function handleDiscordCallback(request, env) {
   });
 
   if (!userRes.ok) {
-    return jsonResponse({ error: 'Failed to retrieve user identity.' }, 502);
+    return discordErrorRedirect('user_fetch_failed');
   }
 
   const user = await userRes.json();

@@ -2316,6 +2316,44 @@
       border-color: rgba(65, 229, 255, 0.6);
       color: rgba(65, 229, 255, 1);
     }
+    /* Discord error notification */
+    #discord-error-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1500;
+      background: #1a1820;
+      border: 1px solid rgba(255, 100, 100, 0.6);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #f5a0a0;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    #discord-error-toast.hidden {
+      display: none;
+    }
+
+    #discord-error-toast-close {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 0 0 4px;
+      flex-shrink: 0;
+    }
+
+    #discord-error-toast-close:hover {
+      color: rgba(255, 255, 255, 0.9);
+    }
   </style>
 </head>
 <body>
@@ -2348,6 +2386,10 @@
         <button type="button" class="save-modal-btn" id="save-modal-close-btn">Close</button>
       </div>
     </div>
+  </div>
+  <div id="discord-error-toast" class="hidden" role="alert">
+    <span id="discord-error-toast-msg"></span>
+    <button type="button" id="discord-error-toast-close" aria-label="Dismiss">✕</button>
   </div>
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
 
@@ -6262,6 +6304,32 @@
           hideSaveModal();
         }
       });
+
+      // Discord OAuth error notification
+      (() => {
+        const DISCORD_ERROR_MESSAGES = {
+          access_denied: 'Discord sign-in was cancelled.',
+          configuration_error: 'Discord sign-in is not available right now. Please try again later.',
+          state_mismatch: 'Sign-in session expired. Please try again.',
+          invalid_request: 'Sign-in was interrupted. Please try again.',
+          token_exchange_failed: 'Failed to sign in with Discord. Please try again.',
+          user_fetch_failed: 'Failed to retrieve your Discord account. Please try again.',
+        };
+        const params = new URLSearchParams(window.location.search);
+        const errorCode = params.get('discord_error');
+        if (errorCode) {
+          const toast = document.getElementById('discord-error-toast');
+          const msg = document.getElementById('discord-error-toast-msg');
+          msg.textContent = DISCORD_ERROR_MESSAGES[errorCode] || 'Discord sign-in failed. Please try again.';
+          toast.classList.remove('hidden');
+          document.getElementById('discord-error-toast-close').addEventListener('click', () => {
+            toast.classList.add('hidden');
+          });
+          params.delete('discord_error');
+          const newSearch = params.toString();
+          history.replaceState(null, '', window.location.pathname + (newSearch ? '?' + newSearch : ''));
+        }
+      })();
 
       initializeScene();
     })();
