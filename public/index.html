@@ -1041,7 +1041,7 @@
       position: absolute;
       inset: 0;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: clamp(14px, 2vw, 22px);
       padding:
         calc(env(safe-area-inset-top, 0px) + clamp(20px, 3vw, 34px))
@@ -1071,17 +1071,36 @@
     .big-tv-tools-header {
       position: sticky;
       top: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 12px;
       padding: 0 0 10px;
       z-index: 2;
+    }
+
+    .big-tv-tools-header-action {
+      min-width: 68px;
+      height: 68px;
+      border: 1px solid rgba(6, 32, 51, 0.18);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(219, 245, 255, 0.94));
+      color: #062033;
+      font-size: 44px;
+      line-height: 1;
+      cursor: pointer;
+      justify-self: start;
+      box-shadow:
+        0 0 16px rgba(88, 235, 255, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.88);
     }
 
     .big-tv-tools-logo {
       width: min(100%, 800px);
       max-height: clamp(140px, 25vw, 225px);
       object-fit: contain;
+      justify-self: center;
       filter:
         drop-shadow(0 0 8px rgba(255, 255, 255, 0.9))
         drop-shadow(0 0 20px rgba(88, 235, 255, 0.48));
@@ -1128,6 +1147,46 @@
         inset 0 0 0 1px rgba(255, 255, 255, 0.85);
     }
 
+    .big-tv-tools-menu-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      border: 1px solid rgba(6, 32, 51, 0.14);
+      border-radius: 18px;
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(230, 247, 255, 0.86));
+      box-shadow:
+        0 0 24px rgba(88, 235, 255, 0.14),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+      color: inherit;
+      font: inherit;
+    }
+
+    .big-tv-tools-menu-item-name {
+      width: 100%;
+      font-size: 36px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .big-tv-tools-menu-item-url {
+      width: 100%;
+      font-size: 25px;
+      color: rgba(6, 32, 51, 0.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .big-tv-tools-field {
       display: flex;
       flex-direction: column;
@@ -1168,24 +1227,28 @@
     }
 
     .big-tv-tools-footer {
-      position: sticky;
-      bottom: 0;
       display: flex;
-      justify-content: center;
-      padding-top: 6px;
+      justify-content: flex-start;
+      padding: 6px 2px 0;
       z-index: 2;
     }
 
+    .big-tv-tools-footer.is-hidden {
+      display: none;
+    }
+
     .big-tv-tools-add-button {
-      min-width: 140px;
-      height: 140px;
-      padding: 0 22px;
+      min-width: 220px;
+      height: 68px;
+      padding: 0 16px;
       border: 1px solid rgba(6, 32, 51, 0.18);
-      border-radius: 999px;
+      border-radius: 16px;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(219, 245, 255, 0.94));
       color: #062033;
-      font-size: 75px;
+      font-size: 28px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       line-height: 1;
       cursor: pointer;
       box-shadow:
@@ -2691,7 +2754,10 @@
       let bigTvPromptSequenceToken = 0;
       let bigTvToolsOverlayEl = null;
       let bigTvToolsListEl = null;
+      let bigTvToolsHeaderActionButtonEl = null;
+      let bigTvToolsFooterEl = null;
       let isBigTvToolsActive = false;
+      let bigTvToolsViewMode = 'menu';
       let bigTvToolsSequenceToken = 0;
       let bigTvToolsEntries = loadBigTvToolsEntries();
       let nedryGateOverlayEl = null;
@@ -3003,8 +3069,41 @@
         saveBigTvToolsEntries();
       }
 
+      function renderBigTvToolsMenuEntries() {
+        if (!bigTvToolsListEl) {
+          return;
+        }
+        bigTvToolsListEl.replaceChildren();
+        bigTvToolsEntries.forEach((entry, index) => {
+          const hasAnyValue = entry.name.trim().length > 0 || entry.url.trim().length > 0;
+          if (!hasAnyValue) {
+            return;
+          }
+          const itemButton = document.createElement('button');
+          itemButton.type = 'button';
+          itemButton.className = 'big-tv-tools-menu-item';
+          itemButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+          itemButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            showBigTvToolsEditor({ focusRowIndex: index, focusField: 'url' });
+          });
+          const itemName = document.createElement('span');
+          itemName.className = 'big-tv-tools-menu-item-name';
+          itemName.textContent = entry.name.trim() || `Tool ${index + 1}`;
+          const itemUrl = document.createElement('span');
+          itemUrl.className = 'big-tv-tools-menu-item-url';
+          itemUrl.textContent = entry.url.trim() || 'No URL yet';
+          itemButton.append(itemName, itemUrl);
+          bigTvToolsListEl.appendChild(itemButton);
+        });
+      }
+
       function renderBigTvToolsEntries({ focusRowIndex = null, focusField = 'name' } = {}) {
         if (!bigTvToolsListEl) {
+          return;
+        }
+        if (bigTvToolsViewMode !== 'editor') {
+          renderBigTvToolsMenuEntries();
           return;
         }
         bigTvToolsListEl.replaceChildren();
@@ -3042,6 +3141,14 @@
           urlInput.addEventListener('pointerdown', (event) => event.stopPropagation());
           urlInput.addEventListener('click', (event) => event.stopPropagation());
           urlInput.addEventListener('input', (event) => updateBigTvToolEntry(index, 'url', event.target.value));
+          urlInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') {
+              return;
+            }
+            event.preventDefault();
+            updateBigTvToolEntry(index, 'url', event.target.value);
+            showBigTvToolsMenu();
+          });
           urlField.append(urlLabel, urlInput);
 
           row.append(nameField, urlField);
@@ -3054,9 +3161,36 @@
         });
       }
 
+      function syncBigTvToolsUiMode({ focusRowIndex = null, focusField = 'name' } = {}) {
+        if (bigTvToolsHeaderActionButtonEl) {
+          if (bigTvToolsViewMode === 'editor') {
+            bigTvToolsHeaderActionButtonEl.textContent = '←';
+            bigTvToolsHeaderActionButtonEl.setAttribute('aria-label', 'Back to tools menu');
+          } else {
+            bigTvToolsHeaderActionButtonEl.textContent = '+';
+            bigTvToolsHeaderActionButtonEl.setAttribute('aria-label', 'Add tool');
+          }
+        }
+        if (bigTvToolsFooterEl) {
+          bigTvToolsFooterEl.classList.toggle('is-hidden', bigTvToolsViewMode !== 'editor');
+        }
+        renderBigTvToolsEntries({ focusRowIndex, focusField });
+      }
+
+      function showBigTvToolsMenu() {
+        bigTvToolsViewMode = 'menu';
+        syncBigTvToolsUiMode();
+      }
+
+      function showBigTvToolsEditor({ focusRowIndex = null, focusField = 'name' } = {}) {
+        bigTvToolsViewMode = 'editor';
+        syncBigTvToolsUiMode({ focusRowIndex, focusField });
+      }
+
       function addBigTvToolEntry() {
         bigTvToolsEntries.push({ name: '', url: '' });
-        renderBigTvToolsEntries({ focusRowIndex: bigTvToolsEntries.length - 1 });
+        saveBigTvToolsEntries();
+        showBigTvToolsEditor({ focusRowIndex: bigTvToolsEntries.length - 1 });
       }
 
       function showBigTvToolsOverlay() {
@@ -3064,7 +3198,7 @@
           return;
         }
         isBigTvToolsActive = true;
-        renderBigTvToolsEntries();
+        showBigTvToolsMenu();
         bigTvToolsOverlayEl.classList.add('is-active');
         bigTvToolsOverlayEl.setAttribute('aria-hidden', 'false');
         syncBigTvContentVisibility();
@@ -3079,6 +3213,7 @@
           bigTvToolsOverlayEl.classList.remove('is-active');
           bigTvToolsOverlayEl.setAttribute('aria-hidden', 'true');
         }
+        bigTvToolsViewMode = 'menu';
         saveBigTvToolsEntries();
         syncBigTvContentVisibility();
       }
@@ -5014,7 +5149,10 @@
         hideBigTvPromptOverlay();
         bigTvToolsOverlayEl = null;
         bigTvToolsListEl = null;
+        bigTvToolsHeaderActionButtonEl = null;
+        bigTvToolsFooterEl = null;
         isBigTvToolsActive = false;
+        bigTvToolsViewMode = 'menu';
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
         rightMonitorShrimpLogoOverlayEl = null;
@@ -5184,32 +5322,47 @@
 
             const toolsHeader = document.createElement('div');
             toolsHeader.className = 'big-tv-tools-header';
+            bigTvToolsHeaderActionButtonEl = document.createElement('button');
+            bigTvToolsHeaderActionButtonEl.type = 'button';
+            bigTvToolsHeaderActionButtonEl.className = 'big-tv-tools-header-action';
+            bigTvToolsHeaderActionButtonEl.setAttribute('aria-label', 'Add tool');
+            bigTvToolsHeaderActionButtonEl.textContent = '+';
+            bigTvToolsHeaderActionButtonEl.addEventListener('pointerdown', (event) => event.stopPropagation());
+            bigTvToolsHeaderActionButtonEl.addEventListener('click', (event) => {
+              event.stopPropagation();
+              if (bigTvToolsViewMode === 'editor') {
+                showBigTvToolsMenu();
+              } else {
+                addBigTvToolEntry();
+              }
+            });
             const toolsLogo = document.createElement('img');
             toolsLogo.className = 'big-tv-tools-logo';
             toolsLogo.src = BIG_TV_TOOLS_LOGO_URL;
             toolsLogo.alt = 'Tools';
             toolsLogo.loading = 'lazy';
             toolsLogo.decoding = 'async';
-            toolsHeader.appendChild(toolsLogo);
+            const toolsHeaderSpacer = document.createElement('div');
+            toolsHeader.append(bigTvToolsHeaderActionButtonEl, toolsLogo, toolsHeaderSpacer);
 
             bigTvToolsListEl = document.createElement('div');
             bigTvToolsListEl.className = 'big-tv-tools-list';
 
-            const toolsFooter = document.createElement('div');
-            toolsFooter.className = 'big-tv-tools-footer';
+            bigTvToolsFooterEl = document.createElement('div');
+            bigTvToolsFooterEl.className = 'big-tv-tools-footer is-hidden';
             const toolsAddButton = document.createElement('button');
             toolsAddButton.type = 'button';
             toolsAddButton.className = 'big-tv-tools-add-button';
-            toolsAddButton.setAttribute('aria-label', 'Add tool');
-            toolsAddButton.textContent = '+';
+            toolsAddButton.setAttribute('aria-label', 'Add tool entry');
+            toolsAddButton.textContent = 'Add Entry';
             toolsAddButton.addEventListener('pointerdown', (event) => event.stopPropagation());
             toolsAddButton.addEventListener('click', (event) => {
               event.stopPropagation();
               addBigTvToolEntry();
             });
-            toolsFooter.appendChild(toolsAddButton);
+            bigTvToolsFooterEl.appendChild(toolsAddButton);
 
-            bigTvToolsOverlayEl.append(toolsHeader, bigTvToolsListEl, toolsFooter);
+            bigTvToolsOverlayEl.append(toolsHeader, bigTvToolsListEl, bigTvToolsFooterEl);
             renderBigTvToolsEntries();
             el.appendChild(bigTvToolsOverlayEl);
 
