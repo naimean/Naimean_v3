@@ -1042,11 +1042,8 @@
       inset: 0;
       display: flex;
       flex-direction: column;
-      gap: clamp(14px, 2vw, 22px);
-      padding:
-        calc(env(safe-area-inset-top, 0px) + clamp(20px, 3vw, 34px))
-        clamp(20px, 3vw, 34px)
-        calc(env(safe-area-inset-bottom, 0px) + clamp(20px, 3vw, 34px));
+      gap: 0;
+      padding: 0;
       background:
         radial-gradient(circle at top, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 42%),
         linear-gradient(180deg, rgba(245, 252, 255, 0.96), rgba(227, 247, 255, 0.94));
@@ -1069,12 +1066,20 @@
     }
 
     .big-tv-tools-header {
-      position: relative;
+      position: sticky;
+      top: 0;
+      z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
       flex-shrink: 0;
-      padding: 0 0 10px;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + clamp(18px, 2.8vw, 28px))
+        clamp(20px, 3vw, 34px)
+        clamp(12px, 1.8vw, 20px);
+      background: #f7f2e8;
+      border-bottom: 1px solid rgba(6, 32, 51, 0.16);
+      box-shadow: 0 10px 20px rgba(6, 32, 51, 0.08);
     }
 
     .big-tv-tools-hint {
@@ -1125,7 +1130,11 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      padding: 4px 6px 4px 2px;
+      padding:
+        clamp(14px, 2vw, 22px)
+        calc(clamp(20px, 3vw, 34px) + 6px)
+        calc(env(safe-area-inset-bottom, 0px) + clamp(20px, 3vw, 34px))
+        calc(clamp(20px, 3vw, 34px) + 2px);
     }
 
     .big-tv-tools-row {
@@ -1144,10 +1153,10 @@
     }
 
     .big-tv-tools-menu-item {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      align-items: center;
+      gap: 14px;
       width: 100%;
       border: 1px solid rgba(6, 32, 51, 0.14);
       border-radius: 18px;
@@ -1164,7 +1173,6 @@
     }
 
     .big-tv-tools-menu-item-name {
-      width: 100%;
       font-size: 36px;
       font-weight: 700;
       text-transform: uppercase;
@@ -1175,12 +1183,12 @@
     }
 
     .big-tv-tools-menu-item-url {
-      width: 100%;
       font-size: 25px;
       color: rgba(6, 32, 51, 0.72);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: right;
     }
 
     .big-tv-tools-field {
@@ -1257,6 +1265,15 @@
     }
 
     @media (max-width: 700px) {
+      .big-tv-tools-menu-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .big-tv-tools-menu-item-url {
+        text-align: left;
+      }
+
       .big-tv-tools-row {
         grid-template-columns: 1fr;
       }
