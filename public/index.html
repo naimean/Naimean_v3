@@ -2618,6 +2618,7 @@
       const LEGACY_HOTSPOT_RECORD_TITLE = 'den-hotspots-v3';
       const SAVE_BUTTON_RESET_MS = 2000;
       const COMMODORE_MONITOR_TURN_ON_MS = 2000;
+      const API_TIMEOUT_MS = 5000;
       const MONITOR_POWER_CASCADE_MS = 4000;
       const SAVE_RETRY_ATTEMPTS = 3;
       const SAVE_RETRY_DELAY_MS = 350;
@@ -3247,7 +3248,10 @@
 
       async function fetchDiscordAuthState() {
         try {
-          const res = await fetch('/api/discord/me');
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+          const res = await fetch('/api/discord/me', { signal: controller.signal });
+          window.clearTimeout(timeoutId);
           if (res.ok) {
             discordAuthState = await res.json();
           }
@@ -3706,7 +3710,10 @@
 
       async function loadAquariumShrimpClipCatalog() {
         try {
-          const response = await fetch(AQUARIUM_CLIP_CATALOG_API_URL, { method: 'GET' });
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+          const response = await fetch(AQUARIUM_CLIP_CATALOG_API_URL, { method: 'GET', signal: controller.signal });
+          window.clearTimeout(timeoutId);
           if (!response.ok) {
             return;
           }
@@ -4674,7 +4681,10 @@
         }
 
         try {
-          const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store' });
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+          const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store', signal: controller.signal });
+          window.clearTimeout(timeoutId);
           if (!response.ok) {
             if (shouldUseLegacyDataApi(response.status)) {
               hotspotApiMode = 'legacy';
