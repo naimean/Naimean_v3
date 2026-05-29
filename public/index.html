@@ -113,6 +113,15 @@
       opacity: 0;
     }
 
+    #viewport {
+      opacity: 1;
+      transition: opacity 900ms ease;
+    }
+
+    body.scene-loading #viewport {
+      opacity: 0;
+    }
+
     @media (pointer: coarse), (max-width: 900px) {
       .hotspot-label {
         padding: 8px 12px;
@@ -947,6 +956,10 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      #viewport {
+        transition: none;
+      }
+
       .big-tv-prompt-secret-box::after {
         animation: none;
       }
@@ -1387,7 +1400,7 @@
       max-width: min(100%, 900px);
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: clamp(18px, 2.8vw, 30px);
       padding:
         clamp(28px, 4vw, 48px)
         clamp(20px, 3vw, 34px)
@@ -1395,51 +1408,170 @@
       margin: 0 auto;
     }
 
-    .login-form {
+    .login-status-panel {
       display: flex;
       flex-direction: column;
-      gap: clamp(16px, 2.5vw, 26px);
+      gap: clamp(12px, 2vw, 18px);
+      padding: clamp(20px, 3vw, 30px);
+      border: 1px solid rgba(6, 32, 51, 0.12);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 248, 255, 0.9));
+      box-shadow:
+        0 0 28px rgba(88, 235, 255, 0.14),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.82);
     }
 
-    .login-field {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .login-label {
-      font-size: clamp(24px, 3vw, 32px);
+    .login-status-badge {
+      align-self: flex-start;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(21, 180, 255, 0.12);
+      color: #0d5e86;
+      font-size: clamp(18px, 2vw, 22px);
       font-weight: 700;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: rgba(6, 32, 51, 0.62);
     }
 
-    .login-input {
-      width: 100%;
-      padding: 14px 18px;
-      border: 1px solid rgba(6, 32, 51, 0.16);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.86);
+    .login-title {
+      margin: 0;
+      font-size: clamp(36px, 4.6vw, 52px);
+      line-height: 1.1;
+    }
+
+    .login-message {
+      margin: 0;
+      font-size: clamp(24px, 2.8vw, 30px);
+      line-height: 1.45;
+      color: rgba(6, 32, 51, 0.78);
+    }
+
+    .login-steps {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      list-style: none;
+    }
+
+    .login-step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(6, 32, 51, 0.04);
+      color: rgba(6, 32, 51, 0.55);
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+
+    .login-step.is-active {
+      background: rgba(21, 180, 255, 0.14);
       color: #062033;
-      font: inherit;
-      font-size: clamp(32px, 4vw, 44px);
-      box-sizing: border-box;
-      box-shadow: inset 0 0 14px rgba(88, 235, 255, 0.12);
     }
 
-    .login-input::placeholder {
-      color: rgba(6, 32, 51, 0.36);
+    .login-step.is-complete {
+      background: rgba(77, 255, 145, 0.14);
+      color: #0f6840;
     }
 
-    .login-input:focus-visible {
-      outline: 2px solid rgba(21, 180, 255, 0.92);
-      outline-offset: 2px;
+    .login-step-indicator {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid currentColor;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .login-step-label {
+      min-width: 0;
+      flex: 1;
+      font-size: clamp(22px, 2.7vw, 29px);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .login-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
     }
 
     .login-submit {
-      margin-top: clamp(8px, 1.5vw, 16px);
-      width: 100%;
+      flex: 1 1 260px;
+    }
+
+    .login-submit:disabled {
+      opacity: 0.72;
+      cursor: progress;
+    }
+
+    .login-auth-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: clamp(16px, 2.6vw, 24px);
+      align-items: center;
+      padding: clamp(18px, 2.8vw, 28px);
+      border: 1px solid rgba(6, 32, 51, 0.12);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(235, 249, 255, 0.92));
+      box-shadow:
+        0 0 28px rgba(88, 235, 255, 0.14),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.84);
+    }
+
+    .login-auth-card.is-hidden {
+      display: none;
+    }
+
+    .login-auth-avatar {
+      width: clamp(112px, 16vw, 156px);
+      height: clamp(112px, 16vw, 156px);
+      border-radius: 28px;
+      object-fit: cover;
+      background: rgba(6, 32, 51, 0.08);
+      box-shadow: 0 0 24px rgba(21, 180, 255, 0.2);
+    }
+
+    .login-auth-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 18px;
+    }
+
+    .login-auth-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .login-auth-label {
+      font-size: clamp(18px, 2vw, 22px);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(6, 32, 51, 0.54);
+    }
+
+    .login-auth-value {
+      min-width: 0;
+      font-size: clamp(24px, 2.8vw, 32px);
+      font-weight: 700;
+      line-height: 1.3;
+      word-break: break-word;
+      color: #062033;
+    }
+
+    .login-submit {
       padding: clamp(16px, 2.5vw, 24px) 24px;
       border: 1px solid rgba(6, 32, 51, 0.18);
       border-radius: 18px;
@@ -1465,6 +1597,18 @@
     .login-submit:focus-visible {
       outline: 2px solid rgba(21, 180, 255, 0.92);
       outline-offset: 2px;
+    }
+
+    @media (max-width: 700px) {
+      .login-auth-card {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .login-auth-grid {
+        width: 100%;
+        grid-template-columns: 1fr;
+      }
     }
 
     .discord-static-video {
@@ -2561,7 +2705,7 @@
     }
   </style>
 </head>
-<body>
+<body class="scene-loading">
   <div id="viewport" aria-label="Den side-scrolling scene">
     <div id="stage">
       <div id="world">
@@ -2729,6 +2873,13 @@
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
+      const DISCORD_CDN_BASE_URL = 'https://cdn.discordapp.com';
+      const DISCORD_USER_ID_RE = /^\d+$/;
+      const DISCORD_AVATAR_HASH_RE = /^(a_)?[a-f0-9]{32}$/i;
+      const DISCORD_LOGIN_FLOW_STORAGE_KEY = 'naimean.discordLoginFlow.v1';
+      const DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS = 900;
+      const DISCORD_LOGIN_SEQUENCE_REDIRECT_DELAY_MS = 1200;
+      const DISCORD_LOGIN_STEP_KEYS = Object.freeze(['display', 'oauth', 'return']);
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
@@ -3006,7 +3157,18 @@
       let bigTvToolsSequenceToken = 0;
       let bigTvToolsEntries = loadBigTvToolsEntries();
       let loginOverlayEl = null;
+      let loginStatusBadgeEl = null;
+      let loginTitleEl = null;
+      let loginMessageEl = null;
+      let loginPrimaryActionButtonEl = null;
+      let loginAuthCardEl = null;
+      let loginAuthAvatarEl = null;
+      let loginAuthUsernameValueEl = null;
+      let loginAuthUserIdValueEl = null;
+      let loginAuthMembershipValueEl = null;
+      let loginAuthAccessValueEl = null;
       let isLoginActive = false;
+      let isDiscordLoginSequenceRunning = false;
       let loginSequenceToken = 0;
       let nedryGateOverlayEl = null;
       let nedryGateVideoEl = null;
@@ -3039,6 +3201,8 @@
       let rightMonitorShadowOverlayEl = null;
       let monitorPowerTimeoutIds = [];
       const leftMonitorSegmentButtonsByState = new Map();
+      const loginStepElsByKey = new Map();
+      let shouldAutoStartDiscordLoginOnNextLoginActivation = false;
       let rightMonitorFlickerTimeoutId = null;
       let leftMonitorFlickerTimeoutId = null;
       // Debug hotspot editing state
@@ -3236,6 +3400,7 @@
         if (discordButtonImgEl) {
           discordButtonImgEl.src = DISCORD_BUTTON_IMAGE_URL;
         }
+        syncLoginOverlayUi();
       }
 
       function syncDiscordAuthBodyClass() {
@@ -3258,11 +3423,192 @@
         } catch {
           // Auth state remains null if request fails
         }
+        syncLoginOverlayUi();
+      }
+
+      function persistDiscordLoginFlowState(value) {
+        try {
+          sessionStorage.setItem(DISCORD_LOGIN_FLOW_STORAGE_KEY, JSON.stringify({
+            showLogin: !!value?.showLogin,
+            restorePowerOn: !!value?.restorePowerOn
+          }));
+        } catch (_) {}
+      }
+
+      function consumeDiscordLoginFlowState() {
+        try {
+          const rawValue = sessionStorage.getItem(DISCORD_LOGIN_FLOW_STORAGE_KEY);
+          if (!rawValue) {
+            return null;
+          }
+          sessionStorage.removeItem(DISCORD_LOGIN_FLOW_STORAGE_KEY);
+          const parsedValue = JSON.parse(rawValue);
+          if (!parsedValue || typeof parsedValue !== 'object') {
+            return null;
+          }
+          return {
+            showLogin: !!parsedValue.showLogin,
+            restorePowerOn: !!parsedValue.restorePowerOn
+          };
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function getDiscordAvatarUrl(authState) {
+        if (
+          !authState?.authenticated ||
+          !DISCORD_USER_ID_RE.test(authState.userId || '') ||
+          !DISCORD_AVATAR_HASH_RE.test(authState.avatar || '')
+        ) {
+          return '';
+        }
+        // Discord animated avatar hashes use the `a_` prefix and must be requested as GIFs.
+        const extension = authState.avatar.startsWith('a_') ? 'gif' : 'png';
+        const avatarUrl = new URL(
+          `${DISCORD_CDN_BASE_URL}/avatars/${authState.userId}/${authState.avatar}.${extension}?size=256`
+        );
+        if (avatarUrl.protocol !== 'https:' || avatarUrl.hostname !== 'cdn.discordapp.com') {
+          return '';
+        }
+        return avatarUrl.toString();
+      }
+
+      function syncLoginStepUi({ activeKey = null, completedKeys = [] } = {}) {
+        const completedKeySet = new Set(completedKeys);
+        loginStepElsByKey.forEach((stepEl, key) => {
+          stepEl.classList.toggle('is-complete', completedKeySet.has(key));
+          stepEl.classList.toggle('is-active', key === activeKey && !completedKeySet.has(key));
+          stepEl.classList.toggle('is-pending', !completedKeySet.has(key) && key !== activeKey);
+        });
+      }
+
+      function syncLoginOverlayUi({ stage = 'idle' } = {}) {
+        if (
+          !loginStatusBadgeEl ||
+          !loginTitleEl ||
+          !loginMessageEl ||
+          !loginPrimaryActionButtonEl ||
+          !loginAuthCardEl
+        ) {
+          return;
+        }
+
+        if (discordAuthState?.authenticated) {
+          loginStatusBadgeEl.textContent = 'Connected';
+          loginTitleEl.textContent = 'Discord account ready';
+          loginMessageEl.textContent = discordAuthState.isMember
+            ? 'OAuth is complete. Your Discord account details are now displayed on the big TV.'
+            : 'OAuth is complete. Your Discord account is connected, but it is not yet in the server.';
+          loginPrimaryActionButtonEl.disabled = false;
+          loginPrimaryActionButtonEl.textContent = 'Refresh Discord Status';
+          loginAuthCardEl.classList.remove('is-hidden');
+          const avatarUrl = getDiscordAvatarUrl(discordAuthState);
+          loginAuthAvatarEl.src = avatarUrl || DISCORD_BUTTON_IMAGE_URL;
+          loginAuthAvatarEl.alt = avatarUrl && discordAuthState.username
+            ? `${discordAuthState.username} Discord avatar`
+            : 'Discord logo';
+          loginAuthUsernameValueEl.textContent = discordAuthState.username || 'Unknown';
+          loginAuthUserIdValueEl.textContent = discordAuthState.userId || 'Unavailable';
+          loginAuthMembershipValueEl.textContent = discordAuthState.isMember ? 'Server member' : 'Not in server';
+          loginAuthAccessValueEl.textContent = discordAuthState.hasRole ? 'Role access granted' : 'Required role missing';
+          syncLoginStepUi({ completedKeys: DISCORD_LOGIN_STEP_KEYS });
+          return;
+        }
+
+        loginAuthCardEl.classList.add('is-hidden');
+        loginAuthAvatarEl.removeAttribute('src');
+        loginAuthAvatarEl.alt = 'Discord avatar';
+        loginStatusBadgeEl.textContent = 'Discord OAuth';
+        loginPrimaryActionButtonEl.disabled = isDiscordLoginSequenceRunning;
+
+        if (stage === 'starting') {
+          loginTitleEl.textContent = 'Waking the login screen';
+          loginMessageEl.textContent = 'Showing the login screen on the big TV before opening Discord.';
+          loginPrimaryActionButtonEl.textContent = 'Preparing Login…';
+          syncLoginStepUi({ activeKey: 'display' });
+          return;
+        }
+
+        if (stage === 'oauth') {
+          loginTitleEl.textContent = 'Opening Discord OAuth';
+          loginMessageEl.textContent = 'Step two is underway. Discord sign-in is opening now.';
+          loginPrimaryActionButtonEl.textContent = 'Opening Discord…';
+          syncLoginStepUi({ activeKey: 'oauth', completedKeys: ['display'] });
+          return;
+        }
+
+        if (stage === 'redirecting') {
+          loginTitleEl.textContent = 'Redirecting to Discord';
+          loginMessageEl.textContent = 'Final step before the handoff. You are being redirected to Discord now.';
+          loginPrimaryActionButtonEl.textContent = 'Redirecting…';
+          syncLoginStepUi({ activeKey: 'return', completedKeys: ['display', 'oauth'] });
+          return;
+        }
+
+        loginTitleEl.textContent = 'Step-by-step Discord sign-in';
+        loginMessageEl.textContent = 'Use the Login quadrant to bring up this screen, then continue into Discord OAuth.';
+        loginPrimaryActionButtonEl.textContent = 'Start Discord Login';
+        syncLoginStepUi({ activeKey: 'display' });
+      }
+
+      async function beginDiscordLoginFlow(flowSequenceToken = loginSequenceToken) {
+        if (isDiscordLoginSequenceRunning || discordAuthState?.authenticated) {
+          syncLoginOverlayUi();
+          return;
+        }
+
+        isDiscordLoginSequenceRunning = true;
+        syncLoginOverlayUi({ stage: 'starting' });
+
+        try {
+          await wait(DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS);
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+            return;
+          }
+
+          syncLoginOverlayUi({ stage: 'oauth' });
+          await wait(DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS);
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+            return;
+          }
+
+          persistDiscordLoginFlowState({
+            showLogin: true,
+            restorePowerOn: isCommodorePoweringOn
+          });
+          syncLoginOverlayUi({ stage: 'redirecting' });
+          await wait(DISCORD_LOGIN_SEQUENCE_REDIRECT_DELAY_MS);
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+            return;
+          }
+
+          window.location.assign('/api/discord/auth');
+        } finally {
+          if (flowSequenceToken === loginSequenceToken) {
+            isDiscordLoginSequenceRunning = false;
+          }
+          syncLoginOverlayUi();
+        }
+      }
+
+      async function handleLoginPrimaryAction() {
+        if (discordAuthState?.authenticated) {
+          await fetchDiscordAuthState();
+          syncDiscordAuthBodyClass();
+          syncDiscordButtonUi();
+          return;
+        }
+
+        void beginDiscordLoginFlow();
       }
 
       function setLeftMonitorState(nextState) {
         if (!LEFT_MONITOR_STATES.has(nextState)) {
           return;
+        }
+        if (nextState !== 'login') {
+          shouldAutoStartDiscordLoginOnNextLoginActivation = false;
         }
         leftMonitorSelectedState = nextState;
         if (leftMonitorContentImageEl) {
@@ -3529,6 +3875,7 @@
         isLoginActive = true;
         loginOverlayEl.classList.add('is-active');
         loginOverlayEl.setAttribute('aria-hidden', 'false');
+        syncLoginOverlayUi();
         syncBigTvContentVisibility();
       }
 
@@ -3537,6 +3884,7 @@
           loginSequenceToken += 1;
         }
         isLoginActive = false;
+        isDiscordLoginSequenceRunning = false;
         if (loginOverlayEl) {
           loginOverlayEl.classList.remove('is-active');
           loginOverlayEl.setAttribute('aria-hidden', 'true');
@@ -3561,6 +3909,13 @@
 
         hideAquariumStaticOverlay();
         showLoginOverlay();
+        if (shouldAutoStartDiscordLoginOnNextLoginActivation && !discordAuthState?.authenticated) {
+          shouldAutoStartDiscordLoginOnNextLoginActivation = false;
+          void beginDiscordLoginFlow(sequenceToken);
+        } else {
+          shouldAutoStartDiscordLoginOnNextLoginActivation = false;
+          syncLoginOverlayUi();
+        }
       }
 
       function cancelAquariumPlaybackSequence() {
@@ -4706,6 +5061,13 @@
         });
       }
 
+      function markSceneReady() {
+        window.requestAnimationFrame(() => {
+          document.body.classList.remove('scene-loading');
+          document.body.classList.add('scene-ready');
+        });
+      }
+
       async function readResponseErrorText(response) {
         try {
           const payload = await response.clone().json();
@@ -5730,53 +6092,90 @@
             const loginBody = document.createElement('div');
             loginBody.className = 'login-body';
 
-            const loginForm = document.createElement('form');
-            loginForm.className = 'login-form';
-            loginForm.addEventListener('submit', (event) => {
-              event.preventDefault();
-              event.stopPropagation();
+            const loginStatusPanel = document.createElement('div');
+            loginStatusPanel.className = 'login-status-panel';
+
+            loginStatusBadgeEl = document.createElement('div');
+            loginStatusBadgeEl.className = 'login-status-badge';
+
+            loginTitleEl = document.createElement('h2');
+            loginTitleEl.className = 'login-title';
+
+            loginMessageEl = document.createElement('p');
+            loginMessageEl.className = 'login-message';
+
+            const loginStepsEl = document.createElement('ol');
+            loginStepsEl.className = 'login-steps';
+            loginStepElsByKey.clear();
+            [
+              ['display', 'Display the login screen'],
+              ['oauth', 'Open Discord OAuth'],
+              ['return', 'Return with Discord account details']
+            ].forEach(([key, label], index) => {
+              const stepEl = document.createElement('li');
+              stepEl.className = 'login-step is-pending';
+              const indicatorEl = document.createElement('span');
+              indicatorEl.className = 'login-step-indicator';
+              indicatorEl.textContent = String(index + 1);
+              const labelEl = document.createElement('span');
+              labelEl.className = 'login-step-label';
+              labelEl.textContent = label;
+              stepEl.append(indicatorEl, labelEl);
+              loginStepElsByKey.set(key, stepEl);
+              loginStepsEl.appendChild(stepEl);
             });
 
-            const usernameField = document.createElement('div');
-            usernameField.className = 'login-field';
-            const usernameLabel = document.createElement('label');
-            usernameLabel.className = 'login-label';
-            usernameLabel.textContent = 'Username';
-            const usernameInput = document.createElement('input');
-            usernameInput.type = 'text';
-            usernameInput.className = 'login-input';
-            usernameInput.placeholder = 'Enter username';
-            usernameInput.autocomplete = 'username';
-            usernameInput.addEventListener('pointerdown', (event) => event.stopPropagation());
-            usernameLabel.htmlFor = 'login-username-input';
-            usernameInput.id = 'login-username-input';
-            usernameField.append(usernameLabel, usernameInput);
+            loginStatusPanel.append(loginStatusBadgeEl, loginTitleEl, loginMessageEl, loginStepsEl);
 
-            const passwordField = document.createElement('div');
-            passwordField.className = 'login-field';
-            const passwordLabel = document.createElement('label');
-            passwordLabel.className = 'login-label';
-            passwordLabel.textContent = 'Password';
-            const passwordInput = document.createElement('input');
-            passwordInput.type = 'password';
-            passwordInput.className = 'login-input';
-            passwordInput.placeholder = 'Enter password';
-            passwordInput.autocomplete = 'current-password';
-            passwordInput.addEventListener('pointerdown', (event) => event.stopPropagation());
-            passwordLabel.htmlFor = 'login-password-input';
-            passwordInput.id = 'login-password-input';
-            passwordField.append(passwordLabel, passwordInput);
+            const loginActionsEl = document.createElement('div');
+            loginActionsEl.className = 'login-actions';
 
-            const submitButton = document.createElement('button');
-            submitButton.type = 'submit';
-            submitButton.className = 'login-submit';
-            submitButton.textContent = 'Sign In';
-            submitButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+            loginPrimaryActionButtonEl = document.createElement('button');
+            loginPrimaryActionButtonEl.type = 'button';
+            loginPrimaryActionButtonEl.className = 'login-submit';
+            loginPrimaryActionButtonEl.addEventListener('pointerdown', (event) => event.stopPropagation());
+            loginPrimaryActionButtonEl.addEventListener('click', (event) => {
+              event.stopPropagation();
+              void handleLoginPrimaryAction();
+            });
+            loginActionsEl.appendChild(loginPrimaryActionButtonEl);
 
-            loginForm.append(usernameField, passwordField, submitButton);
-            loginBody.appendChild(loginForm);
+            loginAuthCardEl = document.createElement('div');
+            loginAuthCardEl.className = 'login-auth-card is-hidden';
+
+            loginAuthAvatarEl = document.createElement('img');
+            loginAuthAvatarEl.className = 'login-auth-avatar';
+            loginAuthAvatarEl.alt = 'Discord avatar';
+            loginAuthAvatarEl.loading = 'lazy';
+            loginAuthAvatarEl.decoding = 'async';
+
+            const loginAuthGridEl = document.createElement('div');
+            loginAuthGridEl.className = 'login-auth-grid';
+
+            const createLoginAuthField = (labelText) => {
+              const fieldEl = document.createElement('div');
+              fieldEl.className = 'login-auth-field';
+              const labelEl = document.createElement('div');
+              labelEl.className = 'login-auth-label';
+              labelEl.textContent = labelText;
+              const valueEl = document.createElement('div');
+              valueEl.className = 'login-auth-value';
+              fieldEl.append(labelEl, valueEl);
+              loginAuthGridEl.appendChild(fieldEl);
+              return valueEl;
+            };
+
+            loginAuthUsernameValueEl = createLoginAuthField('Username');
+            loginAuthUserIdValueEl = createLoginAuthField('User ID');
+            loginAuthMembershipValueEl = createLoginAuthField('Membership');
+            loginAuthAccessValueEl = createLoginAuthField('Access');
+
+            loginAuthCardEl.append(loginAuthAvatarEl, loginAuthGridEl);
+
+            loginBody.append(loginStatusPanel, loginActionsEl, loginAuthCardEl);
             loginOverlayEl.append(loginHeader, loginBody);
             el.appendChild(loginOverlayEl);
+            syncLoginOverlayUi();
 
 
             nedryGateOverlayEl.className = 'nedry-gate-overlay';
@@ -5848,11 +6247,12 @@
                   return;
                 }
                 interruptAquariumPlaybackSequence();
-                setLeftMonitorState(
-                  state === leftMonitorSelectedState
-                    ? DEFAULT_LEFT_MONITOR_STATE
-                    : state
-                );
+                const nextState = state === leftMonitorSelectedState
+                  ? DEFAULT_LEFT_MONITOR_STATE
+                  : state;
+                shouldAutoStartDiscordLoginOnNextLoginActivation =
+                  nextState === 'login' && !discordAuthState?.authenticated;
+                setLeftMonitorState(nextState);
               });
               leftMonitorSegmentButtonsByState.set(state, segment);
               selector.appendChild(segment);
@@ -6579,6 +6979,7 @@
       async function initializeScene() {
         await loadAquariumShrimpClipCatalog();
         await fetchDiscordAuthState();
+        const restoredDiscordLoginFlowState = consumeDiscordLoginFlowState();
         const serverHotspots = await loadHotspotsFromServer();
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
         hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
@@ -6586,6 +6987,13 @@
         createOverlays();
         syncDiscordAuthBodyClass();
         syncDiscordButtonUi();
+        syncLoginOverlayUi();
+        if (restoredDiscordLoginFlowState?.showLogin) {
+          setLeftMonitorState('login');
+          if (restoredDiscordLoginFlowState.restorePowerOn && !isCommodorePoweringOn) {
+            triggerCommodorePowerOnSequence();
+          }
+        }
         createSceneTiles();
         createAshtraySmokeEffect();
         createAshtrayCigaretteEffect();
@@ -6690,7 +7098,7 @@
         }
       })();
 
-      initializeScene();
+      void initializeScene().finally(markSceneReady);
     })();
   </script>
 </body>
