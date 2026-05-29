@@ -460,9 +460,13 @@ export default {
       if (!env.HOTSPOT_STORE) {
         return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       }
-      const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
-      const stub = env.HOTSPOT_STORE.get(id);
-      return stub.fetch(request);
+      try {
+        const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
+        const stub = env.HOTSPOT_STORE.get(id);
+        return await stub.fetch(request);
+      } catch (err) {
+        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
+      }
     }
 
     // /api/aquarium/shrimp-clips
