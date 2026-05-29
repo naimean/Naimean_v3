@@ -3459,8 +3459,15 @@
         ) {
           return '';
         }
+        // Discord animated avatar hashes use the `a_` prefix and must be requested as GIFs.
         const extension = authState.avatar.startsWith('a_') ? 'gif' : 'png';
-        return `${DISCORD_CDN_BASE_URL}/avatars/${authState.userId}/${authState.avatar}.${extension}?size=256`;
+        const avatarUrl = new URL(
+          `${DISCORD_CDN_BASE_URL}/avatars/${authState.userId}/${authState.avatar}.${extension}?size=256`
+        );
+        if (avatarUrl.protocol !== 'https:' || avatarUrl.hostname !== 'cdn.discordapp.com') {
+          return '';
+        }
+        return avatarUrl.toString();
       }
 
       function syncLoginStepUi({ activeKey = null, completedKeys = [] } = {}) {
@@ -3496,7 +3503,7 @@
           loginAuthAvatarEl.src = avatarUrl || DISCORD_BUTTON_IMAGE_URL;
           loginAuthAvatarEl.alt = avatarUrl && discordAuthState.username
             ? `${discordAuthState.username} Discord avatar`
-            : 'Discord';
+            : 'Discord logo';
           loginAuthUsernameValueEl.textContent = discordAuthState.username || 'Unknown';
           loginAuthUserIdValueEl.textContent = discordAuthState.userId || 'Unavailable';
           loginAuthMembershipValueEl.textContent = discordAuthState.isMember ? 'Server member' : 'Not in server';
@@ -3541,7 +3548,7 @@
         syncLoginStepUi({ activeKey: 'display' });
       }
 
-      async function beginDiscordLoginFlow(sequenceToken = loginSequenceToken) {
+      async function beginDiscordLoginFlow(flowSequenceToken = loginSequenceToken) {
         if (isDiscordLoginSequenceRunning || discordAuthState?.authenticated) {
           syncLoginOverlayUi();
           return;
@@ -3552,13 +3559,13 @@
 
         try {
           await wait(DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS);
-          if (sequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
             return;
           }
 
           syncLoginOverlayUi({ stage: 'oauth' });
           await wait(DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS);
-          if (sequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
             return;
           }
 
@@ -3568,13 +3575,13 @@
           });
           syncLoginOverlayUi({ stage: 'redirecting' });
           await wait(DISCORD_LOGIN_SEQUENCE_REDIRECT_DELAY_MS);
-          if (sequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
+          if (flowSequenceToken !== loginSequenceToken || leftMonitorSelectedState !== 'login') {
             return;
           }
 
           window.location.assign('/api/discord/auth');
         } finally {
-          if (sequenceToken === loginSequenceToken) {
+          if (flowSequenceToken === loginSequenceToken) {
             isDiscordLoginSequenceRunning = false;
           }
           syncLoginOverlayUi();
