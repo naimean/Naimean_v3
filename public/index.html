@@ -3494,9 +3494,9 @@
           loginAuthCardEl.classList.remove('is-hidden');
           const avatarUrl = getDiscordAvatarUrl(discordAuthState);
           loginAuthAvatarEl.src = avatarUrl || DISCORD_BUTTON_IMAGE_URL;
-          loginAuthAvatarEl.alt = discordAuthState.username
+          loginAuthAvatarEl.alt = avatarUrl && discordAuthState.username
             ? `${discordAuthState.username} Discord avatar`
-            : 'Discord avatar';
+            : 'Discord';
           loginAuthUsernameValueEl.textContent = discordAuthState.username || 'Unknown';
           loginAuthUserIdValueEl.textContent = discordAuthState.userId || 'Unavailable';
           loginAuthMembershipValueEl.textContent = discordAuthState.isMember ? 'Server member' : 'Not in server';
