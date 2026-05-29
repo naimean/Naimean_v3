@@ -1,71 +1,103 @@
-// ============================================================================
-// FILE: src/worker.js (Main API Entry-Point Router)
-// Description: Main router handling apex /api/ routing and forwarding
-// ============================================================================
+let discordAuthHandlerPromise;
 
-// Import your OAuth handlers from where Copilot structured them
-import { handleDiscordAuth } from './discord/auth.js'; 
+async function getDiscordAuthHandler() {
+  if (!discordAuthHandlerPromise) {
+    discordAuthHandlerPromise = import('./discord/auth.js')
+      .then((module) => module.handleDiscordAuth)
+      .catch((error) => {
+        console.warn('Failed to load Discord auth handler.', error);
+        return null;
+      });
+  }
+  return discordAuthHandlerPromise;
+}
+
+function isHtmlPath(pathname) {
+  if (pathname.startsWith('/api/')) return false;
+  const lastSegment = pathname.split('/').pop() || '';
+  const hasFileExtension = lastSegment.includes('.');
+  return pathname === '/' || pathname.endsWith('.html') || !hasFileExtension;
+}
+
+function applyAssetCacheHeaders(pathname, headers) {
+  if (isHtmlPath(pathname)) {
+    headers.set('cache-control', 'no-store');
+    return;
+  }
+  headers.set('cache-control', 'public, max-age=0, must-revalidate');
+}
+
+function jsonResponse(body, init = {}) {
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers: {
+      'content-type': 'application/json',
+      ...(init.headers || {})
+    }
+  });
+}
+
+async function serveAsset(request, env, pathname) {
+  if (!env.ASSETS?.fetch) {
+    return jsonResponse({ error: 'Static assets unavailable.' }, { status: 500 });
+  }
+
+  const upstream = await env.ASSETS.fetch(request);
+  const headers = new Headers(upstream.headers);
+  applyAssetCacheHeaders(pathname, headers);
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers
+  });
+}
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
-    // 1. Handle CORS Preflight
-    if (request.method === "OPTIONS") {
+    if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'GET, POST, OPTIONS',
+          'access-control-allow-headers': 'content-type, authorization'
+        }
       });
     }
 
-    // 2. Route Matching Layer
     switch (url.pathname) {
       case '/api/health':
-        return new Response(JSON.stringify({ status: "healthy", timestamp: Date.now() }), {
-          headers: { "Content-Type": "application/json" }
-        });
-
+        return jsonResponse({ status: 'healthy', timestamp: Date.now() });
       case '/api/data':
-        return new Response(JSON.stringify({ message: "Data payload" }), {
-          headers: { "Content-Type": "application/json" }
-        });
-
+        return jsonResponse({ message: 'Data payload' });
       case '/api/barrelroll':
-        return new Response(JSON.stringify({ action: "do_a_barrel_roll" }), {
-          headers: { "Content-Type": "application/json" }
-        });
-
+        return jsonResponse({ action: 'do_a_barrel_roll' });
       case '/api/musickit-token':
-        return new Response(JSON.stringify({ token: "DEVELOPER_TOKEN_HERE" }), {
-          headers: { "Content-Type": "application/json" }
-        });
-
-      // WIRE IN THE DISCORD ENDPOINT HERE
-      case '/api/discord/auth':
+        return jsonResponse({ token: 'DEVELOPER_TOKEN_HERE' });
+      case '/api/discord/auth': {
+        const handleDiscordAuth = await getDiscordAuthHandler();
+        if (!handleDiscordAuth) {
+          return jsonResponse({ error: 'Discord auth handler is not configured.' }, { status: 503 });
+        }
         try {
           return await handleDiscordAuth(request, env);
         } catch (err) {
-          // If your helper from PR #292 is global, use it here, otherwise fallback safely
-          return new Response(JSON.stringify({ error: "Internal Auth Error", details: err.message }), { 
-            status: 500,
-            headers: { "Content-Type": "application/json" }
-          });
+          return jsonResponse({ error: 'Internal Auth Error' }, { status: 500 });
         }
-
-      // 3. Fallback Catch-All
+      }
       default:
-        return new Response(
-          JSON.stringify({
-            error: "endpoint not found - use /api/health, /api/data, /api/barrelroll, /api/musickit-token, or /api/discord/auth"
-          }),
-          { 
-            status: 404, 
-            headers: { "Content-Type": "application/json" } 
-          }
-        );
+        if (url.pathname.startsWith('/api/')) {
+          return jsonResponse(
+            {
+              error:
+                'endpoint not found - use /api/health, /api/data, /api/barrelroll, /api/musickit-token, or /api/discord/auth'
+            },
+            { status: 404 }
+          );
+        }
+        return serveAsset(request, env, url.pathname);
     }
   }
 };
