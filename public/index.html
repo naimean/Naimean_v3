@@ -2873,6 +2873,8 @@
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
       const DISCORD_CDN_BASE_URL = 'https://cdn.discordapp.com';
+      const DISCORD_USER_ID_RE = /^\d+$/;
+      const DISCORD_AVATAR_HASH_RE = /^(a_)?[a-f0-9]{32}$/i;
       const DISCORD_LOGIN_FLOW_STORAGE_KEY = 'naimean.discordLoginFlow.v1';
       const DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS = 900;
       const DISCORD_LOGIN_SEQUENCE_REDIRECT_DELAY_MS = 1200;
@@ -3450,7 +3452,11 @@
       }
 
       function getDiscordAvatarUrl(authState) {
-        if (!authState?.authenticated || !authState.userId || !authState.avatar) {
+        if (
+          !authState?.authenticated ||
+          !DISCORD_USER_ID_RE.test(authState.userId || '') ||
+          !DISCORD_AVATAR_HASH_RE.test(authState.avatar || '')
+        ) {
           return '';
         }
         const extension = authState.avatar.startsWith('a_') ? 'gif' : 'png';
@@ -3501,6 +3507,7 @@
 
         loginAuthCardEl.classList.add('is-hidden');
         loginAuthAvatarEl.removeAttribute('src');
+        loginAuthAvatarEl.alt = 'Discord avatar';
         loginStatusBadgeEl.textContent = 'Discord OAuth';
         loginPrimaryActionButtonEl.disabled = isDiscordLoginSequenceRunning;
 
