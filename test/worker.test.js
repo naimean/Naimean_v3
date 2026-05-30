@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import router, { HotspotStore, createSessionToken, verifySessionToken } from '../src/worker.js';
-import { onRequest as onHotspotsRequest } from '../functions/api/hotspots.js';
+import { onRequest as onHotspotsRequest } from './fixtures/hotspots.js';
 
 function makeState(initialHotspots) {
   let stored = initialHotspots;
@@ -770,7 +770,7 @@ test('worker serves /index.html through the index asset alias', async () => {
 
 // --- functions/api/hotspots.js HotspotStore class coverage ---
 
-import { HotspotStore as FunctionsHotspotStore } from '../functions/api/hotspots.js';
+import { HotspotStore as FunctionsHotspotStore } from './fixtures/hotspots.js';
 
 function makeFunctionsState(initialHotspots) {
   let stored = initialHotspots;
