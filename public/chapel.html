@@ -373,18 +373,98 @@
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
       const ANCHOR_POINTS = {
+        aceVenturaTopLeft: { x: 140, y: 540 },
+        aceVenturaBottomRight: { x: 260, y: 720 },
+        sillyGooseTopLeft: { x: 620, y: 780 },
+        sillyGooseBottomRight: { x: 760, y: 940 },
+        crustyTheClownTopLeft: { x: 350, y: 1280 },
+        crustyTheClownBottomRight: { x: 500, y: 1460 },
+        caseyJonesTopLeft: { x: 640, y: 1670 },
+        caseyJonesBottomRight: { x: 800, y: 1860 },
+        rickTopLeft: { x: 250, y: 2190 },
+        rickBottomRight: { x: 430, y: 2410 },
+        mortyTopLeft: { x: 540, y: 2210 },
+        mortyBottomRight: { x: 710, y: 2430 },
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
-        commodoreButtonsBottomRight: { x: 478, y: 2620 }
+        commodoreButtonsBottomRight: { x: 478, y: 2620 },
+        scroogeMcduckTopLeft: { x: 360, y: 3050 },
+        scroogeMcduckBottomRight: { x: 560, y: 3280 }
       };
       const HOTSPOTS = [
+        {
+          id: 'chapel-ace-ventura',
+          label: 'Ace Ventura',
+          anchors: ['aceVenturaTopLeft', 'aceVenturaBottomRight'],
+          audioFolder: 'ace_ventura'
+        },
+        {
+          id: 'chapel-silly-goose',
+          label: 'Silly Goose',
+          anchors: ['sillyGooseTopLeft', 'sillyGooseBottomRight'],
+          audioFolder: 'silly_goose'
+        },
+        {
+          id: 'chapel-crusty-the-clown',
+          label: 'Crusty The Clown',
+          anchors: ['crustyTheClownTopLeft', 'crustyTheClownBottomRight'],
+          audioFolder: 'crusty_the_clown'
+        },
+        {
+          id: 'chapel-casey-jones',
+          label: 'Casey Jones',
+          anchors: ['caseyJonesTopLeft', 'caseyJonesBottomRight'],
+          audioFolder: 'casey_jones'
+        },
+        {
+          id: 'chapel-rick',
+          label: 'Rick',
+          anchors: ['rickTopLeft', 'rickBottomRight'],
+          audioFolder: 'rick'
+        },
+        {
+          id: 'chapel-morty',
+          label: 'Morty',
+          anchors: ['mortyTopLeft', 'mortyBottomRight'],
+          audioFolder: 'morty'
+        },
         {
           id: 'chapel-commodore-power-button',
           label: 'Commodore power button',
           variant: 'power-button',
           anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
           href: '/commodore.html'
+        },
+        {
+          id: 'chapel-scrooge-mcduck',
+          label: 'Scrooge McDuck',
+          anchors: ['scroogeMcduckTopLeft', 'scroogeMcduckBottomRight'],
+          audioFolder: 'scrooge_mcduck'
         }
       ];
+      const AUDIO_TRACKS_BY_FOLDER = {
+        ace_ventura: [
+          'assets/audio/ace_ventura/ace_ventura_all_righty_then.v20260530.mp3'
+        ],
+        silly_goose: [
+          'assets/audio/silly_goose/silly_goose_honk.v20260530.mp3'
+        ],
+        crusty_the_clown: [
+          'assets/audio/crusty_the_clown/crusty_the_clown_laugh.v20260530.mp3'
+        ],
+        casey_jones: [
+          'assets/audio/casey_jones/casey_jones_wrong.v20260530.mp3'
+        ],
+        rick: [
+          'assets/audio/rick/rick_nope.v20260424.mp3',
+          'assets/audio/rick/rick_death.v20260530.mp3'
+        ],
+        morty: [
+          'assets/audio/morty/morty_aw_jeez.v20260424.mp3'
+        ],
+        scrooge_mcduck: [
+          'assets/audio/scrooge_mcduck/scrooge_mcduck_secret.v20260530.mp3'
+        ]
+      };
       const overlayLayer = document.getElementById('overlay-layer');
       const sceneImage = document.getElementById('scene-image');
       const debugStatus = document.getElementById('debug-status');
@@ -405,6 +485,7 @@
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null;
+      let activeHotspotAudio = null;
 
       function syncImageDimensions() {
         imageDimensions.width = sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH;
@@ -435,6 +516,44 @@
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
+      }
+
+      function playRandomTrackFromFolder(folderName) {
+        const tracks = AUDIO_TRACKS_BY_FOLDER[folderName];
+        if (!Array.isArray(tracks) || tracks.length === 0) {
+          console.warn(`No playable tracks configured for audio folder: ${folderName}`);
+          return;
+        }
+        const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
+        if (activeHotspotAudio) {
+          activeHotspotAudio.pause();
+          activeHotspotAudio.currentTime = 0;
+        }
+        const audio = new Audio(randomTrack);
+        activeHotspotAudio = audio;
+        audio.addEventListener('ended', () => {
+          if (activeHotspotAudio === audio) {
+            activeHotspotAudio = null;
+          }
+        }, { once: true });
+        audio.play().catch((error) => {
+          if (activeHotspotAudio === audio) {
+            activeHotspotAudio = null;
+          }
+          console.warn(`Failed to play hotspot audio (${randomTrack}):`, error);
+        });
+      }
+
+      function onHotspotClick(definition) {
+        if (document.body.classList.contains('debug')) {
+          return;
+        }
+        if (definition.audioFolder) {
+          playRandomTrackFromFolder(definition.audioFolder);
+        }
+        if (definition.href) {
+          window.location.assign(definition.href);
+        }
       }
 
       function getHotspotRect(definition) {
@@ -485,11 +604,7 @@
           button.appendChild(label);
           addResizeHandles(button);
           applyRectToElement(button, definition, rect);
-          if (definition.href) {
-            button.addEventListener('click', () => {
-              window.location.assign(definition.href);
-            });
-          }
+          button.addEventListener('click', () => onHotspotClick(definition));
           overlayLayer.appendChild(button);
         });
       }
@@ -619,6 +734,12 @@
             ];
             if (definition.variant) {
               lines.push(`    variant: '${definition.variant}',`);
+            }
+            if (definition.href) {
+              lines.push(`    href: '${definition.href}',`);
+            }
+            if (definition.audioFolder) {
+              lines.push(`    audioFolder: '${definition.audioFolder}',`);
             }
             lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`);
             lines.push('  }');
