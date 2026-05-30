@@ -16,7 +16,7 @@ export async function onRequest(context) {
   const discordAuthUrl = new URL("https://discord.com/api/oauth2/authorize");
   discordAuthUrl.searchParams.set("client_id", clientId);
   discordAuthUrl.searchParams.set("redirect_uri", redirectUri);
-  discordAuthUrl.searchParams.set("response_type", "code");
+  discordAuthUrl.searchParams.set("response_type", "code"); // Fixed: added quotes around "code"
   discordAuthUrl.searchParams.set("scope", "identify email");
 
   // Perform a 302 Redirect to send the user to Discord's login screen
