@@ -3,6 +3,11 @@ const JSON_HEADERS = {
   'cache-control': 'no-store'
 };
 const DEFAULT_OAUTH_SCOPE = 'identify email';
+const OAUTH_STATE_COOKIE = 'naimean_oauth_state';
+
+function createOAuthStateCookie(state: string) {
+  return `${OAUTH_STATE_COOKIE}=${encodeURIComponent(state)}; Max-Age=300; Path=/; HttpOnly; SameSite=Lax`;
+}
 
 type DiscordAuthContext = {
   request: Request;
@@ -48,10 +53,18 @@ export async function onRequest(context: DiscordAuthContext) {
   }
 
   const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize');
+  const state = crypto.randomUUID().replace(/-/g, '');
   discordAuthUrl.searchParams.set('client_id', clientId);
   discordAuthUrl.searchParams.set('redirect_uri', redirectUri);
   discordAuthUrl.searchParams.set('response_type', 'code');
   discordAuthUrl.searchParams.set('scope', scope);
+  discordAuthUrl.searchParams.set('state', state);
 
-  return Response.redirect(discordAuthUrl.toString(), 302);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: discordAuthUrl.toString(),
+      'set-cookie': createOAuthStateCookie(state)
+    }
+  });
 }
