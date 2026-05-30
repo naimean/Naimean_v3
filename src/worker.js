@@ -1,5 +1,4 @@
 // ─── Session token utilities ──────────────────────────────────────────────────
-
 async function importHmacKey(secret) {
   return crypto.subtle.importKey(
     'raw',
@@ -38,21 +37,17 @@ export async function verifySessionToken(secret, token) {
   if (!token || typeof token !== 'string') return null;
   const lastDot = token.lastIndexOf('.');
   if (lastDot < 0) return null;
-
   const encoded = token.slice(0, lastDot);
   const sigStr = token.slice(lastDot + 1);
-
   let sigBytes;
   try {
     sigBytes = fromBase64Url(sigStr);
   } catch {
     return null;
   }
-
   const key = await importHmacKey(secret);
   const valid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(encoded));
   if (!valid) return null;
-
   let payload;
   try {
     const bytes = new Uint8Array(fromBase64Url(encoded));
@@ -62,14 +57,11 @@ export async function verifySessionToken(secret, token) {
   } catch {
     return null;
   }
-
   if (payload.exp && Date.now() > payload.exp) return null;
-
   return payload;
 }
 
 // ─── Cookie utilities ─────────────────────────────────────────────────────────
-
 function parseCookies(request) {
   const header = request.headers.get('Cookie') || '';
   const cookies = {};
@@ -94,7 +86,6 @@ function serializeCookie(name, value, options = {}) {
 }
 
 // ─── Response helpers ─────────────────────────────────────────────────────────
-
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
   'cache-control': 'no-store'
@@ -112,7 +103,6 @@ function errorRedirect(base, errorCode) {
 }
 
 // ─── Asset serving ────────────────────────────────────────────────────────────
-
 const INDEX_ALIAS_PATHS = new Set(['/den', '/den.html']);
 
 function isHtmlPath(pathname) {
@@ -133,15 +123,12 @@ async function serveAsset(request, env, pathname) {
   if (!env.ASSETS?.fetch) {
     return jsonResponse({ error: 'Static assets unavailable.' }, 500);
   }
-
   const assetRequest = INDEX_ALIAS_PATHS.has(pathname)
     ? new Request(new URL('/index.html', request.url).toString(), request)
     : request;
-
   const upstream = await env.ASSETS.fetch(assetRequest);
   const headers = new Headers(upstream.headers);
   applyAssetCacheHeaders(pathname, headers);
-
   return new Response(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
@@ -150,7 +137,6 @@ async function serveAsset(request, env, pathname) {
 }
 
 // ─── HotspotStore ─────────────────────────────────────────────────────────────
-
 const DEFAULT_HOTSPOTS = [
   { id: 'noahs-arcade', x: 880, y: 320, w: 2050, h: 1280 },
   { id: 'aquarium', x: 2680, y: 445, w: 455, h: 729 },
@@ -164,10 +150,7 @@ const DEFAULT_HOTSPOTS = [
 ];
 
 const HOTSPOT_LIMITS = {
-  minX: 0, maxX: 3840,
-  minY: 0, maxY: 2160,
-  minW: 20, maxW: 3840,
-  minH: 20, maxH: 2160
+  minX: 0, maxX: 3840, minY: 0, maxY: 2160, minW: 20, maxW: 3840, minH: 20, maxH: 2160
 };
 
 function isFiniteNumber(value) {
@@ -180,22 +163,18 @@ function clamp(value, min, max) {
 
 function sanitizeHotspots(input) {
   if (!Array.isArray(input)) return DEFAULT_HOTSPOTS.map((h) => ({ ...h }));
-
   const entriesById = new Map();
   input.forEach((entry) => {
     if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string') return;
     entriesById.set(entry.id, entry);
   });
-
   return DEFAULT_HOTSPOTS.map((fallback) => {
     const entry = entriesById.get(fallback.id);
     if (!entry) return { ...fallback };
-
     const x = isFiniteNumber(entry.x) ? clamp(Math.round(entry.x), HOTSPOT_LIMITS.minX, HOTSPOT_LIMITS.maxX) : fallback.x;
     const y = isFiniteNumber(entry.y) ? clamp(Math.round(entry.y), HOTSPOT_LIMITS.minY, HOTSPOT_LIMITS.maxY) : fallback.y;
     const w = isFiniteNumber(entry.w) ? clamp(Math.round(entry.w), HOTSPOT_LIMITS.minW, HOTSPOT_LIMITS.maxW) : fallback.w;
     const h = isFiniteNumber(entry.h) ? clamp(Math.round(entry.h), HOTSPOT_LIMITS.minH, HOTSPOT_LIMITS.maxH) : fallback.h;
-
     return { id: fallback.id, x, y, w, h };
   });
 }
@@ -216,12 +195,10 @@ export class HotspotStore {
   constructor(state) {
     this.state = state;
   }
-
   async fetch(request) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: HOTSPOT_JSON_HEADERS });
     }
-
     if (request.method === 'GET') {
       let saved;
       try {
@@ -231,7 +208,6 @@ export class HotspotStore {
       }
       return hotspotJson({ hotspots: sanitizeHotspots(saved) });
     }
-
     if (request.method === 'POST') {
       let body;
       try {
@@ -239,7 +215,6 @@ export class HotspotStore {
       } catch {
         return hotspotJson({ error: 'Invalid JSON body.' }, 400);
       }
-
       const hotspots = sanitizeHotspots(body?.hotspots);
       try {
         await this.state.storage.put('hotspots', hotspots);
@@ -248,13 +223,11 @@ export class HotspotStore {
       }
       return hotspotJson({ ok: true, hotspots });
     }
-
     return hotspotJson({ error: 'Method not allowed.' }, 405);
   }
 }
 
 // ─── Aquarium / shrimp clips ──────────────────────────────────────────────────
-
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const CLIP_ID_RE = /^[A-Za-z0-9_-]{10,}$/;
 const SHRIMP_CLIP_CACHE_CONTROL = 'public, max-age=300';
@@ -297,9 +270,7 @@ async function proxyShrimpClip(env, fileId) {
 }
 
 // ─── Discord OAuth ────────────────────────────────────────────────────────────
-
 const DISCORD_API = 'https://discord.com/api/v10';
-const DISCORD_CDN = 'https://cdn.discordapp.com';
 const OAUTH_STATE_COOKIE = 'naimean_oauth_state';
 const SESSION_COOKIE = 'naimean_session';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -308,16 +279,18 @@ async function handleDiscordAuth(request, env) {
   if (request.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405 });
   }
-
-  const { DISCORD_CLIENT_ID } = env;
+  
+  const { DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI } = env;
   const url = new URL(request.url);
-
+  
   if (!DISCORD_CLIENT_ID) {
-    return errorRedirect(`${url.origin}/`, 'configuration_error');
+    return jsonResponse({ error: "Configuration Error: DISCORD_CLIENT_ID is missing from environmental bindings." }, 500);
   }
 
   const state = crypto.randomUUID().replace(/-/g, '');
-  const redirectUri = `${url.origin}/api/discord/callback`;
+  // Fallback to auto-calculating the origin match if explicit URI binding is missing
+  const redirectUri = DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
+
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
     redirect_uri: redirectUri,
@@ -327,13 +300,9 @@ async function handleDiscordAuth(request, env) {
   });
 
   const headers = new Headers({
-    Location: `https://discord.com/oauth2/authorize?${params}`,
-    'Set-Cookie': serializeCookie(OAUTH_STATE_COOKIE, state, {
-      httpOnly: true,
-      sameSite: 'Lax',
-      path: '/',
-      maxAge: 300
-    })
+    'Location': `https://discord.com/oauth2/authorize?${params.toString()}`,
+    'Set-Cookie': serializeCookie(OAUTH_STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 300 }),
+    'Access-Control-Allow-Origin': '*'
   });
 
   return new Response(null, { status: 302, headers });
@@ -342,21 +311,22 @@ async function handleDiscordAuth(request, env) {
 async function handleDiscordCallback(request, env) {
   const url = new URL(request.url);
   const origin = url.origin;
-
   const errorParam = url.searchParams.get('error');
   if (errorParam) return errorRedirect(`${origin}/`, errorParam);
 
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-
   if (!code || !state) return errorRedirect(`${origin}/`, 'invalid_request');
 
   const cookies = parseCookies(request);
-  if (!cookies[OAUTH_STATE_COOKIE]) return errorRedirect(`${origin}/`, 'state_mismatch');
-  if (cookies[OAUTH_STATE_COOKIE] !== state) return errorRedirect(`${origin}/`, 'state_mismatch');
+  if (!cookies[OAUTH_STATE_COOKIE] || cookies[OAUTH_STATE_COOKIE] !== state) {
+    return errorRedirect(`${origin}/`, 'state_mismatch');
+  }
 
-  const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, SESSION_SECRET, DISCORD_GUILD_ID } = env;
+  const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, SESSION_SECRET, DISCORD_GUILD_ID, DISCORD_REDIRECT_URI } = env;
   if (!DISCORD_CLIENT_SECRET || !SESSION_SECRET) return errorRedirect(`${origin}/`, 'configuration_error');
+
+  const targetRedirectUri = DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
 
   // Exchange code for access token
   const tokenRes = await fetch(`${DISCORD_API}/oauth2/token`, {
@@ -367,11 +337,11 @@ async function handleDiscordCallback(request, env) {
       client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code,
-      redirect_uri: `${origin}/api/discord/callback`
+      redirect_uri: targetRedirectUri
     })
   });
-  if (!tokenRes.ok) return errorRedirect(`${origin}/`, 'token_exchange_failed');
 
+  if (!tokenRes.ok) return errorRedirect(`${origin}/`, 'token_exchange_failed');
   const { access_token: accessToken } = await tokenRes.json();
   const authHeader = { Authorization: 'Bearer ' + accessToken };
 
@@ -407,7 +377,6 @@ async function handleDiscordCallback(request, env) {
   const headers = new Headers({ Location: '/' });
   headers.append('Set-Cookie', sessionCookieStr);
   headers.append('Set-Cookie', clearStateCookie);
-
   return new Response(null, { status: 302, headers });
 }
 
@@ -415,11 +384,9 @@ async function handleDiscordMe(request, env) {
   const { SESSION_SECRET, DISCORD_ALLOWED_ROLE_IDS } = env;
   const cookies = parseCookies(request);
   const token = cookies[SESSION_COOKIE];
-
   if (!token || !SESSION_SECRET) {
     return jsonResponse({ authenticated: false });
   }
-
   const session = await verifySessionToken(SESSION_SECRET, token);
   if (!session) return jsonResponse({ authenticated: false });
 
@@ -448,12 +415,23 @@ async function handleDiscordLogout(request) {
   });
 }
 
-// ─── Main worker ──────────────────────────────────────────────────────────────
-
+// ─── Main worker entry router ──────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
+
+    // Handle CORS preflight check safely
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie'
+        }
+      });
+    }
 
     // /api/hotspots → Durable Object
     if (pathname === '/api/hotspots') {
@@ -483,7 +461,7 @@ export default {
       return proxyShrimpClip(env, fileId);
     }
 
-    // Discord OAuth
+    // Discord OAuth Endpoints
     if (pathname === '/api/discord/auth') return handleDiscordAuth(request, env);
     if (pathname === '/api/discord/callback') return handleDiscordCallback(request, env);
     if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
