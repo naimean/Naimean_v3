@@ -1364,6 +1364,34 @@
       pointer-events: auto;
     }
 
+    .calendar-big-tv-overlay {
+      position: absolute;
+      inset: 0;
+      display: block;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 120ms ease;
+      background: #000;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    .calendar-big-tv-overlay.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .calendar-big-tv-still-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .login-header {
       position: sticky;
       top: 0;
@@ -2920,7 +2948,9 @@
       const DEN_URL_OVERRIDES_STORAGE_KEY = 'naimean.den.urlOverrides';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
-      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .big-tv-fullscreen-exit-button';
+      const CALENDAR_BIG_TV_STILL_URL = 'assets/images/Screenshot 2026-05-25 221941.png';
+      const CALENDAR_HTML_URL = 'calendar.html';
+      const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
@@ -3211,6 +3241,8 @@
       let bigTvToolsSequenceToken = 0;
       let bigTvToolsEntries = loadBigTvToolsEntries();
       let loginOverlayEl = null;
+      let calendarBigTvOverlayEl = null;
+      let isCalendarBigTvActive = false;
       let loginStatusBadgeEl = null;
       let loginTitleEl = null;
       let loginMessageEl = null;
@@ -3284,7 +3316,8 @@
         const promptActive = isBigTvPromptActive;
         const toolsActive = isBigTvToolsActive;
         const loginActive = isLoginActive;
-        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive;
+        const calendarActive = isCalendarBigTvActive;
+        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive || calendarActive;
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
         const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
@@ -3672,12 +3705,19 @@
         }
         syncLeftMonitorSelectionUi();
         if (nextState === 'tools' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          hideCalendarBigTvOverlay();
           hideLoginOverlay();
           void activateBigTvToolsMode();
         } else if (nextState === 'login' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          hideCalendarBigTvOverlay();
           hideBigTvToolsOverlay();
           void activateLoginMode();
+        } else if (nextState === 'calendar' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
+          hideBigTvToolsOverlay();
+          hideLoginOverlay();
+          void activateCalendarMode();
         } else {
+          hideCalendarBigTvOverlay();
           hideBigTvToolsOverlay();
           hideLoginOverlay();
         }
@@ -3945,6 +3985,47 @@
           loginOverlayEl.setAttribute('aria-hidden', 'true');
         }
         syncBigTvContentVisibility();
+      }
+
+      function showCalendarBigTvOverlay() {
+        if (!calendarBigTvOverlayEl) {
+          return;
+        }
+        isCalendarBigTvActive = true;
+        calendarBigTvOverlayEl.classList.add('is-active');
+        calendarBigTvOverlayEl.setAttribute('aria-hidden', 'false');
+        syncBigTvContentVisibility();
+      }
+
+      function hideCalendarBigTvOverlay() {
+        isCalendarBigTvActive = false;
+        if (calendarBigTvOverlayEl) {
+          calendarBigTvOverlayEl.classList.remove('is-active');
+          calendarBigTvOverlayEl.setAttribute('aria-hidden', 'true');
+        }
+        syncBigTvContentVisibility();
+      }
+
+      let calendarBigTvSequenceToken = 0;
+
+      async function activateCalendarMode() {
+        calendarBigTvSequenceToken += 1;
+        const sequenceToken = calendarBigTvSequenceToken;
+        stopAquariumPlaybackSequence();
+        hideBigTvPromptOverlay();
+        hideNedryGateOverlay();
+        hideBigTvToolsOverlay();
+        hideLoginOverlay({ cancelSequence: false });
+        hideCalendarBigTvOverlay();
+
+        await playBigTvStaticPass(sequenceToken, () => calendarBigTvSequenceToken);
+        if (sequenceToken !== calendarBigTvSequenceToken) {
+          hideAquariumStaticOverlay();
+          return;
+        }
+
+        hideAquariumStaticOverlay();
+        showCalendarBigTvOverlay();
       }
 
       async function activateLoginMode() {
@@ -5450,6 +5531,7 @@
         stopAquariumPlaybackSequence();
         hideBigTvToolsOverlay();
         hideLoginOverlay();
+        hideCalendarBigTvOverlay();
         hideBigTvPromptOverlay();
         hideNedryGateOverlay();
         hideAquariumStaticOverlay();
@@ -5486,6 +5568,12 @@
             isBigTvMonitorInteractive()
           ) {
             void activateLoginMode();
+          } else if (
+            leftMonitorSelectedState === 'calendar' &&
+            isLeftMonitorInteractive() &&
+            isBigTvMonitorInteractive()
+          ) {
+            void activateCalendarMode();
           }
         }, { once: true });
       }
@@ -5963,6 +6051,8 @@
         bigTvToolsViewMode = 'menu';
         loginOverlayEl = null;
         isLoginActive = false;
+        calendarBigTvOverlayEl = null;
+        isCalendarBigTvActive = false;
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
         rightMonitorShrimpLogoOverlayEl = null;
@@ -6284,6 +6374,27 @@
             loginOverlayEl.append(loginHeader, loginBody);
             el.appendChild(loginOverlayEl);
             syncLoginOverlayUi();
+
+            // Calendar still-shot overlay
+            calendarBigTvOverlayEl = document.createElement('button');
+            calendarBigTvOverlayEl.type = 'button';
+            calendarBigTvOverlayEl.className = 'calendar-big-tv-overlay';
+            calendarBigTvOverlayEl.setAttribute('aria-hidden', 'true');
+            calendarBigTvOverlayEl.setAttribute('aria-label', 'Open Calendar');
+            calendarBigTvOverlayEl.title = 'Open Calendar';
+            calendarBigTvOverlayEl.addEventListener('pointerdown', (event) => event.stopPropagation());
+            calendarBigTvOverlayEl.addEventListener('click', (event) => {
+              event.stopPropagation();
+              window.location.assign(CALENDAR_HTML_URL);
+            });
+            const calendarStillImg = document.createElement('img');
+            calendarStillImg.className = 'calendar-big-tv-still-image';
+            calendarStillImg.src = CALENDAR_BIG_TV_STILL_URL;
+            calendarStillImg.alt = '';
+            calendarStillImg.loading = 'lazy';
+            calendarStillImg.decoding = 'async';
+            calendarBigTvOverlayEl.appendChild(calendarStillImg);
+            el.appendChild(calendarBigTvOverlayEl);
 
 
             nedryGateOverlayEl = document.createElement('div');
