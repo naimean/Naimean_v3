@@ -277,8 +277,14 @@ const SESSION_COOKIE = 'naimean_session';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function handleDiscordAuth(request, env) {
+  if (request.method !== 'GET') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
   const url = new URL(request.url);
-  const clientId = env.DISCORD_CLIENT_ID || "1495879141638275213"; 
+  const clientId = env.DISCORD_CLIENT_ID;
+  if (!clientId) {
+    return errorRedirect(`${url.origin}/`, 'configuration_error');
+  }
   const redirectUri = env.DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
 
   const state = crypto.randomUUID().replace(/-/g, '');
@@ -300,6 +306,9 @@ async function handleDiscordAuth(request, env) {
 }
 
 async function handleDiscordCallback(request, env) {
+  if (request.method !== 'GET') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
   const url = new URL(request.url);
   const origin = url.origin;
   const errorParam = url.searchParams.get('error');
@@ -314,13 +323,13 @@ async function handleDiscordCallback(request, env) {
     return errorRedirect(`${origin}/`, 'state_mismatch');
   }
 
-  const clientId = env.DISCORD_CLIENT_ID || "1495879141638275213";
+  const clientId = env.DISCORD_CLIENT_ID;
   const clientSecret = env.DISCORD_CLIENT_SECRET;
-  const sessionSecret = env.SESSION_SECRET || "fallback-dev-secret-key-string";
+  const sessionSecret = env.SESSION_SECRET;
   const targetRedirectUri = env.DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
 
-  if (!clientSecret) {
-    return jsonResponse({ error: "Missing DISCORD_CLIENT_SECRET in Cloudflare environment variables." }, 500);
+  if (!clientId || !clientSecret || !sessionSecret) {
+    return errorRedirect(`${origin}/`, 'configuration_error');
   }
 
   // Exchange code for access token
@@ -337,30 +346,52 @@ async function handleDiscordCallback(request, env) {
   });
 
   if (!tokenRes.ok) {
-    const errorLog = await tokenRes.text();
-    return jsonResponse({ error: "Token exchange failed", details: errorLog }, 400);
+    return errorRedirect(`${origin}/`, 'token_exchange_failed');
   }
   
   const tokenData = await tokenRes.json();
   const accessToken = tokenData.access_token;
+  if (!accessToken) {
+    return errorRedirect(`${origin}/`, 'token_exchange_failed');
+  }
   const authHeader = { Authorization: 'Bearer ' + accessToken };
 
   // Get user info
   const userRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeader });
+  if (!userRes.ok) {
+    return errorRedirect(`${origin}/`, 'user_lookup_failed');
+  }
   const user = await userRes.json();
+  const guildId = env.DISCORD_GUILD_ID;
+  let isMember = true;
+  let roles = [];
+  if (guildId) {
+    const memberRes = await fetch(`${DISCORD_API}/users/@me/guilds/${guildId}/member`, { headers: authHeader });
+    if (memberRes.ok) {
+      const member = await memberRes.json();
+      roles = Array.isArray(member?.roles) ? member.roles : [];
+    } else if (memberRes.status === 403 || memberRes.status === 404) {
+      isMember = false;
+      roles = [];
+    } else {
+      return errorRedirect(`${origin}/`, 'guild_lookup_failed');
+    }
+  }
 
   const exp = Date.now() + SESSION_TTL_MS;
   const sessionToken = await createSessionToken(sessionSecret, {
     userId: user.id,
     username: user.username,
     avatar: user.avatar || null,
+    isMember,
+    roles,
     exp
   });
 
   const clearStateCookie = serializeCookie(OAUTH_STATE_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
   const sessionCookieStr = serializeCookie(SESSION_COOKIE, sessionToken, { httpOnly: true, sameSite: 'Lax', path: '/' });
 
-  const headers = new Headers({ Location: '/den' }); // Redirect straight back into the den workspace
+  const headers = new Headers({ Location: '/' });
   headers.append('Set-Cookie', sessionCookieStr);
   headers.append('Set-Cookie', clearStateCookie);
   return new Response(null, { status: 302, headers });
@@ -375,12 +406,21 @@ async function handleDiscordMe(request, env) {
   }
   const session = await verifySessionToken(sessionSecret, token);
   if (!session) return jsonResponse({ authenticated: false });
+  const roles = Array.isArray(session.roles) ? session.roles : [];
+  const allowedRoleIds = String(env.DISCORD_ALLOWED_ROLE_IDS || '')
+    .split(',')
+    .map((roleId) => roleId.trim())
+    .filter(Boolean);
+  const hasRole = allowedRoleIds.length === 0 || roles.some((roleId) => allowedRoleIds.includes(roleId));
 
   return jsonResponse({
     authenticated: true,
     userId: session.userId,
     username: session.username,
-    avatar: session.avatar || null
+    avatar: session.avatar || null,
+    isMember: session.isMember !== false,
+    roles,
+    hasRole
   });
 }
 
