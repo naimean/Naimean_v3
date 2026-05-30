@@ -2,7 +2,7 @@
 async function importHmacKey(secret) {
   return crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    new TextEncoder().encode(secret || 'fallback-dev-secret-key-string'),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -88,7 +88,8 @@ function serializeCookie(name, value, options = {}) {
 // ─── Response helpers ─────────────────────────────────────────────────────────
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
-  'cache-control': 'no-store'
+  'cache-control': 'no-store',
+  'access-control-allow-origin': '*'
 };
 
 function jsonResponse(body, status = 200, extraHeaders = {}) {
@@ -276,27 +277,17 @@ const SESSION_COOKIE = 'naimean_session';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function handleDiscordAuth(request, env) {
-  if (request.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  
-  const { DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI } = env;
   const url = new URL(request.url);
-  
-  if (!DISCORD_CLIENT_ID) {
-    return jsonResponse({ error: "Configuration Error: DISCORD_CLIENT_ID is missing from environmental bindings." }, 500);
-  }
+  const clientId = env.DISCORD_CLIENT_ID || "1495879141638275213"; 
+  const redirectUri = env.DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
 
   const state = crypto.randomUUID().replace(/-/g, '');
-  // Fallback to auto-calculating the origin match if explicit URI binding is missing
-  const redirectUri = DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
-
   const params = new URLSearchParams({
-    client_id: DISCORD_CLIENT_ID,
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'identify guilds.members.read',
-    state
+    scope: 'identify email guilds.members.read',
+    state: state
   });
 
   const headers = new Headers({
@@ -323,84 +314,73 @@ async function handleDiscordCallback(request, env) {
     return errorRedirect(`${origin}/`, 'state_mismatch');
   }
 
-  const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, SESSION_SECRET, DISCORD_GUILD_ID, DISCORD_REDIRECT_URI } = env;
-  if (!DISCORD_CLIENT_SECRET || !SESSION_SECRET) return errorRedirect(`${origin}/`, 'configuration_error');
+  const clientId = env.DISCORD_CLIENT_ID || "1495879141638275213";
+  const clientSecret = env.DISCORD_CLIENT_SECRET;
+  const sessionSecret = env.SESSION_SECRET || "fallback-dev-secret-key-string";
+  const targetRedirectUri = env.DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
 
-  const targetRedirectUri = DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
+  if (!clientSecret) {
+    return jsonResponse({ error: "Missing DISCORD_CLIENT_SECRET in Cloudflare environment variables." }, 500);
+  }
 
   // Exchange code for access token
   const tokenRes = await fetch(`${DISCORD_API}/oauth2/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       grant_type: 'authorization_code',
       code,
       redirect_uri: targetRedirectUri
     })
   });
 
-  if (!tokenRes.ok) return errorRedirect(`${origin}/`, 'token_exchange_failed');
-  const { access_token: accessToken } = await tokenRes.json();
+  if (!tokenRes.ok) {
+    const errorLog = await tokenRes.text();
+    return jsonResponse({ error: "Token exchange failed", details: errorLog }, 400);
+  }
+  
+  const tokenData = await tokenRes.json();
+  const accessToken = tokenData.access_token;
   const authHeader = { Authorization: 'Bearer ' + accessToken };
 
   // Get user info
   const userRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeader });
   const user = await userRes.json();
 
-  // Get guild membership
-  let isMember = false;
-  let roles = [];
-  if (DISCORD_GUILD_ID) {
-    const memberRes = await fetch(`${DISCORD_API}/users/@me/guilds/${DISCORD_GUILD_ID}/member`, { headers: authHeader });
-    if (memberRes.ok) {
-      const member = await memberRes.json();
-      isMember = true;
-      roles = Array.isArray(member.roles) ? member.roles : [];
-    }
-  }
-
   const exp = Date.now() + SESSION_TTL_MS;
-  const sessionToken = await createSessionToken(SESSION_SECRET, {
+  const sessionToken = await createSessionToken(sessionSecret, {
     userId: user.id,
     username: user.username,
     avatar: user.avatar || null,
-    isMember,
-    roles,
     exp
   });
 
   const clearStateCookie = serializeCookie(OAUTH_STATE_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
   const sessionCookieStr = serializeCookie(SESSION_COOKIE, sessionToken, { httpOnly: true, sameSite: 'Lax', path: '/' });
 
-  const headers = new Headers({ Location: '/' });
+  const headers = new Headers({ Location: '/den' }); // Redirect straight back into the den workspace
   headers.append('Set-Cookie', sessionCookieStr);
   headers.append('Set-Cookie', clearStateCookie);
   return new Response(null, { status: 302, headers });
 }
 
 async function handleDiscordMe(request, env) {
-  const { SESSION_SECRET, DISCORD_ALLOWED_ROLE_IDS } = env;
+  const sessionSecret = env.SESSION_SECRET || "fallback-dev-secret-key-string";
   const cookies = parseCookies(request);
   const token = cookies[SESSION_COOKIE];
-  if (!token || !SESSION_SECRET) {
+  if (!token) {
     return jsonResponse({ authenticated: false });
   }
-  const session = await verifySessionToken(SESSION_SECRET, token);
+  const session = await verifySessionToken(sessionSecret, token);
   if (!session) return jsonResponse({ authenticated: false });
-
-  const allowedRoles = (DISCORD_ALLOWED_ROLE_IDS || '').split(',').map((r) => r.trim()).filter(Boolean);
-  const hasRole = allowedRoles.length === 0 || (session.roles || []).some((r) => allowedRoles.includes(r));
 
   return jsonResponse({
     authenticated: true,
     userId: session.userId,
     username: session.username,
-    avatar: session.avatar || null,
-    isMember: session.isMember,
-    hasRole,
-    roles: session.roles || []
+    avatar: session.avatar || null
   });
 }
 
@@ -421,23 +401,15 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Handle CORS preflight check safely
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie'
-        }
-      });
-    }
+    // Route matching for exact Discord endpoints
+    if (pathname === '/api/discord/auth') return handleDiscordAuth(request, env);
+    if (pathname === '/api/discord/callback') return handleDiscordCallback(request, env);
+    if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
+    if (pathname === '/api/discord/logout') return handleDiscordLogout(request, env);
 
     // /api/hotspots → Durable Object
     if (pathname === '/api/hotspots') {
-      if (!env.HOTSPOT_STORE) {
-        return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
-      }
+      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       try {
         const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
         const stub = env.HOTSPOT_STORE.get(id);
@@ -461,19 +433,13 @@ export default {
       return proxyShrimpClip(env, fileId);
     }
 
-    // Discord OAuth Endpoints
-    if (pathname === '/api/discord/auth') return handleDiscordAuth(request, env);
-    if (pathname === '/api/discord/callback') return handleDiscordCallback(request, env);
-    if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
-    if (pathname === '/api/discord/logout') return handleDiscordLogout(request, env);
-
-    // Legacy / misc API routes
+    // Core legacy API check routes
     if (pathname === '/api/health') return jsonResponse({ status: 'healthy', timestamp: Date.now() });
     if (pathname === '/api/data') return jsonResponse({ message: 'Data payload' });
     if (pathname === '/api/barrelroll') return jsonResponse({ action: 'do_a_barrel_roll' });
     if (pathname === '/api/musickit-token') return jsonResponse({ token: 'DEVELOPER_TOKEN_HERE' });
 
-    // All other paths (including unknown /api/* routes) → ASSETS
+    // Catch all static paths → Asset handler
     return serveAsset(request, env, pathname);
   }
 };
