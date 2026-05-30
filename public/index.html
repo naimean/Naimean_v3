@@ -2586,6 +2586,50 @@
       cursor: default;
     }
 
+    #debug-url-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    #debug-url-row label {
+      font-size: 11px;
+      opacity: 0.75;
+    }
+
+    #debug-url-input {
+      width: 100%;
+      min-height: 28px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(10, 10, 10, 0.85);
+      color: rgba(255, 255, 255, 0.95);
+      padding: 0 8px;
+      font-size: 11px;
+      box-sizing: border-box;
+    }
+
+    #debug-url-input:focus {
+      outline: 2px solid rgba(65, 229, 255, 0.8);
+      outline-offset: 1px;
+    }
+
+    #debug-url-save-btn {
+      min-height: 28px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    #debug-url-save-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
     #save-hotspots-btn:focus-visible {
       outline: 2px solid rgba(65, 229, 255, 0.95);
       outline-offset: 2px;
@@ -2724,6 +2768,11 @@
     <div id="debug-object-actions">
       <button id="debug-object-lock-btn" class="debug-object-action-btn" type="button">Lock</button>
       <button id="debug-object-unlock-btn" class="debug-object-action-btn" type="button">Unlock</button>
+    </div>
+    <div id="debug-url-row" hidden>
+      <label for="debug-url-input">URL</label>
+      <input type="url" id="debug-url-input" spellcheck="false" placeholder="https://…" autocomplete="off" />
+      <button id="debug-url-save-btn" type="button">Save URL</button>
     </div>
   </div>
   <div id="save-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
@@ -2868,6 +2917,7 @@
       const BIG_TV_PROMPT_SECRET_TEXT = 'You didn\'t say the MAGIC WORD';
       const BIG_TV_PROMPT_ACCEPTED_VALUE = 'please';
       const BIG_TV_TOOLS_STORAGE_KEY = 'naimean.bigTvTools.entries';
+      const DEN_URL_OVERRIDES_STORAGE_KEY = 'naimean.den.urlOverrides';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .big-tv-fullscreen-exit-button';
@@ -3094,6 +3144,9 @@
       const debugObjectSelect = document.getElementById('debug-object-select');
       const debugObjectLockButton = document.getElementById('debug-object-lock-btn');
       const debugObjectUnlockButton = document.getElementById('debug-object-unlock-btn');
+      const debugUrlRow = document.getElementById('debug-url-row');
+      const debugUrlInput = document.getElementById('debug-url-input');
+      const debugUrlSaveButton = document.getElementById('debug-url-save-btn');
       const saveBtn = document.getElementById('save-hotspots-btn');
       const saveModal = document.getElementById('save-modal');
       const saveModalTitle = document.getElementById('save-modal-title');
@@ -3213,6 +3266,7 @@
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null; // { left, top, w, h } in design-space px
+      let denUrlOverrides = loadDenUrlOverrides();
 
       let hotspots = sourceHotspotsToRuntime(defaultHotspots);
 
@@ -5236,6 +5290,47 @@
         return document.getElementById(selectedId);
       }
 
+      function getHotspotDefaultUrl(hotspotId) {
+        if (hotspotId === NOAHS_ARCADE_HOTSPOT_ID) return NOAHS_ARCADE_URL;
+        if (hotspotId === 'chapel') return CHAPEL_URL;
+        if (hotspotId === PENCIL_SHARPENER_HOTSPOT_ID) return NOTES_URL;
+        if (WHITEBOARD_HOTSPOT_IDS.has(hotspotId)) {
+          return WHITEBOARD_HOTSPOT_URLS[hotspotId] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
+        }
+        return null;
+      }
+
+      function loadDenUrlOverrides() {
+        try {
+          const stored = window.localStorage.getItem(DEN_URL_OVERRIDES_STORAGE_KEY);
+          if (!stored) return {};
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+        } catch {
+          // ignore
+        }
+        return {};
+      }
+
+      function saveDenUrlOverride(hotspotId, url) {
+        const trimmed = typeof url === 'string' ? url.trim() : '';
+        if (trimmed) {
+          denUrlOverrides[hotspotId] = trimmed;
+        } else {
+          delete denUrlOverrides[hotspotId];
+        }
+        try {
+          window.localStorage.setItem(DEN_URL_OVERRIDES_STORAGE_KEY, JSON.stringify(denUrlOverrides));
+        } catch {
+          // ignore
+        }
+      }
+
+      function getHotspotEffectiveUrl(hotspotId) {
+        if (denUrlOverrides[hotspotId]) return denUrlOverrides[hotspotId];
+        return getHotspotDefaultUrl(hotspotId);
+      }
+
       function refreshDebugObjectActions() {
         if (!debugObjectLockButton || !debugObjectUnlockButton || !debugObjectSelect) {
           return;
@@ -5245,6 +5340,19 @@
         const isLocked = hasSelection && selectedEl.classList.contains('locked-debug-hotspot');
         debugObjectLockButton.disabled = !hasSelection || isLocked;
         debugObjectUnlockButton.disabled = !hasSelection || !isLocked;
+
+        if (debugUrlRow && debugUrlInput) {
+          const selectedId = hasSelection ? selectedEl.id : null;
+          const defaultUrl = selectedId ? getHotspotDefaultUrl(selectedId) : null;
+          if (defaultUrl !== null) {
+            debugUrlRow.hidden = false;
+            debugUrlInput.value = getHotspotEffectiveUrl(selectedId);
+            debugUrlInput.placeholder = defaultUrl;
+          } else {
+            debugUrlRow.hidden = true;
+            debugUrlInput.value = '';
+          }
+        }
       }
 
       function refreshDebugObjectSelectOptions() {
@@ -5770,11 +5878,11 @@
           el.addEventListener('click', () => {
             console.log(`[hotspot] ${spot.id}`);
             if (spot.id === NOAHS_ARCADE_HOTSPOT_ID) {
-              window.location.assign(NOAHS_ARCADE_URL);
+              window.location.assign(getHotspotEffectiveUrl(spot.id) || NOAHS_ARCADE_URL);
               return;
             }
             if (spot.id === 'chapel') {
-              window.location.assign(CHAPEL_URL);
+              window.location.assign(getHotspotEffectiveUrl(spot.id) || CHAPEL_URL);
               return;
             }
             if (spot.id === COMMODORE_POWER_BUTTON_CONTROL_ID) {
@@ -5794,8 +5902,7 @@
               return;
             }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
-              const whiteboardUrl = WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard;
-              window.location.assign(whiteboardUrl);
+              window.location.assign(getHotspotEffectiveUrl(spot.id) || WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard);
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
@@ -5813,7 +5920,7 @@
               return;
             }
             if (spot.id === PENCIL_SHARPENER_HOTSPOT_ID) {
-              window.location.assign(NOTES_URL);
+              window.location.assign(getHotspotEffectiveUrl(spot.id) || NOTES_URL);
               return;
             }
           });
@@ -7045,6 +7152,23 @@
         if (!selectedEl) return;
         setHotspotDebugLockState(selectedEl.id, false);
       });
+
+      if (debugUrlSaveButton && debugUrlInput) {
+        const saveDebugUrl = () => {
+          const selectedEl = getSelectedDebugHotspotElement();
+          if (!selectedEl) return;
+          saveDenUrlOverride(selectedEl.id, debugUrlInput.value);
+          debugUrlSaveButton.textContent = 'Saved!';
+          setTimeout(() => { debugUrlSaveButton.textContent = 'Save URL'; }, 2000);
+        };
+        debugUrlSaveButton.addEventListener('click', saveDebugUrl);
+        debugUrlInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveDebugUrl();
+          }
+        });
+      }
 
       saveBtn.addEventListener('click', saveHotspots);
 
