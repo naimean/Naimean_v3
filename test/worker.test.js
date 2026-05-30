@@ -1104,6 +1104,14 @@ test('worker /api/discord/auth redirects to Discord OAuth with state cookie', as
   assert.ok(setCookie.includes('SameSite=Lax'));
 });
 
+test('worker /api/discord/oauth alias redirects to Discord OAuth with state cookie', async () => {
+  const env = { DISCORD_CLIENT_ID: 'test-client-id', ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(new Request('https://naimean.com/api/discord/oauth'), env);
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').startsWith('https://discord.com/oauth2/authorize?'));
+  assert.ok(response.headers.get('Set-Cookie').includes('naimean_oauth_state='));
+});
+
 test('worker /api/discord/auth redirects to /?discord_error=configuration_error when DISCORD_CLIENT_ID is missing', async () => {
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(new Request('https://naimean.com/api/discord/auth'), env);
@@ -1124,6 +1132,16 @@ test('worker /api/discord/callback redirects to /?discord_error=invalid_request 
   const env = { ASSETS: { async fetch() { return new Response(''); } } };
   const response = await router.fetch(
     new Request('https://naimean.com/api/discord/callback?state=abc'),
+    env
+  );
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.get('Location').includes('discord_error=invalid_request'));
+});
+
+test('worker /api/discord/oauth/callback alias redirects to /?discord_error=invalid_request when code is missing', async () => {
+  const env = { ASSETS: { async fetch() { return new Response(''); } } };
+  const response = await router.fetch(
+    new Request('https://naimean.com/api/discord/oauth/callback?state=abc'),
     env
   );
   assert.equal(response.status, 302);

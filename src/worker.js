@@ -275,6 +275,8 @@ const DISCORD_API = 'https://discord.com/api/v10';
 const OAUTH_STATE_COOKIE = 'naimean_oauth_state';
 const SESSION_COOKIE = 'naimean_session';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DISCORD_AUTH_PATHS = new Set(['/api/discord/auth', '/api/discord/oauth']);
+const DISCORD_CALLBACK_PATHS = new Set(['/api/discord/callback', '/api/discord/oauth/callback']);
 
 async function handleDiscordAuth(request, env) {
   const url = new URL(request.url);
@@ -402,8 +404,8 @@ export default {
     const { pathname } = url;
 
     // Route matching for exact Discord endpoints
-    if (pathname === '/api/discord/auth') return handleDiscordAuth(request, env);
-    if (pathname === '/api/discord/callback') return handleDiscordCallback(request, env);
+    if (DISCORD_AUTH_PATHS.has(pathname)) return handleDiscordAuth(request, env);
+    if (DISCORD_CALLBACK_PATHS.has(pathname)) return handleDiscordCallback(request, env);
     if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
     if (pathname === '/api/discord/logout') return handleDiscordLogout(request, env);
 
