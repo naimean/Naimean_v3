@@ -2,6 +2,7 @@ const JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
   'cache-control': 'no-store'
 };
+const DEFAULT_OAUTH_SCOPE = 'identify email';
 
 type DiscordAuthContext = {
   request: Request;
@@ -30,7 +31,7 @@ export async function onRequest(context: DiscordAuthContext) {
 
   const clientId = env.DISCORD_CLIENT_ID;
   const redirectUri = env.DISCORD_REDIRECT_URI;
-  const scope = env.DISCORD_OAUTH_SCOPE?.trim() || 'identify email';
+  const scope = env.DISCORD_OAUTH_SCOPE?.trim() || DEFAULT_OAUTH_SCOPE;
 
   const missing = [
     !clientId ? 'DISCORD_CLIENT_ID' : null,
@@ -42,7 +43,7 @@ export async function onRequest(context: DiscordAuthContext) {
       JSON.stringify({
         error: `Missing required environment variable(s): ${missing.join(', ')}`
       }),
-      { status: 503, headers: JSON_HEADERS }
+      { status: 500, headers: JSON_HEADERS }
     );
   }
 
