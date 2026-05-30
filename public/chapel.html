@@ -620,7 +620,12 @@
             if (definition.variant) {
               lines.push(`    variant: '${definition.variant}',`);
             }
-            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`);
+            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
+            if (definition.href) {
+              lines.push(`    href: '${definition.href}'`);
+            } else {
+              lines[lines.length - 1] = lines[lines.length - 1].replace(/,$/, '');
+            }
             lines.push('  }');
             return lines.join('\n');
           })
