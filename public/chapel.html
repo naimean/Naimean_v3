@@ -607,6 +607,7 @@
       }
 
       function serializeHotspotConfig() {
+        const quote = (value) => JSON.stringify(String(value));
         const anchorEntries = Object.entries(ANCHOR_POINTS)
           .map(([name, point]) => `  ${name}: { x: ${Math.round(point.x)}, y: ${Math.round(point.y)} }`)
           .join(',\n');
@@ -614,17 +615,20 @@
           .map((definition) => {
             const lines = [
               '  {',
-              `    id: '${definition.id}',`,
-              `    label: '${definition.label}',`
+              `    id: ${quote(definition.id)},`,
+              `    label: ${quote(definition.label)},`
             ];
             if (definition.variant) {
-              lines.push(`    variant: '${definition.variant}',`);
+              lines.push(`    variant: ${quote(definition.variant)},`);
             }
-            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
+            const anchorsLine = `    anchors: [${quote(definition.anchors[0])}, ${quote(definition.anchors[1])}]`;
+            lines.push(
+              definition.href
+                ? `${anchorsLine},`
+                : anchorsLine
+            );
             if (definition.href) {
-              lines.push(`    href: '${definition.href}'`);
-            } else {
-              lines[lines.length - 1] = lines[lines.length - 1].replace(/,$/, '');
+              lines.push(`    href: ${quote(definition.href)}`);
             }
             lines.push('  }');
             return lines.join('\n');
