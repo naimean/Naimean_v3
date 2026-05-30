@@ -146,3 +146,7 @@ vite.config.ts.timestamp-*
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# Cloudflare Pages build artifacts
+.tmp-functions-build/
+functions/
