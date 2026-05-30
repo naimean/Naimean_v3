@@ -5345,7 +5345,7 @@
           const defaultUrl = selectedId ? getHotspotDefaultUrl(selectedId) : null;
           if (defaultUrl !== null) {
             debugUrlRow.hidden = false;
-            debugUrlInput.value = getHotspotEffectiveUrl(selectedId) || '';
+            debugUrlInput.value = getHotspotEffectiveUrl(selectedId);
             debugUrlInput.placeholder = defaultUrl;
           } else {
             debugUrlRow.hidden = true;
@@ -5901,7 +5901,7 @@
               return;
             }
             if (WHITEBOARD_HOTSPOT_IDS.has(spot.id)) {
-              window.location.assign(getHotspotEffectiveUrl(spot.id));
+              window.location.assign(getHotspotEffectiveUrl(spot.id) || WHITEBOARD_HOTSPOT_URLS[spot.id] || WHITEBOARD_HOTSPOT_URLS.whiteboard);
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
