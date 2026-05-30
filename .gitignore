@@ -149,4 +149,3 @@ vite.config.ts.timestamp-*
 
 # Cloudflare Pages build artifacts
 .tmp-functions-build/
-functions/
