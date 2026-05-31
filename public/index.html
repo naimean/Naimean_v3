@@ -3180,6 +3180,8 @@
         (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
       const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       const useLiteRendering = isIOSDevice || hasCoarsePointer;
+      const DEBUG_SAVE_PASSWORD_KEY = 'naimean-debug';
+      const DEBUG_SAVE_PASSWORD_CIPHER = [90, 87, 91, 84, 85];
 
       const worldWidth = WORLD_WIDTH_SEGMENTS * TILE_WIDTH;
       const worldHeight = DESIGN_HEIGHT;
@@ -3205,6 +3207,7 @@
       let momentumVelocityX = 0;
       let lastMomentumTimestamp = 0;
       let saveButtonResetTimeoutId = null;
+      let hasDebugSaveAccess = false;
       let hotspotApiMode = 'primary';
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
@@ -3745,6 +3748,9 @@
       }
 
       function saveBigTvToolsEntries() {
+        if (!ensureDebugSaveAccess()) {
+          return;
+        }
         try {
           const sanitizedEntries = bigTvToolsEntries.map(normalizeBigTvToolEntry);
           bigTvToolsEntries = sanitizedEntries;
@@ -5195,6 +5201,42 @@
         });
       }
 
+      function encodeDebugSavePassword(value) {
+        const source = String(value ?? '');
+        return Array.from(source, (char, index) => (
+          char.charCodeAt(0) ^ DEBUG_SAVE_PASSWORD_KEY.charCodeAt(index % DEBUG_SAVE_PASSWORD_KEY.length)
+        ));
+      }
+
+      function hasMatchingDebugSaveCipher(encodedValue) {
+        if (encodedValue.length !== DEBUG_SAVE_PASSWORD_CIPHER.length) {
+          return false;
+        }
+        return encodedValue.every((byte, index) => byte === DEBUG_SAVE_PASSWORD_CIPHER[index]);
+      }
+
+      function ensureDebugSaveAccess() {
+        if (!document.body.classList.contains('debug')) {
+          return true;
+        }
+        if (hasDebugSaveAccess) {
+          return true;
+        }
+        const attempt = window.prompt('Debug save password required.');
+        if (attempt === null) {
+          debugStatus.textContent = 'Debug save cancelled.';
+          return false;
+        }
+        const isValid = hasMatchingDebugSaveCipher(encodeDebugSavePassword(attempt.trim()));
+        if (!isValid) {
+          debugStatus.textContent = 'Debug save password incorrect.';
+          return false;
+        }
+        hasDebugSaveAccess = true;
+        debugStatus.textContent = 'Debug save unlocked.';
+        return true;
+      }
+
       function markSceneReady() {
         window.requestAnimationFrame(() => {
           document.body.classList.remove('scene-loading');
@@ -5392,6 +5434,9 @@
       }
 
       function saveDenUrlOverride(hotspotId, url) {
+        if (!ensureDebugSaveAccess()) {
+          return false;
+        }
         const trimmed = typeof url === 'string' ? url.trim() : '';
         if (trimmed) {
           denUrlOverrides[hotspotId] = trimmed;
@@ -5400,8 +5445,10 @@
         }
         try {
           window.localStorage.setItem(DEN_URL_OVERRIDES_STORAGE_KEY, JSON.stringify(denUrlOverrides));
+          return true;
         } catch {
           // ignore
+          return false;
         }
       }
 
@@ -7173,6 +7220,11 @@
       }
 
       async function saveHotspots() {
+        if (!ensureDebugSaveAccess()) {
+          setSaveButtonText('Password required');
+          resetSaveButtonSoon();
+          return;
+        }
         const savedRuntimeHotspots = getSavedHotspotsFromDom();
         const savedSourceHotspots = runtimeHotspotsToSource(savedRuntimeHotspots);
         hotspots = savedRuntimeHotspots;
@@ -7290,7 +7342,7 @@
         const saveDebugUrl = () => {
           const selectedEl = getSelectedDebugHotspotElement();
           if (!selectedEl) return;
-          saveDenUrlOverride(selectedEl.id, debugUrlInput.value);
+          if (!saveDenUrlOverride(selectedEl.id, debugUrlInput.value)) return;
           debugUrlSaveButton.textContent = 'Saved!';
           setTimeout(() => { debugUrlSaveButton.textContent = 'Save URL'; }, 2000);
         };

@@ -764,11 +764,50 @@
       let isCommodoreNavigationPending = false;
       let lastCommodorePowerState = null;
       const monitorShadowAnimationControllers = new WeakMap();
+      const DEBUG_SAVE_PASSWORD_KEY = 'naimean-debug';
+      const DEBUG_SAVE_PASSWORD_CIPHER = [90, 87, 91, 84, 85];
+      let hasDebugSaveAccess = false;
 
       function wait(ms) {
         return new Promise((resolve) => {
           window.setTimeout(resolve, ms);
         });
+      }
+
+      function encodeDebugSavePassword(value) {
+        const source = String(value ?? '');
+        return Array.from(source, (char, index) => (
+          char.charCodeAt(0) ^ DEBUG_SAVE_PASSWORD_KEY.charCodeAt(index % DEBUG_SAVE_PASSWORD_KEY.length)
+        ));
+      }
+
+      function hasMatchingDebugSaveCipher(encodedValue) {
+        if (encodedValue.length !== DEBUG_SAVE_PASSWORD_CIPHER.length) {
+          return false;
+        }
+        return encodedValue.every((byte, index) => byte === DEBUG_SAVE_PASSWORD_CIPHER[index]);
+      }
+
+      function ensureDebugSaveAccess() {
+        if (!document.body.classList.contains('debug')) {
+          return true;
+        }
+        if (hasDebugSaveAccess) {
+          return true;
+        }
+        const attempt = window.prompt('Debug save password required.');
+        if (attempt === null) {
+          debugStatus.textContent = 'Debug save cancelled.';
+          return false;
+        }
+        const isValid = hasMatchingDebugSaveCipher(encodeDebugSavePassword(attempt.trim()));
+        if (!isValid) {
+          debugStatus.textContent = 'Debug save password incorrect.';
+          return false;
+        }
+        hasDebugSaveAccess = true;
+        debugStatus.textContent = 'Debug save unlocked.';
+        return true;
       }
 
       function syncImageDimensions() {
@@ -1399,6 +1438,14 @@
       }
 
       async function saveHotspots() {
+        if (!ensureDebugSaveAccess()) {
+          saveButton.textContent = 'Password required';
+          saveButton.disabled = false;
+          window.setTimeout(() => {
+            saveButton.textContent = 'Save';
+          }, 1500);
+          return;
+        }
         endDebugEdit();
         hideSaveModal();
         saveButton.textContent = 'Saving...';
