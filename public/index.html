@@ -2848,6 +2848,7 @@
       const NOAHS_ARCADE_URL = '/noahs-arcade.html';
       const COMMODORE_URL = '/commodore.html';
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
+      const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_DEN = 'den';
       const CHAPEL_URL = '/chapel.html';
       const NOAHS_ARCADE_HOTSPOT_ID = 'noahs-arcade';
@@ -3280,7 +3281,7 @@
       let aquariumClipHistory = []; // URLs of clips that have been played, newest last
       let aquariumHistoryPointer = 0; // 0 = live (at newest), >0 = N steps back in history
       let commodorePowerButtonEl = null;
-      let isCommodorePoweringOn = false;
+      let isCommodorePoweringOn = loadCommodorePowerState();
       let commodoreShadowOverlayEl = null;
       let bigTvShadowOverlayEl = null;
       let leftMonitorShadowOverlayEl = null;
@@ -5506,6 +5507,27 @@
         window.location.href = isMobile ? CALENDAR_URL_MOBILE : CALENDAR_URL_DESKTOP;
       }
 
+      function loadCommodorePowerState() {
+        try {
+          return sessionStorage.getItem(COMMODORE_POWER_STATE_STORAGE_KEY) === 'true';
+        } catch {
+          return false;
+        }
+      }
+
+      function saveCommodorePowerState() {
+        try {
+          sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(isCommodorePoweringOn));
+        } catch (error) {
+          console.warn('Unable to persist Commodore power state.', error);
+        }
+      }
+
+      function syncStoredCommodorePowerState() {
+        isCommodorePoweringOn = loadCommodorePowerState();
+        commodorePowerButtonEl?.classList.toggle('on', isCommodorePoweringOn);
+      }
+
       function cancelMonitorPowerTimeouts() {
         monitorPowerTimeoutIds.forEach((id) => window.clearTimeout(id));
         monitorPowerTimeoutIds = [];
@@ -5602,6 +5624,7 @@
       function triggerCommodorePowerOnSequence() {
         if (isCommodorePoweringOn) {
           isCommodorePoweringOn = false;
+          saveCommodorePowerState();
           cancelMonitorPowerTimeouts();
           resetMonitorsToOffState();
           if (commodorePowerButtonEl) {
@@ -5611,6 +5634,7 @@
           return;
         }
         isCommodorePoweringOn = true;
+        saveCommodorePowerState();
         if (commodorePowerButtonEl) {
           commodorePowerButtonEl.classList.add('on');
         }
@@ -6062,7 +6086,7 @@
         leftMonitorStaticVideoEl = null;
         leftMonitorContentImageEl = null;
         commodorePowerButtonEl = null;
-        isCommodorePoweringOn = false;
+        isCommodorePoweringOn = loadCommodorePowerState();
         commodoreShadowOverlayEl = null;
         bigTvShadowOverlayEl = null;
         leftMonitorShadowOverlayEl = null;
@@ -6529,6 +6553,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'commodore-power-button-button';
+            button.classList.toggle('on', isCommodorePoweringOn);
             button.setAttribute('aria-label', 'Commodore power button');
             button.title = 'Commodore power button';
             button.addEventListener('pointerdown', (event) => event.stopPropagation());
@@ -7248,6 +7273,7 @@
 
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('keydown', handleBigTvPromptTyping);
+      window.addEventListener('pageshow', syncStoredCommodorePowerState);
       document.addEventListener('fullscreenchange', syncBigTvFullscreenUi);
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
