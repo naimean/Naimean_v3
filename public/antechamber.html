@@ -16,18 +16,105 @@
         display: grid;
         place-items: center;
         background: #000;
+        overflow: hidden;
       }
 
-      img {
+      .antechamber-hero {
+        --cursor-x: 67.2%;
+        --cursor-y: 65.8%;
+        position: relative;
+        display: inline-block;
+      }
+
+      .antechamber-image {
         display: block;
         max-width: 100vw;
         max-height: 100vh;
         width: auto;
         height: auto;
       }
+
+      .scan-shadow {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          circle at var(--cursor-x) var(--cursor-y),
+          rgba(0, 0, 0, 0.2) 0%,
+          rgba(0, 0, 0, 0.45) 22%,
+          rgba(0, 0, 0, 0.68) 70%,
+          rgba(0, 0, 0, 0.84) 100%
+        );
+      }
+
+      .cursor-light {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          circle at var(--cursor-x) var(--cursor-y),
+          rgba(120, 206, 255, 0.34) 0%,
+          rgba(120, 206, 255, 0.14) 8%,
+          rgba(120, 206, 255, 0) 20%
+        );
+        opacity: 0.08;
+        animation: cursor-light-flicker 1.6s steps(1, end) infinite;
+        mix-blend-mode: screen;
+      }
+
+      .colicofusion-cursor {
+        position: absolute;
+        left: var(--cursor-x);
+        top: var(--cursor-y);
+        transform: translate(-50%, -50%);
+        font-family: "Courier New", monospace;
+        font-size: clamp(18px, 2.25vw, 42px);
+        line-height: 1;
+        color: rgba(158, 225, 255, 0.95);
+        text-shadow: 0 0 5px rgba(158, 225, 255, 0.45);
+        animation: cursor-blink 1.6s steps(1, end) infinite;
+        pointer-events: none;
+      }
+
+      @keyframes cursor-blink {
+        0%,
+        44%,
+        100% {
+          opacity: 1;
+          text-shadow:
+            0 0 6px rgba(158, 225, 255, 0.45),
+            0 0 18px rgba(158, 225, 255, 0.4);
+        }
+        45%,
+        80% {
+          opacity: 0;
+          text-shadow: none;
+        }
+      }
+
+      @keyframes cursor-light-flicker {
+        0%,
+        44%,
+        100% {
+          opacity: 0.32;
+        }
+        45%,
+        80% {
+          opacity: 0.06;
+        }
+      }
     </style>
   </head>
   <body>
-    <img src="/assets/images/antechamber.v20260424.png" alt="Antechamber" />
+    <div class="antechamber-hero">
+      <img
+        class="antechamber-image"
+        src="/assets/images/antechamber.v20260424.png"
+        alt="Antechamber"
+      />
+      <div class="scan-shadow" aria-hidden="true"></div>
+      <div class="cursor-light" aria-hidden="true"></div>
+      <span class="colicofusion-cursor" aria-hidden="true">_</span>
+    </div>
   </body>
 </html>
