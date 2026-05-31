@@ -348,12 +348,12 @@
       }
       80% {
         opacity: 0.98;
-        top: calc(100% - 124px);
+        top: calc(100% - var(--sauce-drip-impact-offset, 4.732824%));
         transform: translate(-50%, 0) scale(0.9, 1.26);
       }
       100% {
         opacity: 0;
-        top: calc(100% - 150px);
+        top: calc(100% - var(--sauce-drip-end-offset, 5.725191%));
         transform: translate(-50%, 0) scale(1.02, 0.82);
       }
     }
@@ -600,6 +600,8 @@
       const SAUCE_DRIP_MAX_INTERVAL_MS = 15_000;
       const SAUCE_DRIP_ANIMATION_MS = 1_600;
       const SAUCE_DRIP_RESET_BUFFER_MS = 200;
+      const SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX = 124;
+      const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 150;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
@@ -1039,6 +1041,15 @@
         element.style.top = `${toPercentY(rect.top)}%`;
         element.style.width = `${toPercentX(rect.width)}%`;
         element.style.height = `${toPercentY(rect.height)}%`;
+        if (definition.id === SAUCE_DROP_TRACK.id) {
+          const trackHeight = Number(rect.height);
+          if (Number.isFinite(trackHeight) && trackHeight > 0) {
+            const impactOffset = clamp((SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX / trackHeight) * 100, 0, 100);
+            const endOffset = clamp((SAUCE_DRIP_END_OFFSET_DESIGN_PX / trackHeight) * 100, 0, 100);
+            element.style.setProperty('--sauce-drip-impact-offset', `${impactOffset}%`);
+            element.style.setProperty('--sauce-drip-end-offset', `${endOffset}%`);
+          }
+        }
         const label = element.querySelector('.hotspot-label');
         if (label) {
           label.textContent = formatRectLabel(definition, rect);
