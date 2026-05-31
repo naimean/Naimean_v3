@@ -66,12 +66,12 @@
         position: absolute;
         left: var(--cursor-x);
         top: var(--cursor-y);
-        transform: translate(-50%, -50%);
+        transform: translate(calc(-50% - 20px), calc(-50% - 200px));
         font-family: "Courier New", monospace;
-        font-size: clamp(18px, 2.25vw, 42px);
+        font-size: clamp(14.4px, 1.8vw, 33.6px);
         line-height: 1;
-        color: rgba(158, 225, 255, 0.95);
-        text-shadow: 0 0 5px rgba(158, 225, 255, 0.45);
+        color: rgba(255, 224, 224, 0.95);
+        text-shadow: 0 0 5px rgba(255, 172, 172, 0.45);
         animation: cursor-blink 1.6s steps(1, end) infinite;
         pointer-events: none;
       }
@@ -98,8 +98,8 @@
         100% {
           opacity: 1;
           text-shadow:
-            0 0 6px rgba(158, 225, 255, 0.45),
-            0 0 18px rgba(158, 225, 255, 0.4);
+            0 0 6px rgba(255, 172, 172, 0.45),
+            0 0 18px rgba(255, 172, 172, 0.4);
         }
         45%,
         80% {
