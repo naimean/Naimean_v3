@@ -8,6 +8,8 @@
     :root {
       color-scheme: dark;
       --chapel-monitor-turn-off-duration: 0.45s;
+      --sauce-drip-impact-offset-fallback: 0%;
+      --sauce-drip-end-offset-fallback: 0%;
     }
 
     * {
@@ -348,12 +350,12 @@
       }
       80% {
         opacity: 0.98;
-        top: calc(100% - 124px);
+        top: calc(100% - var(--sauce-drip-impact-offset, var(--sauce-drip-impact-offset-fallback)));
         transform: translate(-50%, 0) scale(0.9, 1.26);
       }
       100% {
         opacity: 0;
-        top: calc(100% - 150px);
+        top: calc(100% - var(--sauce-drip-end-offset, var(--sauce-drip-end-offset-fallback)));
         transform: translate(-50%, 0) scale(1.02, 0.82);
       }
     }
@@ -600,6 +602,8 @@
       const SAUCE_DRIP_MAX_INTERVAL_MS = 15_000;
       const SAUCE_DRIP_ANIMATION_MS = 1_600;
       const SAUCE_DRIP_RESET_BUFFER_MS = 200;
+      const SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX = 124;
+      const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 150;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
@@ -841,6 +845,13 @@
         return Math.max(min, Math.min(value, max));
       }
 
+      function calculateSauceDripOffsetPercent(designOffsetPx, trackHeightPx) {
+        if (!Number.isFinite(designOffsetPx) || !Number.isFinite(trackHeightPx) || trackHeightPx <= 0) {
+          return 0;
+        }
+        return clamp((designOffsetPx / trackHeightPx) * 100, 0, 100);
+      }
+
       function loadCommodorePowerState() {
         try {
           return sessionStorage.getItem(COMMODORE_POWER_STATE_STORAGE_KEY) === 'true';
@@ -1039,6 +1050,15 @@
         element.style.top = `${toPercentY(rect.top)}%`;
         element.style.width = `${toPercentX(rect.width)}%`;
         element.style.height = `${toPercentY(rect.height)}%`;
+        if (definition.id === SAUCE_DROP_TRACK.id) {
+          const trackHeight = Number(rect.height);
+          if (Number.isFinite(trackHeight) && trackHeight > 0) {
+            const impactOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX, trackHeight);
+            const endOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_END_OFFSET_DESIGN_PX, trackHeight);
+            element.style.setProperty('--sauce-drip-impact-offset', `${impactOffset}%`);
+            element.style.setProperty('--sauce-drip-end-offset', `${endOffset}%`);
+          }
+        }
         const label = element.querySelector('.hotspot-label');
         if (label) {
           label.textContent = formatRectLabel(definition, rect);
@@ -1056,6 +1076,13 @@
 
       function renderHotspots() {
         overlayLayer.replaceChildren();
+        const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
+        if (sauceDropRect) {
+          const fallbackImpactOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX, sauceDropRect.height);
+          const fallbackEndOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_END_OFFSET_DESIGN_PX, sauceDropRect.height);
+          document.documentElement.style.setProperty('--sauce-drip-impact-offset-fallback', `${fallbackImpactOffset}%`);
+          document.documentElement.style.setProperty('--sauce-drip-end-offset-fallback', `${fallbackEndOffset}%`);
+        }
         const monitorShadowRect = getDefinitionRect(CHAPEL_MONITOR_SHADOW);
         if (monitorShadowRect) {
           const shadowLayer = document.createElement('div');
@@ -1089,7 +1116,6 @@
         const droplet = document.createElement('div');
         droplet.className = 'sauce-drop-droplet';
         track.appendChild(droplet);
-        const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
         if (sauceDropRect) {
           const label = document.createElement('span');
           label.className = 'hotspot-label';
