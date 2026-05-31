@@ -7,7 +7,7 @@
   <style>
     :root {
       color-scheme: dark;
-      --commodore-tv-turn-off-duration: 0.45s;
+      --chapel-monitor-turn-off-duration: 0.45s;
     }
 
     * {
@@ -181,7 +181,7 @@
     }
 
     .chapel-monitor-shadow-layer.tv-turning-off {
-      animation: commodore-tv-shadow-takeover var(--commodore-tv-turn-off-duration) ease-out forwards;
+      animation: commodore-tv-shadow-takeover var(--chapel-monitor-turn-off-duration) ease-out forwards;
       pointer-events: none;
     }
 
@@ -201,7 +201,7 @@
       background: #fff;
       box-shadow: 0 0 24px rgba(255, 255, 255, 0.95);
       transform-origin: center;
-      animation: commodore-tv-turn-off-line var(--commodore-tv-turn-off-duration) ease-out forwards;
+      animation: commodore-tv-turn-off-line var(--chapel-monitor-turn-off-duration) ease-out forwards;
     }
 
     .chapel-monitor-shadow-layer.tv-turning-off::after {
@@ -210,7 +210,7 @@
       border-radius: 50%;
       background: #fff;
       box-shadow: 0 0 28px rgba(255, 255, 255, 1);
-      animation: commodore-tv-turn-off-dot var(--commodore-tv-turn-off-duration) ease-out forwards;
+      animation: commodore-tv-turn-off-dot var(--chapel-monitor-turn-off-duration) ease-out forwards;
     }
 
     .hotspot {
@@ -767,6 +767,7 @@
       let commodoreNavigationTimerId = null;
       let isCommodoreNavigationPending = false;
       let lastCommodorePowerState = null;
+      const monitorShadowAnimationControllers = new WeakMap();
 
       function wait(ms) {
         return new Promise((resolve) => {
@@ -1105,7 +1106,6 @@
         const isPoweredOn = loadCommodorePowerState();
         powerButton?.classList.toggle('is-powered-on', isPoweredOn);
         if (!monitorShadow) {
-          lastCommodorePowerState = isPoweredOn;
           return;
         }
         if (lastCommodorePowerState === null) {
@@ -1126,26 +1126,49 @@
 
       function animateChapelMonitorShadowOn(element) {
         if (!element) return;
-        if (element.classList.contains('is-powered-on') && !element.classList.contains('tv-turning-off')) return;
+        if (
+          element.classList.contains('is-powered-on') &&
+          !element.classList.contains('tv-turning-off') &&
+          !element.classList.contains('tv-turning-on')
+        ) return;
         element.classList.remove('is-powered-on', 'tv-turning-off', 'tv-turning-on');
+        // Force reflow so the browser restarts the animation timeline.
         void element.offsetHeight;
-        element.classList.add('tv-turning-on');
-        element.addEventListener('animationend', () => {
+        runMonitorShadowAnimation(element, 'tv-turning-on', () => {
           element.classList.remove('tv-turning-on');
           element.classList.add('is-powered-on');
-        }, { once: true });
+        });
       }
 
       function animateChapelMonitorShadowOff(element) {
         if (!element) return;
-        element.classList.remove('tv-turning-on');
-        element.classList.add('is-powered-on');
+        const wasPoweredOn = element.classList.contains('is-powered-on');
+        element.classList.remove('tv-turning-on', 'tv-turning-off');
+        if (!wasPoweredOn) {
+          element.classList.add('is-powered-on');
+        }
+        // Force reflow so the browser restarts the animation timeline.
         void element.offsetHeight;
         element.classList.remove('is-powered-on');
-        element.classList.add('tv-turning-off');
-        element.addEventListener('animationend', () => {
+        runMonitorShadowAnimation(element, 'tv-turning-off', () => {
           element.classList.remove('tv-turning-off');
-        }, { once: true });
+        });
+      }
+
+      function runMonitorShadowAnimation(element, animationClass, onDone) {
+        const activeController = monitorShadowAnimationControllers.get(element);
+        activeController?.abort();
+        const controller = new AbortController();
+        monitorShadowAnimationControllers.set(element, controller);
+        const finish = () => {
+          if (monitorShadowAnimationControllers.get(element) !== controller) return;
+          controller.abort();
+          monitorShadowAnimationControllers.delete(element);
+          onDone?.();
+        };
+        element.addEventListener('animationend', finish, { signal: controller.signal });
+        element.addEventListener('animationcancel', finish, { signal: controller.signal });
+        element.classList.add(animationClass);
       }
 
       function getOverlayMetrics() {
