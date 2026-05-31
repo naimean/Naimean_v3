@@ -510,7 +510,7 @@
             ? (parsed.hostname || fallback)
             : (parsed.pathname || fallback);
         } catch (e) {
-          display = url || fallback;
+          /* leave display as fallback */
         }
         return isOverride ? '\u2605 ' + display : display;
       }
