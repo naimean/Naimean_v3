@@ -488,6 +488,8 @@
       const COMMODORE_HISTORY_SOURCE_KEY = 'commodoreSource';
       const COMMODORE_HISTORY_DEN_BACK_GUARD_KEY = 'commodoreDenBackGuard';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
+      const DEBUG_SAVE_PASSWORD_KEY = 'naimean-debug';
+      const DEBUG_SAVE_PASSWORD_CIPHER = [90, 87, 91, 84, 85];
       const CHAPEL_URL = '/chapel';
       const DEN_URL = '/';
       const COMMODORE_POWER_OFF_SFX_URL = 'assets/audio/fronbondi_skegs-sfx-cinematic-slow-subdown-sound-effect-238489.mp3';
@@ -513,6 +515,7 @@
       let greenscreenTextEl = null;
       let editState = null;
       let saveButtonResetTimer = null;
+      let hasDebugSaveAccess = false;
       let isPoweredOn = loadPowerState();
       let shouldRouteBackToDen = consumeCommodoreEntrySource() === COMMODORE_NAV_SOURCE_DEN;
       let isPoweringOff = false;
@@ -522,6 +525,39 @@
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
+      }
+
+      function encodeDebugSavePassword(value) {
+        const source = String(value ?? '');
+        return Array.from(source, (char, index) => (
+          char.charCodeAt(0) ^ DEBUG_SAVE_PASSWORD_KEY.charCodeAt(index % DEBUG_SAVE_PASSWORD_KEY.length)
+        ));
+      }
+
+      function hasMatchingDebugSaveCipher(encodedValue) {
+        if (encodedValue.length !== DEBUG_SAVE_PASSWORD_CIPHER.length) {
+          return false;
+        }
+        return encodedValue.every((byte, index) => byte === DEBUG_SAVE_PASSWORD_CIPHER[index]);
+      }
+
+      function ensureDebugSaveAccess() {
+        if (!document.body.classList.contains('debug')) {
+          return true;
+        }
+        if (hasDebugSaveAccess) {
+          return true;
+        }
+        const attempt = window.prompt('Debug save password required.');
+        if (attempt === null) {
+          return false;
+        }
+        const isValid = hasMatchingDebugSaveCipher(encodeDebugSavePassword(attempt.trim()));
+        if (!isValid) {
+          return false;
+        }
+        hasDebugSaveAccess = true;
+        return true;
       }
 
       function sanitizeRect(rect, fallback) {
@@ -671,6 +707,10 @@
       }
 
       function saveLayout(showFeedback = false) {
+        if (!ensureDebugSaveAccess()) {
+          if (showFeedback) setSaveButtonState('error', 'Password Required');
+          return false;
+        }
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
           if (showFeedback) setSaveButtonState('saved', 'Saved');
