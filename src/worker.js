@@ -158,6 +158,26 @@ const HOTSPOT_LIMITS = {
   minH: 20, maxH: 2160
 };
 
+const DEFAULT_CHAPEL_ANCHOR_POINTS = {
+  commodoreButtonsTopLeft: { x: 430, y: 2592 },
+  commodoreButtonsBottomRight: { x: 478, y: 2620 }
+};
+
+const DEFAULT_CHAPEL_HOTSPOTS = [
+  {
+    id: 'chapel-commodore-power-button',
+    label: 'Commodore power button',
+    variant: 'power-button',
+    anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+    href: '/commodore.html'
+  }
+];
+
+const CHAPEL_LIMITS = {
+  minX: 0, maxX: 993,
+  minY: 0, maxY: 3709
+};
+
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }
@@ -331,6 +351,42 @@ function sanitizeHotspots(input) {
   });
 }
 
+function sanitizeChapelAnchorPoints(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  return Object.fromEntries(
+    Object.entries(DEFAULT_CHAPEL_ANCHOR_POINTS).map(([name, fallback]) => {
+      const entry = source[name];
+      const x = isFiniteNumber(entry?.x) ? clamp(Math.round(entry.x), CHAPEL_LIMITS.minX, CHAPEL_LIMITS.maxX) : fallback.x;
+      const y = isFiniteNumber(entry?.y) ? clamp(Math.round(entry.y), CHAPEL_LIMITS.minY, CHAPEL_LIMITS.maxY) : fallback.y;
+      return [name, { x, y }];
+    })
+  );
+}
+
+function sanitizeChapelHotspots(input) {
+  const entriesById = Array.isArray(input)
+    ? new Map(
+      input
+        .filter((entry) => entry && typeof entry === 'object' && typeof entry.id === 'string')
+        .map((entry) => [entry.id, entry])
+    )
+    : new Map();
+
+  return DEFAULT_CHAPEL_HOTSPOTS.map((fallback) => {
+    const entry = entriesById.get(fallback.id);
+    const href = typeof entry?.href === 'string' && entry.href.startsWith('/') ? entry.href : fallback.href;
+    return { ...fallback, href };
+  });
+}
+
+function sanitizeChapelConfig(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  return {
+    anchorPoints: sanitizeChapelAnchorPoints(source.anchorPoints),
+    hotspots: sanitizeChapelHotspots(source.hotspots)
+  };
+}
+
 const HOTSPOT_JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
   'cache-control': 'no-store',
@@ -348,13 +404,19 @@ export class HotspotStore {
     this.state = state;
   }
   async fetch(request) {
+    const pathname = new URL(request.url).pathname;
+    const isChapelConfig = pathname === '/api/chapel-hotspots';
+    const storageKey = isChapelConfig ? 'chapel-hotspots' : 'hotspots';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: HOTSPOT_JSON_HEADERS });
     if (request.method === 'GET') {
       let saved;
       try {
-        saved = await this.state.storage.get('hotspots');
+        saved = await this.state.storage.get(storageKey);
       } catch (err) {
         return hotspotJson({ error: `Failed to load hotspots: ${err?.message || 'Unknown error'}` }, 500);
+      }
+      if (isChapelConfig) {
+        return hotspotJson(sanitizeChapelConfig(saved));
       }
       return hotspotJson({ hotspots: sanitizeHotspots(saved) });
     }
@@ -365,13 +427,15 @@ export class HotspotStore {
       } catch {
         return hotspotJson({ error: 'Invalid JSON body.' }, 400);
       }
-      const hotspots = sanitizeHotspots(body?.hotspots);
+      const payload = isChapelConfig
+        ? sanitizeChapelConfig(body)
+        : { hotspots: sanitizeHotspots(body?.hotspots) };
       try {
-        await this.state.storage.put('hotspots', hotspots);
+        await this.state.storage.put(storageKey, isChapelConfig ? payload : payload.hotspots);
       } catch (err) {
         return hotspotJson({ error: `Failed to save hotspots: ${err?.message || 'Unknown error'}` }, 500);
       }
-      return hotspotJson({ ok: true, hotspots });
+      return hotspotJson({ ok: true, ...payload });
     }
     return hotspotJson({ error: 'Method not allowed.' }, 405);
   }
@@ -432,6 +496,16 @@ export default {
       if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       try {
         const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
+        const stub = env.HOTSPOT_STORE.get(id);
+        return await stub.fetch(request);
+      } catch (err) {
+        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
+      }
+    }
+    if (pathname === '/api/chapel-hotspots') {
+      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
+      try {
+        const id = env.HOTSPOT_STORE.idFromName('chapel-hotspots');
         const stub = env.HOTSPOT_STORE.get(id);
         return await stub.fetch(request);
       } catch (err) {

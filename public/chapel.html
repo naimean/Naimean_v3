@@ -367,6 +367,11 @@
   <div id="debug-status" class="sr-only" role="status" aria-live="polite"></div>
   <script>
     (() => {
+      const HOTSPOT_API_PATH = '/api/chapel-hotspots';
+      const API_TIMEOUT_MS = 5000;
+      const SAVE_RETRY_ATTEMPTS = 3;
+      const SAVE_RETRY_DELAY_MS = 350;
+      const DEFAULT_SAVE_MODAL_TITLE = 'Copy the updated Chapel hotspot config below';
       const DESIGN_IMAGE_WIDTH = 993;
       const DESIGN_IMAGE_HEIGHT = 3709;
       const HOTSPOT_PADDING_DESIGN_PX = 4;
@@ -391,6 +396,7 @@
       const debugToggleButton = document.getElementById('debug-toggle-btn');
       const saveButton = document.getElementById('save-hotspots-btn');
       const saveModal = document.getElementById('save-modal');
+      const saveModalTitle = document.getElementById('save-modal-title');
       const saveModalTextarea = document.getElementById('save-modal-textarea');
       const saveModalCopyButton = document.getElementById('save-modal-copy-btn');
       const imageDimensions = {
@@ -405,6 +411,12 @@
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null;
+
+      function wait(ms) {
+        return new Promise((resolve) => {
+          window.setTimeout(resolve, ms);
+        });
+      }
 
       function syncImageDimensions() {
         imageDimensions.width = sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH;
@@ -620,7 +632,12 @@
             if (definition.variant) {
               lines.push(`    variant: '${definition.variant}',`);
             }
-            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`);
+            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
+            if (definition.href) {
+              lines.push(`    href: '${definition.href}'`);
+            } else {
+              lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+            }
             lines.push('  }');
             return lines.join('\n');
           })
@@ -630,15 +647,132 @@
       }
 
       function hideSaveModal() {
+        saveModalTitle.textContent = DEFAULT_SAVE_MODAL_TITLE;
         saveModal.classList.add('hidden');
       }
 
-      function showSaveModal() {
+      function showSaveModal(message = DEFAULT_SAVE_MODAL_TITLE) {
+        saveModalTitle.textContent = message;
         saveModalTextarea.value = serializeHotspotConfig();
         saveModal.classList.remove('hidden');
         saveModalTextarea.focus();
         saveModalTextarea.select();
         debugStatus.textContent = 'Chapel hotspot config ready to copy.';
+      }
+
+      function getSerializedHotspotPayload() {
+        return {
+          anchorPoints: Object.fromEntries(
+            Object.entries(ANCHOR_POINTS).map(([name, point]) => [
+              name,
+              { x: Math.round(point.x), y: Math.round(point.y) }
+            ])
+          ),
+          hotspots: HOTSPOTS.map((definition) => ({
+            id: definition.id,
+            label: definition.label,
+            variant: definition.variant,
+            anchors: [...definition.anchors],
+            ...(definition.href ? { href: definition.href } : {})
+          }))
+        };
+      }
+
+      function applyServerConfig(payload) {
+        const anchorPoints = payload?.anchorPoints;
+        if (!anchorPoints || typeof anchorPoints !== 'object') {
+          return false;
+        }
+        Object.entries(anchorPoints).forEach(([name, point]) => {
+          if (!ANCHOR_POINTS[name] || typeof point !== 'object') {
+            return;
+          }
+          if (Number.isFinite(point.x)) {
+            ANCHOR_POINTS[name].x = point.x;
+          }
+          if (Number.isFinite(point.y)) {
+            ANCHOR_POINTS[name].y = point.y;
+          }
+        });
+
+        if (Array.isArray(payload.hotspots)) {
+          const definitionsById = new Map(payload.hotspots
+            .filter((definition) => definition && typeof definition.id === 'string')
+            .map((definition) => [definition.id, definition]));
+          HOTSPOTS.forEach((definition) => {
+            const savedDefinition = definitionsById.get(definition.id);
+            if (savedDefinition && typeof savedDefinition.href === 'string') {
+              definition.href = savedDefinition.href;
+            }
+          });
+        }
+        return true;
+      }
+
+      async function loadHotspotsFromServer() {
+        let timeoutId = null;
+        try {
+          const controller = new AbortController();
+          timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+          const response = await fetch(HOTSPOT_API_PATH, { cache: 'no-store', signal: controller.signal });
+          if (!response.ok) {
+            return false;
+          }
+          const payload = await response.json();
+          return applyServerConfig(payload);
+        } catch (_) {
+          return false;
+        } finally {
+          if (timeoutId !== null) {
+            window.clearTimeout(timeoutId);
+          }
+        }
+      }
+
+      async function saveHotspots() {
+        endDebugEdit();
+        hideSaveModal();
+        saveButton.textContent = 'Saving...';
+        saveButton.disabled = true;
+        const payload = getSerializedHotspotPayload();
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= SAVE_RETRY_ATTEMPTS; attempt += 1) {
+          try {
+            const response = await fetch(HOTSPOT_API_PATH, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(payload),
+              cache: 'no-store'
+            });
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(errorText || `Server save failed (${response.status})`);
+            }
+            const savedPayload = await response.json();
+            applyServerConfig(savedPayload);
+            renderHotspots();
+            saveButton.textContent = 'Saved!';
+            window.setTimeout(() => {
+              saveButton.textContent = 'Save';
+              saveButton.disabled = false;
+            }, 1500);
+            setDebugMode(false);
+            debugStatus.textContent = 'Chapel hotspots saved to the server.';
+            return;
+          } catch (error) {
+            lastError = error;
+            if (attempt < SAVE_RETRY_ATTEMPTS) {
+              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+            }
+          }
+        }
+
+        saveButton.textContent = 'Save failed';
+        saveButton.disabled = false;
+        showSaveModal(
+          `Unable to save to the server (${lastError?.message || 'Unknown error'}) — copy the config below to update the source manually`
+        );
       }
 
       function setDebugMode(enabled) {
@@ -696,15 +830,21 @@
         }
       }
 
-      if (sceneImage?.complete && sceneImage.naturalWidth && sceneImage.naturalHeight) {
+      async function initializeScene() {
+        await loadHotspotsFromServer();
         syncImageDimensions();
         renderHotspots();
+      }
+
+      if (sceneImage?.complete && sceneImage.naturalWidth && sceneImage.naturalHeight) {
+        initializeScene();
       } else {
         sceneImage?.addEventListener('load', () => {
-          syncImageDimensions();
+          initializeScene();
+        }, { once: true });
+        sceneImage?.addEventListener('error', () => {
           renderHotspots();
         }, { once: true });
-        sceneImage?.addEventListener('error', renderHotspots, { once: true });
       }
 
       overlayLayer.addEventListener('pointerdown', onPointerDown);
@@ -713,7 +853,7 @@
       window.addEventListener('pointercancel', onPointerUp);
       window.addEventListener('keydown', onKeyDown);
       debugToggleButton.addEventListener('click', toggleDebugMode);
-      saveButton.addEventListener('click', showSaveModal);
+      saveButton.addEventListener('click', saveHotspots);
       document.getElementById('save-modal-close-btn').addEventListener('click', hideSaveModal);
       saveModal.addEventListener('click', (event) => {
         if (event.target === saveModal) {
