@@ -8,6 +8,8 @@
     :root {
       color-scheme: dark;
       --chapel-monitor-turn-off-duration: 0.45s;
+      --sauce-drip-impact-offset-fallback: 4.73%;
+      --sauce-drip-end-offset-fallback: 5.73%;
     }
 
     * {
@@ -348,12 +350,12 @@
       }
       80% {
         opacity: 0.98;
-        top: calc(100% - var(--sauce-drip-impact-offset, 4.73%));
+        top: calc(100% - var(--sauce-drip-impact-offset, var(--sauce-drip-impact-offset-fallback)));
         transform: translate(-50%, 0) scale(0.9, 1.26);
       }
       100% {
         opacity: 0;
-        top: calc(100% - var(--sauce-drip-end-offset, 5.73%));
+        top: calc(100% - var(--sauce-drip-end-offset, var(--sauce-drip-end-offset-fallback)));
         transform: translate(-50%, 0) scale(1.02, 0.82);
       }
     }
