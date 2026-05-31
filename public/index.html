@@ -1385,11 +1385,13 @@
       pointer-events: auto;
     }
 
-    .calendar-big-tv-still-image {
+    .calendar-big-tv-iframe {
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      border: none;
+      pointer-events: none;
+      overflow: hidden;
     }
 
     .login-header {
@@ -2949,7 +2951,6 @@
       const DEN_URL_OVERRIDES_STORAGE_KEY = 'naimean.den.urlOverrides';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
-      const CALENDAR_BIG_TV_STILL_URL = 'assets/images/Screenshot 2026-05-25 221941.png';
       const CALENDAR_HTML_URL = 'calendar.html';
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
       // Keep values comfortably within localStorage and the on-screen form layout.
@@ -3243,6 +3244,7 @@
       let bigTvToolsEntries = loadBigTvToolsEntries();
       let loginOverlayEl = null;
       let calendarBigTvOverlayEl = null;
+      let calendarIframeEl = null;
       let isCalendarBigTvActive = false;
       let loginStatusBadgeEl = null;
       let loginTitleEl = null;
@@ -3993,6 +3995,9 @@
           return;
         }
         isCalendarBigTvActive = true;
+        if (calendarIframeEl && !calendarIframeEl.getAttribute('src')) {
+          calendarIframeEl.src = CALENDAR_HTML_URL;
+        }
         calendarBigTvOverlayEl.classList.add('is-active');
         calendarBigTvOverlayEl.setAttribute('aria-hidden', 'false');
         syncBigTvContentVisibility();
@@ -6076,6 +6081,7 @@
         loginOverlayEl = null;
         isLoginActive = false;
         calendarBigTvOverlayEl = null;
+        calendarIframeEl = null;
         isCalendarBigTvActive = false;
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
@@ -6399,7 +6405,7 @@
             el.appendChild(loginOverlayEl);
             syncLoginOverlayUi();
 
-            // Calendar still-shot overlay
+            // Calendar live-preview overlay
             calendarBigTvOverlayEl = document.createElement('button');
             calendarBigTvOverlayEl.type = 'button';
             calendarBigTvOverlayEl.className = 'calendar-big-tv-overlay';
@@ -6411,13 +6417,12 @@
               event.stopPropagation();
               window.location.assign(CALENDAR_HTML_URL);
             });
-            const calendarStillImg = document.createElement('img');
-            calendarStillImg.className = 'calendar-big-tv-still-image';
-            calendarStillImg.src = CALENDAR_BIG_TV_STILL_URL;
-            calendarStillImg.alt = '';
-            calendarStillImg.loading = 'lazy';
-            calendarStillImg.decoding = 'async';
-            calendarBigTvOverlayEl.appendChild(calendarStillImg);
+            calendarIframeEl = document.createElement('iframe');
+            calendarIframeEl.className = 'calendar-big-tv-iframe';
+            calendarIframeEl.title = 'Calendar preview';
+            calendarIframeEl.setAttribute('aria-hidden', 'true');
+            calendarIframeEl.scrolling = 'no';
+            calendarBigTvOverlayEl.appendChild(calendarIframeEl);
             el.appendChild(calendarBigTvOverlayEl);
 
 
