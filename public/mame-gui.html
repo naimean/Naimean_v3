@@ -270,6 +270,7 @@
 
       let cabinets = [];
       let urlOverrides = parseLocalOverrides();
+      const dirtyCabinets = new Set();
 
       function getCabinetUrl(cabinet) {
         const override = normalizeUrl(urlOverrides[cabinet.name]);
@@ -321,6 +322,21 @@
           input.placeholder = cabinet.url || '/path-or-https://example.com';
           const override = normalizeUrl(urlOverrides[cabinet.name]);
           input.value = override || '';
+          input.dataset.initialValue = override || '';
+          input.addEventListener('input', () => {
+            const current = normalizeUrl(input.value);
+            const initial = input.dataset.initialValue || '';
+            if (current === null) {
+              dirtyCabinets.add(cabinet.name);
+              return;
+            }
+            const normalizedCurrent = current || '';
+            if (normalizedCurrent !== initial) {
+              dirtyCabinets.add(cabinet.name);
+            } else {
+              dirtyCabinets.delete(cabinet.name);
+            }
+          });
           urlRow.appendChild(input);
 
           const googleBtn = document.createElement('button');
@@ -372,30 +388,57 @@
       }
 
       async function saveUrlOverrides() {
-        const nextOverrides = {};
-        const invalid = [];
-        const inputs = cards.querySelectorAll('input[data-name]');
-
-        inputs.forEach((input) => {
-          const normalized = normalizeUrl(input.value);
-          if (normalized === null) {
-            invalid.push(input.dataset.name);
-            return;
-          }
-          if (normalized) nextOverrides[input.dataset.name] = normalized;
-        });
-
-        if (invalid.length) {
-          setEditorStatus(`Could not save. Invalid URL format: ${invalid.join(', ')}`, true);
+        if (!dirtyCabinets.size) {
+          setEditorStatus('No URL updates to save.');
           return;
         }
 
+        const inputs = cards.querySelectorAll('input[data-name]');
+        const inputsByName = new Map(Array.from(inputs, (input) => [input.dataset.name, input]));
+        const invalid = [];
+
         saveButton.disabled = true;
         try {
+          const serverOverrides = await loadServerOverrides();
+          const nextOverrides = { ...serverOverrides };
+          let changedCount = 0;
+
+          dirtyCabinets.forEach((cabinetName) => {
+            const input = inputsByName.get(cabinetName);
+            if (!input) return;
+            const normalized = normalizeUrl(input.value);
+            if (normalized === null) {
+              invalid.push(cabinetName);
+              return;
+            }
+            const nextValue = normalized || '';
+            const serverValue = normalizeUrl(serverOverrides[cabinetName]) || '';
+            if (nextValue === serverValue) return;
+            if (nextValue) {
+              nextOverrides[cabinetName] = nextValue;
+            } else {
+              delete nextOverrides[cabinetName];
+            }
+            changedCount += 1;
+          });
+
+          if (invalid.length) {
+            setEditorStatus(`Could not save. Invalid URL format: ${invalid.join(', ')}`, true);
+            return;
+          }
+
+          if (!changedCount) {
+            dirtyCabinets.clear();
+            renderCards();
+            setEditorStatus('No URL updates differed from saved server values.');
+            return;
+          }
+
           urlOverrides = await persistServerOverrides(nextOverrides);
           saveLocalOverrides(urlOverrides);
+          dirtyCabinets.clear();
           renderCards();
-          setEditorStatus('URL updates saved server-side.');
+          setEditorStatus(`Saved ${changedCount} URL update${changedCount === 1 ? '' : 's'} server-side.`);
         } catch (error) {
           setEditorStatus(error.message || 'Could not save URL updates.', true);
         } finally {
