@@ -147,6 +147,58 @@ test('HotspotStore handles OPTIONS preflight requests', async () => {
   assert.equal(response.headers.get('access-control-allow-headers'), 'content-type');
 });
 
+test('HotspotStore GET returns empty arcade URL overrides when storage is empty', async () => {
+  const { state, calls } = makeKeyedState({});
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/arcade-url-overrides', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body, { overrides: {} });
+  assert.deepEqual(calls.get, ['arcade-url-overrides']);
+});
+
+test('HotspotStore POST sanitizes and stores arcade URL overrides', async () => {
+  const { state, calls, getStored } = makeKeyedState({});
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/arcade-url-overrides', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        overrides: {
+          'DOOM': 'https://example.com/doom',
+          'Quake': '/quake.html',
+          'Bad URL': 'doom',
+          'Blank': '   '
+        }
+      })
+    })
+  );
+
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.deepEqual(body.overrides, {
+    DOOM: 'https://example.com/doom',
+    Quake: '/quake.html'
+  });
+  assert.equal(calls.put.length, 1);
+  assert.deepEqual(calls.put[0], {
+    key: 'arcade-url-overrides',
+    value: {
+      DOOM: 'https://example.com/doom',
+      Quake: '/quake.html'
+    }
+  });
+  assert.deepEqual(getStored('arcade-url-overrides'), {
+    DOOM: 'https://example.com/doom',
+    Quake: '/quake.html'
+  });
+});
+
 test('worker routes /api/hotspots through HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], stubFetch: 0, assetsFetch: 0 };
   const expectedResponse = new Response(JSON.stringify({ ok: true }), {
@@ -229,6 +281,47 @@ test('worker routes /api/chapel-hotspots through HOTSPOT_STORE durable object', 
   assert.equal(calls.assetsFetch, 0);
 });
 
+test('worker routes /api/arcade-url-overrides through HOTSPOT_STORE durable object', async () => {
+  const calls = { idFromName: [], get: [], stubFetch: 0, assetsFetch: 0 };
+  const expectedResponse = new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' }
+  });
+
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName(name) {
+        calls.idFromName.push(name);
+        return `id:${name}`;
+      },
+      get(id) {
+        calls.get.push(id);
+        return {
+          async fetch(request) {
+            calls.stubFetch += 1;
+            assert.equal(new URL(request.url).pathname, '/api/arcade-url-overrides');
+            return expectedResponse;
+          }
+        };
+      }
+    },
+    ASSETS: {
+      async fetch() {
+        calls.assetsFetch += 1;
+        return new Response('assets');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/arcade-url-overrides', { method: 'GET' }), env);
+
+  assert.equal(response, expectedResponse);
+  assert.deepEqual(calls.idFromName, ['arcade-url-overrides']);
+  assert.deepEqual(calls.get, ['id:arcade-url-overrides']);
+  assert.equal(calls.stubFetch, 1);
+  assert.equal(calls.assetsFetch, 0);
+});
+
 test('worker returns 500 for /api/hotspots when HOTSPOT_STORE binding is missing', async () => {
   const env = {
     ASSETS: {
@@ -239,6 +332,21 @@ test('worker returns 500 for /api/hotspots when HOTSPOT_STORE binding is missing
   };
 
   const response = await router.fetch(new Request('https://example.com/api/hotspots', { method: 'POST' }), env);
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
+});
+
+test('worker returns 500 for /api/arcade-url-overrides when HOTSPOT_STORE binding is missing', async () => {
+  const env = {
+    ASSETS: {
+      async fetch() {
+        return new Response('assets');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/arcade-url-overrides', { method: 'POST' }), env);
 
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: 'HOTSPOT_STORE binding is missing.' });
