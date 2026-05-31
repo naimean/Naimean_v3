@@ -50,6 +50,17 @@
       pointer-events: none;
     }
 
+    .chapel-monitor-shadow-layer {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.92);
+      box-shadow:
+        inset 0 0 22px rgba(0, 0, 0, 0.95),
+        0 0 8px rgba(0, 0, 0, 0.55);
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .hotspot {
       position: absolute;
       border: 0;
@@ -379,6 +390,9 @@
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
       const INITIAL_SCROLL_POSITION_RATIO = 0.5; // Start halfway through scrollable scene height.
+      const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
+      const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
+      const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
       const ANCHOR_POINTS = {
         aceVenturaTopLeft: { x: 359, y: 2215 },
         aceVenturaBottomRight: { x: 457, y: 2355 },
@@ -394,6 +408,8 @@
         mortyBottomRight: { x: 762, y: 2401 },
         scroogeMcduckTopLeft: { x: 855, y: 2249 },
         scroogeMcduckBottomRight: { x: 989, y: 2511 },
+        chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
+        chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
         commodoreButtonsTopLeft: { x: 531, y: 2171 },
         commodoreButtonsBottomRight: { x: 543, y: 2183 }
       };
@@ -635,6 +651,19 @@
 
       function renderHotspots() {
         overlayLayer.replaceChildren();
+        const monitorShadowRect = rectFromAnchors(
+          'chapelMonitorShadowTopLeft',
+          'chapelMonitorShadowBottomRight'
+        );
+        if (monitorShadowRect) {
+          const shadowLayer = document.createElement('div');
+          shadowLayer.className = 'chapel-monitor-shadow-layer';
+          shadowLayer.style.left = `${toPercentX(monitorShadowRect.left)}%`;
+          shadowLayer.style.top = `${toPercentY(monitorShadowRect.top)}%`;
+          shadowLayer.style.width = `${toPercentX(monitorShadowRect.width)}%`;
+          shadowLayer.style.height = `${toPercentY(monitorShadowRect.height)}%`;
+          overlayLayer.appendChild(shadowLayer);
+        }
         HOTSPOTS.forEach((definition) => {
           const rect = getHotspotRect(definition);
           if (!rect) return;
@@ -659,6 +688,12 @@
             });
           } else if (definition.href) {
             button.addEventListener('click', () => {
+              try {
+                sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_CHAPEL);
+                sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(false));
+              } catch (error) {
+                console.warn('Unable to persist Commodore chapel navigation state.', error);
+              }
               window.location.assign(definition.href);
             });
           }

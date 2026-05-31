@@ -89,6 +89,10 @@
       box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.22);
     }
 
+    .shadow-layer.is-powering-off {
+      animation: commodore-monitor-power-off 500ms ease-in forwards;
+    }
+
     .hotspot {
       border: 0;
       background: transparent;
@@ -283,6 +287,20 @@
         transform: translateY(-50%) scaleX(0.08) scaleY(0.08);
       }
 
+      @keyframes commodore-monitor-power-off {
+        0% {
+          opacity: 0;
+          transform: scale(1.04);
+          filter: brightness(1.28) contrast(1.12);
+        }
+
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: brightness(1) contrast(1);
+        }
+      }
+
       30% {
         opacity: 0.95;
         transform: translateY(-50%) scaleX(1.02) scaleY(1);
@@ -474,7 +492,9 @@
       const COMMODORE_HISTORY_SOURCE_KEY = 'commodoreSource';
       const COMMODORE_HISTORY_DEN_BACK_GUARD_KEY = 'commodoreDenBackGuard';
       const SAVE_FEEDBACK_DURATION_MS = 1400;
+      const CHAPEL_URL = '/chapel';
       const DEN_URL = '/';
+      const COMMODORE_POWER_OFF_SFX_URL = 'assets/audio/fronbondi_skegs-sfx-cinematic-slow-subdown-sound-effect-238489.mp3';
       const COMMODORE_BOOT_TEXT = [
         '**** COMMODORE 64 BASIC V2 ****',
         '64K RAM SYSTEM  38911 BASIC BYTES FREE',
@@ -499,6 +519,10 @@
       let saveButtonResetTimer = null;
       let isPoweredOn = loadPowerState();
       let shouldRouteBackToDen = consumeCommodoreEntrySource() === COMMODORE_NAV_SOURCE_DEN;
+      let isPoweringOff = false;
+      let powerOffNavigationTimeoutId = null;
+      const powerOffAudioEl = new Audio(COMMODORE_POWER_OFF_SFX_URL);
+      powerOffAudioEl.preload = 'auto';
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -594,6 +618,43 @@
         isPoweredOn = !isPoweredOn;
         applyPowerState({ animate: isPoweredOn });
         savePowerState();
+      }
+
+      function navigateToChapel() {
+        window.location.assign(CHAPEL_URL);
+      }
+
+      function schedulePowerOffNavigation() {
+        if (powerOffNavigationTimeoutId) {
+          clearTimeout(powerOffNavigationTimeoutId);
+        }
+        powerOffNavigationTimeoutId = window.setTimeout(() => {
+          powerOffNavigationTimeoutId = null;
+          navigateToChapel();
+        }, 1300);
+      }
+
+      async function powerOffAndReturnToChapel() {
+        if (!isPoweredOn || isPoweringOff) return;
+        isPoweringOff = true;
+        isPoweredOn = false;
+        applyPowerState({ animateOff: true });
+        savePowerState();
+        powerOffAudioEl.currentTime = 0;
+        schedulePowerOffNavigation();
+        const complete = () => {
+          if (powerOffNavigationTimeoutId) {
+            clearTimeout(powerOffNavigationTimeoutId);
+            powerOffNavigationTimeoutId = null;
+          }
+          navigateToChapel();
+        };
+        powerOffAudioEl.addEventListener('ended', complete, { once: true });
+        try {
+          await powerOffAudioEl.play();
+        } catch (error) {
+          console.warn('Unable to play Commodore power-off audio.', error);
+        }
       }
 
       function resetSaveButtonLabel() {
@@ -742,11 +803,13 @@
         debugButton.textContent = enabled ? 'Debug On' : 'Debug';
       }
 
-      function applyPowerState({ animate = false } = {}) {
+      function applyPowerState({ animate = false, animateOff = false } = {}) {
         if (monitorShadowEl) {
-          monitorShadowEl.classList.remove('is-powering-on', 'is-powered-on');
+          monitorShadowEl.classList.remove('is-powering-on', 'is-powered-on', 'is-powering-off');
           if (isPoweredOn) {
             monitorShadowEl.classList.add(animate ? 'is-powering-on' : 'is-powered-on');
+          } else if (animateOff) {
+            monitorShadowEl.classList.add('is-powering-off');
           }
         }
         greenscreenTextEl?.classList.toggle('is-powered-on', isPoweredOn);
@@ -768,6 +831,11 @@
       renderLayout();
       applyPowerState();
       monitorShadowEl?.addEventListener('animationend', (event) => {
+        if (event.animationName === 'commodore-monitor-power-off') {
+          monitorShadowEl.classList.remove('is-powering-off');
+          isPoweringOff = false;
+          return;
+        }
         if (event.animationName !== 'commodore-monitor-power-on' && event.animationName !== 'commodore-monitor-fade') return;
         if (!isPoweredOn) return;
         monitorShadowEl.classList.remove('is-powering-on');
@@ -805,11 +873,15 @@
         if (!hotspot) return;
         if (hotspot.dataset.id === 'return-key') {
           event.preventDefault();
-          window.location.assign(DEN_URL);
+          navigateToChapel();
           return;
         }
         if (hotspot.dataset.id === 'power-button') {
           event.preventDefault();
+          if (isPoweredOn) {
+            void powerOffAndReturnToChapel();
+            return;
+          }
           togglePowerState();
         }
       });
