@@ -579,15 +579,16 @@
           return;
         }
 
-        const viewportHeight = mainScroller.clientHeight || window.innerHeight || 0;
+        const viewportHeight = mainScroller.clientHeight;
         const sceneHeight = sceneImage?.clientHeight || imageDimensions.height || 0;
-        const maxScrollTop = Math.max(0, sceneHeight - viewportHeight);
-        if (maxScrollTop <= 0) {
-          hasInitializedViewport = true;
+        if (viewportHeight <= 0 || sceneHeight <= 0) {
           return;
         }
-        mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_SCROLL_POSITION_RATIO);
-        hasInitializedViewport = true;
+
+        const maxScrollTop = Math.max(0, sceneHeight - viewportHeight);
+        if (maxScrollTop > 0) {
+          mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_SCROLL_POSITION_RATIO);
+        }
         hasInitializedViewport = true;
       }
 
