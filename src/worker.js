@@ -151,11 +151,161 @@ const DEFAULT_HOTSPOTS = [
 ];
 
 const HOTSPOT_LIMITS = {
-  minX: 0, maxX: 3840, minY: 0, maxY: 2160, minW: 20, maxW: 3840, minH: 20, maxH: 2160
+  minX: 0, maxX: 3840,
+  minY: 0, maxY: 2160,
+  minW: 20, maxW: 3840,
+  minH: 20, maxH: 2160
 };
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+// ─── Discord OAuth Actions ────────────────────────────────────────────────────
+const DISCORD_API = 'https://discord.com/api/v10';
+const OAUTH_STATE_COOKIE = 'naimean_oauth_state';
+const SESSION_COOKIE = 'naimean_session';
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function handleDiscordAuth(request, env) {
+  if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
+  const url = new URL(request.url);
+  const clientId = env.DISCORD_CLIENT_ID;
+  if (!clientId) return errorRedirect(`${url.origin}/`, 'configuration_error');
+  
+  const redirectUri = env.DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
+  const state = crypto.randomUUID().replace(/-/g, '');
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'identify email guilds.members.read',
+    state: state
+  });
+  
+  const headers = new Headers({
+    'Location': `https://discord.com/oauth2/authorize?${params.toString()}`,
+    'Set-Cookie': serializeCookie(OAUTH_STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 300 }),
+    'Access-Control-Allow-Origin': '*'
+  });
+  return new Response(null, { status: 302, headers });
+}
+
+async function handleDiscordCallback(request, env) {
+  if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
+  const url = new URL(request.url);
+  const origin = url.origin;
+  const errorParam = url.searchParams.get('error');
+  if (errorParam) return errorRedirect(`${origin}/`, errorParam);
+  
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  if (!code || !state) return errorRedirect(`${origin}/`, 'invalid_request');
+  
+  const cookies = parseCookies(request);
+  if (!cookies[OAUTH_STATE_COOKIE] || cookies[OAUTH_STATE_COOKIE] !== state) {
+    return errorRedirect(`${origin}/`, 'state_mismatch');
+  }
+  
+  const clientId = env.DISCORD_CLIENT_ID;
+  const clientSecret = env.DISCORD_CLIENT_SECRET;
+  const sessionSecret = env.SESSION_SECRET;
+  const targetRedirectUri = env.DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
+  if (!clientId || !clientSecret || !sessionSecret) {
+    return errorRedirect(`${origin}/`, 'configuration_error');
+  }
+  
+  const tokenRes = await fetch(`${DISCORD_API}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: targetRedirectUri
+    })
+  });
+  
+  if (!tokenRes.ok) return errorRedirect(`${origin}/`, 'token_exchange_failed');
+  const tokenData = await tokenRes.json();
+  const accessToken = tokenData.access_token;
+  if (!accessToken) return errorRedirect(`${origin}/`, 'token_exchange_failed');
+  
+  const authHeader = { Authorization: 'Bearer ' + accessToken };
+  const userRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeader });
+  if (!userRes.ok) return errorRedirect(`${origin}/`, 'user_lookup_failed');
+  const user = await userRes.json();
+  
+  const guildId = env.DISCORD_GUILD_ID;
+  let isMember = true;
+  let roles = [];
+  if (guildId) {
+    const memberRes = await fetch(`${DISCORD_API}/users/@me/guilds/${guildId}/member`, { headers: authHeader });
+    if (memberRes.ok) {
+      const member = await memberRes.json();
+      roles = Array.isArray(member?.roles) ? member.roles : [];
+    } else if (memberRes.status === 403 || memberRes.status === 404) {
+      isMember = false;
+      roles = [];
+    } else {
+      return errorRedirect(`${origin}/`, 'guild_lookup_failed');
+    }
+  }
+  
+  const exp = Date.now() + SESSION_TTL_MS;
+  const sessionToken = await createSessionToken(sessionSecret, {
+    userId: user.id,
+    username: user.username,
+    avatar: user.avatar || null,
+    isMember,
+    roles,
+    exp
+  });
+  
+  const clearStateCookie = serializeCookie(OAUTH_STATE_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
+  const sessionCookieStr = serializeCookie(SESSION_COOKIE, sessionToken, { httpOnly: true, sameSite: 'Lax', path: '/' });
+  
+  const headers = new Headers({ Location: '/' });
+  headers.append('Set-Cookie', sessionCookieStr);
+  headers.append('Set-Cookie', clearStateCookie);
+  return new Response(null, { status: 302, headers });
+}
+
+async function handleDiscordMe(request, env) {
+  const sessionSecret = env.SESSION_SECRET || "fallback-dev-secret-key-string";
+  const cookies = parseCookies(request);
+  const token = cookies[SESSION_COOKIE];
+  if (!token) return jsonResponse({ authenticated: false });
+  
+  const session = await verifySessionToken(sessionSecret, token);
+  if (!session) return jsonResponse({ authenticated: false });
+  
+  const roles = Array.isArray(session.roles) ? session.roles : [];
+  const allowedRoleIds = String(env.DISCORD_ALLOWED_ROLE_IDS || '')
+    .split(',')
+    .map((roleId) => roleId.trim())
+    .filter(Boolean);
+  const hasRole = allowedRoleIds.length === 0 || roles.some((roleId) => allowedRoleIds.includes(roleId));
+  
+  return jsonResponse({
+    authenticated: true,
+    userId: session.userId,
+    username: session.username,
+    avatar: session.avatar || null,
+    isMember: session.isMember !== false,
+    roles,
+    hasRole
+  });
+}
+
+async function handleDiscordLogout(request) {
+  if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  const clearCookie = serializeCookie(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { ...JSON_HEADERS, 'Set-Cookie': clearCookie }
+  });
 }
 
 function clamp(value, min, max) {
@@ -197,9 +347,7 @@ export class HotspotStore {
     this.state = state;
   }
   async fetch(request) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: HOTSPOT_JSON_HEADERS });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: HOTSPOT_JSON_HEADERS });
     if (request.method === 'GET') {
       let saved;
       try {
@@ -255,12 +403,8 @@ async function googleDriveShrimpClips(env) {
 }
 
 async function proxyShrimpClip(env, fileId) {
-  if (!env.GOOGLE_DRIVE_API_KEY) {
-    return jsonResponse({ error: 'Google Drive API key is not configured.' }, 503);
-  }
-  if (!CLIP_ID_RE.test(fileId)) {
-    return jsonResponse({ error: 'Invalid clip id.' }, 400);
-  }
+  if (!env.GOOGLE_DRIVE_API_KEY) return jsonResponse({ error: 'Google Drive API key is not configured.' }, 503);
+  if (!CLIP_ID_RE.test(fileId)) return jsonResponse({ error: 'Invalid clip id.' }, 400);
   const url = `${DRIVE_API_BASE}/files/${fileId}?alt=media&key=${env.GOOGLE_DRIVE_API_KEY}`;
   const upstream = await fetch(url);
   const headers = new Headers();
@@ -270,178 +414,13 @@ async function proxyShrimpClip(env, fileId) {
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
-// ─── Discord OAuth ────────────────────────────────────────────────────────────
-const DISCORD_API = 'https://discord.com/api/v10';
-const OAUTH_STATE_COOKIE = 'naimean_oauth_state';
-const SESSION_COOKIE = 'naimean_session';
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-async function handleDiscordAuth(request, env) {
-  if (request.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  const url = new URL(request.url);
-  const clientId = env.DISCORD_CLIENT_ID;
-  if (!clientId) {
-    return errorRedirect(`${url.origin}/`, 'configuration_error');
-  }
-  const redirectUri = env.DISCORD_REDIRECT_URI || `${url.origin}/api/discord/callback`;
-
-  const state = crypto.randomUUID().replace(/-/g, '');
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'identify email guilds.members.read',
-    state: state
-  });
-
-  const headers = new Headers({
-    'Location': `https://discord.com/oauth2/authorize?${params.toString()}`,
-    'Set-Cookie': serializeCookie(OAUTH_STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 300 }),
-    'Access-Control-Allow-Origin': '*'
-  });
-
-  return new Response(null, { status: 302, headers });
-}
-
-async function handleDiscordCallback(request, env) {
-  if (request.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  const url = new URL(request.url);
-  const origin = url.origin;
-  const errorParam = url.searchParams.get('error');
-  if (errorParam) return errorRedirect(`${origin}/`, errorParam);
-
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  if (!code || !state) return errorRedirect(`${origin}/`, 'invalid_request');
-
-  const cookies = parseCookies(request);
-  if (!cookies[OAUTH_STATE_COOKIE] || cookies[OAUTH_STATE_COOKIE] !== state) {
-    return errorRedirect(`${origin}/`, 'state_mismatch');
-  }
-
-  const clientId = env.DISCORD_CLIENT_ID;
-  const clientSecret = env.DISCORD_CLIENT_SECRET;
-  const sessionSecret = env.SESSION_SECRET;
-  const targetRedirectUri = env.DISCORD_REDIRECT_URI || `${origin}/api/discord/callback`;
-
-  if (!clientId || !clientSecret || !sessionSecret) {
-    return errorRedirect(`${origin}/`, 'configuration_error');
-  }
-
-  // Exchange code for access token
-  const tokenRes = await fetch(`${DISCORD_API}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: targetRedirectUri
-    })
-  });
-
-  if (!tokenRes.ok) {
-    return errorRedirect(`${origin}/`, 'token_exchange_failed');
-  }
-  
-  const tokenData = await tokenRes.json();
-  const accessToken = tokenData.access_token;
-  if (!accessToken) {
-    return errorRedirect(`${origin}/`, 'token_exchange_failed');
-  }
-  const authHeader = { Authorization: 'Bearer ' + accessToken };
-
-  // Get user info
-  const userRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeader });
-  if (!userRes.ok) {
-    return errorRedirect(`${origin}/`, 'user_lookup_failed');
-  }
-  const user = await userRes.json();
-  const guildId = env.DISCORD_GUILD_ID;
-  let isMember = true;
-  let roles = [];
-  if (guildId) {
-    const memberRes = await fetch(`${DISCORD_API}/users/@me/guilds/${guildId}/member`, { headers: authHeader });
-    if (memberRes.ok) {
-      const member = await memberRes.json();
-      roles = Array.isArray(member?.roles) ? member.roles : [];
-    } else if (memberRes.status === 403 || memberRes.status === 404) {
-      isMember = false;
-      roles = [];
-    } else {
-      return errorRedirect(`${origin}/`, 'guild_lookup_failed');
-    }
-  }
-
-  const exp = Date.now() + SESSION_TTL_MS;
-  const sessionToken = await createSessionToken(sessionSecret, {
-    userId: user.id,
-    username: user.username,
-    avatar: user.avatar || null,
-    isMember,
-    roles,
-    exp
-  });
-
-  const clearStateCookie = serializeCookie(OAUTH_STATE_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
-  const sessionCookieStr = serializeCookie(SESSION_COOKIE, sessionToken, { httpOnly: true, sameSite: 'Lax', path: '/' });
-
-  const headers = new Headers({ Location: '/' });
-  headers.append('Set-Cookie', sessionCookieStr);
-  headers.append('Set-Cookie', clearStateCookie);
-  return new Response(null, { status: 302, headers });
-}
-
-async function handleDiscordMe(request, env) {
-  const sessionSecret = env.SESSION_SECRET || "fallback-dev-secret-key-string";
-  const cookies = parseCookies(request);
-  const token = cookies[SESSION_COOKIE];
-  if (!token) {
-    return jsonResponse({ authenticated: false });
-  }
-  const session = await verifySessionToken(sessionSecret, token);
-  if (!session) return jsonResponse({ authenticated: false });
-  const roles = Array.isArray(session.roles) ? session.roles : [];
-  const allowedRoleIds = String(env.DISCORD_ALLOWED_ROLE_IDS || '')
-    .split(',')
-    .map((roleId) => roleId.trim())
-    .filter(Boolean);
-  const hasRole = allowedRoleIds.length === 0 || roles.some((roleId) => allowedRoleIds.includes(roleId));
-
-  return jsonResponse({
-    authenticated: true,
-    userId: session.userId,
-    username: session.username,
-    avatar: session.avatar || null,
-    isMember: session.isMember !== false,
-    roles,
-    hasRole
-  });
-}
-
-async function handleDiscordLogout(request) {
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  const clearCookie = serializeCookie(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 0 });
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { ...JSON_HEADERS, 'Set-Cookie': clearCookie }
-  });
-}
-
 // ─── Main worker entry router ──────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Route matching for exact Discord endpoints
+    // Route matching for Discord endpoints
     if (pathname === '/api/discord/auth') return handleDiscordAuth(request, env);
     if (pathname === '/api/discord/callback') return handleDiscordCallback(request, env);
     if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
