@@ -151,11 +151,16 @@
       }
     }
 
-    body.debug .hotspot {
+    body.debug .hotspot,
+    body.debug .chapel-monitor-shadow-layer {
       cursor: move;
       outline: 1px dashed rgba(65, 229, 255, 0.95);
       outline-offset: 0;
       touch-action: none;
+    }
+
+    body.debug .chapel-monitor-shadow-layer {
+      pointer-events: auto;
     }
 
     body.debug .power-button-visual {
@@ -413,6 +418,12 @@
         commodoreButtonsTopLeft: { x: 531, y: 2171 },
         commodoreButtonsBottomRight: { x: 543, y: 2183 }
       };
+      const CHAPEL_MONITOR_SHADOW = {
+        id: 'chapel-commodore-monitor-shadow',
+        label: 'Commodore monitor shadow',
+        anchors: ['chapelMonitorShadowTopLeft', 'chapelMonitorShadowBottomRight'],
+        padding: 0
+      };
       const HOTSPOTS = [
         {
           id: 'chapel-ace-ventura',
@@ -621,8 +632,12 @@
         hasInitializedViewport = true;
       }
 
-      function getHotspotRect(definition) {
-        return rectFromAnchors(definition.anchors[0], definition.anchors[1], HOTSPOT_PADDING_DESIGN_PX);
+      function getDefinitionRect(definition) {
+        return rectFromAnchors(
+          definition.anchors[0],
+          definition.anchors[1],
+          Number.isFinite(definition.padding) ? definition.padding : HOTSPOT_PADDING_DESIGN_PX
+        );
       }
 
       function formatRectLabel(definition, rect) {
@@ -651,21 +666,20 @@
 
       function renderHotspots() {
         overlayLayer.replaceChildren();
-        const monitorShadowRect = rectFromAnchors(
-          'chapelMonitorShadowTopLeft',
-          'chapelMonitorShadowBottomRight'
-        );
+        const monitorShadowRect = getDefinitionRect(CHAPEL_MONITOR_SHADOW);
         if (monitorShadowRect) {
           const shadowLayer = document.createElement('div');
           shadowLayer.className = 'chapel-monitor-shadow-layer';
-          shadowLayer.style.left = `${toPercentX(monitorShadowRect.left)}%`;
-          shadowLayer.style.top = `${toPercentY(monitorShadowRect.top)}%`;
-          shadowLayer.style.width = `${toPercentX(monitorShadowRect.width)}%`;
-          shadowLayer.style.height = `${toPercentY(monitorShadowRect.height)}%`;
+          shadowLayer.dataset.id = CHAPEL_MONITOR_SHADOW.id;
+          const label = document.createElement('span');
+          label.className = 'hotspot-label';
+          shadowLayer.appendChild(label);
+          addResizeHandles(shadowLayer);
+          applyRectToElement(shadowLayer, CHAPEL_MONITOR_SHADOW, monitorShadowRect);
           overlayLayer.appendChild(shadowLayer);
         }
         HOTSPOTS.forEach((definition) => {
-          const rect = getHotspotRect(definition);
+          const rect = getDefinitionRect(definition);
           if (!rect) return;
           const button = document.createElement('button');
           button.type = 'button';
@@ -714,7 +728,7 @@
         event.stopPropagation();
         element.setPointerCapture(event.pointerId);
         debugEditPointerId = event.pointerId;
-        const rect = getHotspotRect(definition);
+        const rect = getDefinitionRect(definition);
         if (!rect) return;
         debugEditType = type;
         debugEditDir = direction;
@@ -783,10 +797,13 @@
         const rect = JSON.parse(pendingRect);
         const anchorStart = ANCHOR_POINTS[debugEditDefinition.anchors[0]];
         const anchorEnd = ANCHOR_POINTS[debugEditDefinition.anchors[1]];
-        const innerLeft = clamp(Math.round(rect.left + HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.width);
-        const innerTop = clamp(Math.round(rect.top + HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.height);
-        const innerRight = clamp(Math.round(rect.left + rect.width - HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.width);
-        const innerBottom = clamp(Math.round(rect.top + rect.height - HOTSPOT_PADDING_DESIGN_PX), 0, imageDimensions.height);
+        const padding = Number.isFinite(debugEditDefinition.padding)
+          ? debugEditDefinition.padding
+          : HOTSPOT_PADDING_DESIGN_PX;
+        const innerLeft = clamp(Math.round(rect.left + padding), 0, imageDimensions.width);
+        const innerTop = clamp(Math.round(rect.top + padding), 0, imageDimensions.height);
+        const innerRight = clamp(Math.round(rect.left + rect.width - padding), 0, imageDimensions.width);
+        const innerBottom = clamp(Math.round(rect.top + rect.height - padding), 0, imageDimensions.height);
 
         if (anchorStart) {
           anchorStart.x = innerLeft;
@@ -987,23 +1004,30 @@
         setDebugMode(!document.body.classList.contains('debug'));
       }
 
+      function getEditableDefinitionById(id) {
+        if (id === CHAPEL_MONITOR_SHADOW.id) {
+          return CHAPEL_MONITOR_SHADOW;
+        }
+        return HOTSPOTS.find((entry) => entry.id === id) || null;
+      }
+
       function onPointerDown(event) {
         if (!document.body.classList.contains('debug')) return;
         const handle = event.target.closest('.resize-handle');
         if (handle) {
-          const hotspotElement = handle.closest('.hotspot');
-          const definition = HOTSPOTS.find((entry) => entry.id === hotspotElement?.dataset.id);
-          if (definition && hotspotElement) {
-            beginDebugEdit(event, definition, hotspotElement, 'resize', handle.dataset.direction || null);
+          const editableElement = handle.closest('.hotspot, .chapel-monitor-shadow-layer');
+          const definition = getEditableDefinitionById(editableElement?.dataset.id);
+          if (definition && editableElement) {
+            beginDebugEdit(event, definition, editableElement, 'resize', handle.dataset.direction || null);
           }
           return;
         }
 
-        const hotspotElement = event.target.closest('.hotspot');
-        if (!hotspotElement) return;
-        const definition = HOTSPOTS.find((entry) => entry.id === hotspotElement.dataset.id);
+        const editableElement = event.target.closest('.hotspot, .chapel-monitor-shadow-layer');
+        if (!editableElement) return;
+        const definition = getEditableDefinitionById(editableElement.dataset.id);
         if (!definition) return;
-        beginDebugEdit(event, definition, hotspotElement, 'move');
+        beginDebugEdit(event, definition, editableElement, 'move');
       }
 
       function onPointerMove(event) {

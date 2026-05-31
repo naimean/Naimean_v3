@@ -943,6 +943,8 @@ test('HotspotStore GET returns default chapel hotspot config when storage is emp
 
   assert.equal(response.status, 200);
   assert.deepEqual(body.anchorPoints, {
+    chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
+    chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
     commodoreButtonsTopLeft: { x: 430, y: 2592 },
     commodoreButtonsBottomRight: { x: 478, y: 2620 }
   });
@@ -967,6 +969,8 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         anchorPoints: {
+          chapelMonitorShadowTopLeft: { x: 501.6, y: 2001.2 },
+          chapelMonitorShadowBottomRight: { x: 640.9, y: 2120.7 },
           commodoreButtonsTopLeft: { x: -12.2, y: 99999.4 },
           commodoreButtonsBottomRight: { x: 547.4, y: 2182.2 },
           ignored: { x: 1, y: 2 }
@@ -984,6 +988,8 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
   assert.deepEqual(body.anchorPoints, {
+    chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
+    chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
     commodoreButtonsTopLeft: { x: 0, y: 3709 },
     commodoreButtonsBottomRight: { x: 547, y: 2182 }
   });
@@ -1001,6 +1007,8 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
       key: 'chapel-hotspots',
       value: {
         anchorPoints: {
+          chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
+          chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
           commodoreButtonsTopLeft: { x: 0, y: 3709 },
           commodoreButtonsBottomRight: { x: 547, y: 2182 }
         },
@@ -1018,6 +1026,8 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
   ]);
   assert.deepEqual(getStored('chapel-hotspots'), {
     anchorPoints: {
+      chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
+      chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
       commodoreButtonsTopLeft: { x: 0, y: 3709 },
       commodoreButtonsBottomRight: { x: 547, y: 2182 }
     },

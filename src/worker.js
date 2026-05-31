@@ -159,6 +159,8 @@ const HOTSPOT_LIMITS = {
 };
 
 const DEFAULT_CHAPEL_ANCHOR_POINTS = {
+  chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
+  chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
   commodoreButtonsTopLeft: { x: 430, y: 2592 },
   commodoreButtonsBottomRight: { x: 478, y: 2620 }
 };
