@@ -372,6 +372,7 @@
       const HOTSPOT_PADDING_DESIGN_PX = 4;
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+      const INITIAL_SCROLL_POSITION_RATIO = 0.5; // Start halfway through scrollable scene height.
       const ANCHOR_POINTS = {
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
         commodoreButtonsBottomRight: { x: 478, y: 2620 }
@@ -386,6 +387,7 @@
         }
       ];
       const overlayLayer = document.getElementById('overlay-layer');
+      const mainScroller = document.querySelector('main');
       const sceneImage = document.getElementById('scene-image');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
@@ -405,6 +407,7 @@
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null;
+      let hasInitializedViewport = false;
 
       function syncImageDimensions() {
         imageDimensions.width = sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH;
@@ -435,6 +438,23 @@
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
+      }
+
+      function centerInitialViewport() {
+        if (!mainScroller || hasInitializedViewport) {
+          return;
+        }
+
+        const viewportHeight = mainScroller.clientHeight || window.innerHeight || 0;
+        const sceneHeight = sceneImage?.clientHeight || imageDimensions.height || 0;
+        const maxScrollTop = Math.max(0, sceneHeight - viewportHeight);
+        if (maxScrollTop <= 0) {
+          hasInitializedViewport = true;
+          return;
+        }
+
+        mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_SCROLL_POSITION_RATIO);
+        hasInitializedViewport = true;
       }
 
       function getHotspotRect(definition) {
@@ -699,12 +719,17 @@
       if (sceneImage?.complete && sceneImage.naturalWidth && sceneImage.naturalHeight) {
         syncImageDimensions();
         renderHotspots();
+        window.requestAnimationFrame(centerInitialViewport);
       } else {
         sceneImage?.addEventListener('load', () => {
           syncImageDimensions();
           renderHotspots();
+          window.requestAnimationFrame(centerInitialViewport);
         }, { once: true });
-        sceneImage?.addEventListener('error', renderHotspots, { once: true });
+        sceneImage?.addEventListener('error', () => {
+          renderHotspots();
+          window.requestAnimationFrame(centerInitialViewport);
+        }, { once: true });
       }
 
       overlayLayer.addEventListener('pointerdown', onPointerDown);
