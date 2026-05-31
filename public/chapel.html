@@ -171,11 +171,6 @@
 
     .sauce-drop-track {
       position: absolute;
-      left: calc(50% + 50px);
-      top: calc(12% - 50px);
-      width: 18px;
-      height: 72%;
-      transform: translateX(-50%);
       pointer-events: none;
       overflow: visible;
       z-index: 6;
@@ -217,10 +212,6 @@
     }
 
     @media (max-width: 899px) {
-      .sauce-drop-track {
-        left: calc(50% + 18px);
-      }
-
       .sauce-drop-droplet {
         width: 5px;
         height: 9px;
@@ -852,7 +843,7 @@
         droplet.className = 'sauce-drop-droplet';
         track.appendChild(droplet);
         const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
-        if (document.body.classList.contains('debug') && sauceDropRect) {
+        if (sauceDropRect) {
           const label = document.createElement('span');
           label.className = 'hotspot-label';
           label.textContent = formatRectLabel(SAUCE_DROP_TRACK, sauceDropRect);
