@@ -709,13 +709,11 @@
         navigateToCommodoreState(nextPowerState);
       }
 
-      function toggleCommodorePowerAndNavigate() {
+      function toggleCommodorePowerState() {
         if (isCommodoreNavigationPending) return;
         const nextPowerState = !loadCommodorePowerState();
-        saveCommodoreNavSource();
         saveCommodorePowerState(nextPowerState);
         syncChapelPowerButtonState();
-        navigateToCommodoreState(nextPowerState);
       }
 
       function getRandomAudioUrl(folder) {
@@ -949,7 +947,7 @@
           } else if (definition.href) {
             button.addEventListener('click', () => {
               if (definition.commodoreNav) {
-                toggleCommodorePowerAndNavigate();
+                toggleCommodorePowerState();
                 return;
               }
               window.location.assign(definition.href);
