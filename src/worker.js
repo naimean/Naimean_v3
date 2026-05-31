@@ -413,6 +413,26 @@ function sanitizeChapelConfig(input) {
   };
 }
 
+function normalizeArcadeUrl(input) {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(\/|\.\/|\.\.\/|\?|#)/.test(trimmed)) return trimmed;
+  return null;
+}
+
+function sanitizeArcadeUrlOverrides(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+  const overrides = {};
+  for (const [name, rawUrl] of Object.entries(input)) {
+    if (typeof name !== 'string' || !name.trim()) continue;
+    const normalized = normalizeArcadeUrl(rawUrl);
+    if (normalized) overrides[name] = normalized;
+  }
+  return overrides;
+}
+
 const HOTSPOT_JSON_HEADERS = {
   'content-type': 'application/json; charset=UTF-8',
   'cache-control': 'no-store',
@@ -432,7 +452,12 @@ export class HotspotStore {
   async fetch(request) {
     const pathname = new URL(request.url).pathname;
     const isChapelConfig = pathname === '/api/chapel-hotspots';
-    const storageKey = isChapelConfig ? 'chapel-hotspots' : 'hotspots';
+    const isArcadeUrlOverrides = pathname === '/api/arcade-url-overrides';
+    const storageKey = isChapelConfig
+      ? 'chapel-hotspots'
+      : isArcadeUrlOverrides
+        ? 'arcade-url-overrides'
+        : 'hotspots';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: HOTSPOT_JSON_HEADERS });
     if (request.method === 'GET') {
       let saved;
@@ -443,6 +468,9 @@ export class HotspotStore {
       }
       if (isChapelConfig) {
         return hotspotJson(sanitizeChapelConfig(saved));
+      }
+      if (isArcadeUrlOverrides) {
+        return hotspotJson({ overrides: sanitizeArcadeUrlOverrides(saved) });
       }
       return hotspotJson({ hotspots: sanitizeHotspots(saved) });
     }
@@ -455,9 +483,14 @@ export class HotspotStore {
       }
       const payload = isChapelConfig
         ? sanitizeChapelConfig(body)
-        : { hotspots: sanitizeHotspots(body?.hotspots) };
+        : isArcadeUrlOverrides
+          ? { overrides: sanitizeArcadeUrlOverrides(body?.overrides) }
+          : { hotspots: sanitizeHotspots(body?.hotspots) };
       try {
-        await this.state.storage.put(storageKey, isChapelConfig ? payload : payload.hotspots);
+        await this.state.storage.put(
+          storageKey,
+          isChapelConfig ? payload : isArcadeUrlOverrides ? payload.overrides : payload.hotspots
+        );
       } catch (err) {
         return hotspotJson({ error: `Failed to save hotspots: ${err?.message || 'Unknown error'}` }, 500);
       }
@@ -532,6 +565,16 @@ export default {
       if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
       try {
         const id = env.HOTSPOT_STORE.idFromName('chapel-hotspots');
+        const stub = env.HOTSPOT_STORE.get(id);
+        return await stub.fetch(request);
+      } catch (err) {
+        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
+      }
+    }
+    if (pathname === '/api/arcade-url-overrides') {
+      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
+      try {
+        const id = env.HOTSPOT_STORE.idFromName('arcade-url-overrides');
         const stub = env.HOTSPOT_STORE.get(id);
         return await stub.fetch(request);
       } catch (err) {

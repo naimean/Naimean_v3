@@ -236,8 +236,9 @@
       const saveButton = document.getElementById('save-urls');
       const resetButton = document.getElementById('reset-urls');
       const URL_OVERRIDES_KEY = 'naimean.arcade.urlOverrides';
+      const URL_OVERRIDES_API = '/api/arcade-url-overrides';
 
-      function parseOverrides() {
+      function parseLocalOverrides() {
         try {
           const raw = localStorage.getItem(URL_OVERRIDES_KEY);
           if (!raw) return {};
@@ -247,6 +248,10 @@
           console.warn('Failed to parse saved arcade URL overrides.', error);
           return {};
         }
+      }
+
+      function saveLocalOverrides(overrides) {
+        localStorage.setItem(URL_OVERRIDES_KEY, JSON.stringify(overrides));
       }
 
       function normalizeUrl(input) {
@@ -264,7 +269,7 @@
       }
 
       let cabinets = [];
-      let urlOverrides = parseOverrides();
+      let urlOverrides = parseLocalOverrides();
 
       function getCabinetUrl(cabinet) {
         const override = normalizeUrl(urlOverrides[cabinet.name]);
@@ -335,7 +340,38 @@
         });
       }
 
-      function saveUrlOverrides() {
+      async function loadServerOverrides() {
+        const response = await fetch(URL_OVERRIDES_API, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to load saved URL overrides (${response.status})`);
+        }
+        const body = await response.json();
+        return body && typeof body === 'object' && !Array.isArray(body)
+          ? (body.overrides && typeof body.overrides === 'object' && !Array.isArray(body.overrides) ? body.overrides : {})
+          : {};
+      }
+
+      async function persistServerOverrides(overrides) {
+        const response = await fetch(URL_OVERRIDES_API, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ overrides })
+        });
+        let body = null;
+        try {
+          body = await response.json();
+        } catch (_) {
+          body = null;
+        }
+        if (!response.ok) {
+          throw new Error(body && body.error ? body.error : `Failed to save URL overrides (${response.status})`);
+        }
+        return body && typeof body === 'object' && !Array.isArray(body)
+          ? (body.overrides && typeof body.overrides === 'object' && !Array.isArray(body.overrides) ? body.overrides : {})
+          : {};
+      }
+
+      async function saveUrlOverrides() {
         const nextOverrides = {};
         const invalid = [];
         const inputs = cards.querySelectorAll('input[data-name]');
@@ -354,17 +390,31 @@
           return;
         }
 
-        urlOverrides = nextOverrides;
-        localStorage.setItem(URL_OVERRIDES_KEY, JSON.stringify(urlOverrides));
-        renderCards();
-        setEditorStatus('URL updates saved.');
+        saveButton.disabled = true;
+        try {
+          urlOverrides = await persistServerOverrides(nextOverrides);
+          saveLocalOverrides(urlOverrides);
+          renderCards();
+          setEditorStatus('URL updates saved server-side.');
+        } catch (error) {
+          setEditorStatus(error.message || 'Could not save URL updates.', true);
+        } finally {
+          saveButton.disabled = false;
+        }
       }
 
-      function resetUrlOverrides() {
-        urlOverrides = {};
-        localStorage.removeItem(URL_OVERRIDES_KEY);
-        renderCards();
-        setEditorStatus('URL updates reset.');
+      async function resetUrlOverrides() {
+        resetButton.disabled = true;
+        try {
+          urlOverrides = await persistServerOverrides({});
+          saveLocalOverrides(urlOverrides);
+          renderCards();
+          setEditorStatus('URL updates reset server-side.');
+        } catch (error) {
+          setEditorStatus(error.message || 'Could not reset URL updates.', true);
+        } finally {
+          resetButton.disabled = false;
+        }
       }
 
       jump.addEventListener('change', () => {
@@ -385,11 +435,20 @@
         }
 
         cabinets = await response.json();
+        try {
+          urlOverrides = await loadServerOverrides();
+          saveLocalOverrides(urlOverrides);
+        } catch (_) {
+          urlOverrides = parseLocalOverrides();
+          setEditorStatus('Server overrides unavailable. Showing local browser overrides.', true);
+        }
         status.hidden = true;
         cards.hidden = false;
         renderJumpOptions();
         renderCards();
-        setEditorStatus('Saved URL updates are applied automatically in Noah’s Arcade.');
+        if (!editorStatus.textContent) {
+          setEditorStatus('Saved URL updates are applied automatically in Noah’s Arcade.');
+        }
       } catch (error) {
         status.textContent = error.message;
         setEditorStatus('');

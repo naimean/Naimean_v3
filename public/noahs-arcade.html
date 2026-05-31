@@ -479,8 +479,9 @@
     (() => {
       /* ── URL overrides (MAME GUI persisted) ──────────────── */
       const URL_OVERRIDES_KEY = 'naimean.arcade.urlOverrides';
+      const URL_OVERRIDES_API = '/api/arcade-url-overrides';
 
-      function parseOverrides() {
+      function parseLocalOverrides() {
         try {
           const raw = localStorage.getItem(URL_OVERRIDES_KEY);
           if (!raw) return {};
@@ -489,6 +490,29 @@
         } catch (e) {
           console.warn('Failed to parse arcade URL overrides.', e);
           return {};
+        }
+      }
+
+      function saveLocalOverrides(overrides) {
+        localStorage.setItem(URL_OVERRIDES_KEY, JSON.stringify(overrides));
+      }
+
+      async function loadServerOverrides() {
+        const response = await fetch(URL_OVERRIDES_API, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Failed to load saved URL overrides (${response.status})`);
+        const body = await response.json();
+        const overrides = body && typeof body === 'object' && !Array.isArray(body)
+          ? (body.overrides && typeof body.overrides === 'object' && !Array.isArray(body.overrides) ? body.overrides : {})
+          : {};
+        saveLocalOverrides(overrides);
+        return overrides;
+      }
+
+      async function getEffectiveOverrides() {
+        try {
+          return await loadServerOverrides();
+        } catch (_) {
+          return parseLocalOverrides();
         }
       }
 
@@ -781,9 +805,10 @@
 
       let loadedCabinets = null;
 
-      function renderFromOverrides() {
+      async function renderFromOverrides() {
         if (!loadedCabinets) return;
-        renderCabinets(loadedCabinets, parseOverrides());
+        const overrides = await getEffectiveOverrides();
+        renderCabinets(loadedCabinets, overrides);
       }
 
       /* Re-render if browser restores this page from bfcache */
@@ -796,7 +821,7 @@
           const res = await fetch('/assets/arcade/cabinets.json', { cache: 'no-store' });
           if (!res.ok) throw new Error(`Failed to load cabinets (${res.status})`);
           loadedCabinets = await res.json();
-          const overrides = parseOverrides();
+          const overrides = await getEffectiveOverrides();
           renderCabinets(loadedCabinets, overrides);
         } catch (err) {
           loadMsg.textContent = err.message;
