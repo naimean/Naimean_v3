@@ -8,8 +8,8 @@
     :root {
       color-scheme: dark;
       --chapel-monitor-turn-off-duration: 0.45s;
-      --sauce-drip-impact-offset-fallback: 4.73%;
-      --sauce-drip-end-offset-fallback: 5.73%;
+      --sauce-drip-impact-offset-fallback: 0%;
+      --sauce-drip-end-offset-fallback: 0%;
     }
 
     * {
@@ -845,6 +845,13 @@
         return Math.max(min, Math.min(value, max));
       }
 
+      function calculateSauceDripOffsetPercent(designOffsetPx, trackHeightPx) {
+        if (!Number.isFinite(designOffsetPx) || !Number.isFinite(trackHeightPx) || trackHeightPx <= 0) {
+          return 0;
+        }
+        return clamp((designOffsetPx / trackHeightPx) * 100, 0, 100);
+      }
+
       function loadCommodorePowerState() {
         try {
           return sessionStorage.getItem(COMMODORE_POWER_STATE_STORAGE_KEY) === 'true';
@@ -1046,8 +1053,8 @@
         if (definition.id === SAUCE_DROP_TRACK.id) {
           const trackHeight = Number(rect.height);
           if (Number.isFinite(trackHeight) && trackHeight > 0) {
-            const impactOffset = clamp((SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX / trackHeight) * 100, 0, 100);
-            const endOffset = clamp((SAUCE_DRIP_END_OFFSET_DESIGN_PX / trackHeight) * 100, 0, 100);
+            const impactOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX, trackHeight);
+            const endOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_END_OFFSET_DESIGN_PX, trackHeight);
             element.style.setProperty('--sauce-drip-impact-offset', `${impactOffset}%`);
             element.style.setProperty('--sauce-drip-end-offset', `${endOffset}%`);
           }
@@ -1069,6 +1076,13 @@
 
       function renderHotspots() {
         overlayLayer.replaceChildren();
+        const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
+        if (sauceDropRect) {
+          const fallbackImpactOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX, sauceDropRect.height);
+          const fallbackEndOffset = calculateSauceDripOffsetPercent(SAUCE_DRIP_END_OFFSET_DESIGN_PX, sauceDropRect.height);
+          document.documentElement.style.setProperty('--sauce-drip-impact-offset-fallback', `${fallbackImpactOffset}%`);
+          document.documentElement.style.setProperty('--sauce-drip-end-offset-fallback', `${fallbackEndOffset}%`);
+        }
         const monitorShadowRect = getDefinitionRect(CHAPEL_MONITOR_SHADOW);
         if (monitorShadowRect) {
           const shadowLayer = document.createElement('div');
@@ -1102,7 +1116,6 @@
         const droplet = document.createElement('div');
         droplet.className = 'sauce-drop-droplet';
         track.appendChild(droplet);
-        const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
         if (sauceDropRect) {
           const label = document.createElement('span');
           label.className = 'hotspot-label';
