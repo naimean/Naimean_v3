@@ -76,46 +76,36 @@
     }
 
     .power-button-visual {
-      overflow: hidden;
-      border-radius: 999px;
-      border: 1px solid rgba(110, 78, 43, 0.55);
-      background:
-        linear-gradient(180deg, rgba(126, 96, 63, 0.96) 0%, rgba(77, 51, 28, 0.96) 100%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 233, 192, 0.34),
-        inset 0 -2px 3px rgba(0, 0, 0, 0.42),
-        0 1px 3px rgba(0, 0, 0, 0.3);
-      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      border: 2px solid #555;
+      border-radius: 50%;
+      background: #222;
+      box-shadow: 0 0 8px rgb(0 0 0 / 66%);
+      overflow: visible;
+      outline: none;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .power-button-visual::before {
       content: '';
       position: absolute;
-      inset: 17% 13%;
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 30% 28%, rgba(255, 245, 214, 0.9) 0%, rgba(255, 245, 214, 0) 26%),
-        radial-gradient(circle at center, rgba(255, 194, 106, 0.98) 0%, rgba(241, 112, 45, 0.95) 48%, rgba(139, 19, 12, 0.7) 74%, rgba(139, 19, 12, 0) 100%);
-      box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.25),
-        inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-        0 0 10px 2px rgba(255, 116, 29, 0.7),
-        0 0 16px 4px rgba(255, 102, 0, 0.28);
-      animation: chapel-power-glow 3.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      inset: 25%;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffb347 60%, #ff6600 100%);
+      box-shadow: 0 0 18px 8px #ff6600, 0 0 2px 1px #fff;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      animation: commodore-power-pulse 1.6s infinite ease-in-out;
+      pointer-events: none;
     }
 
-    .power-button-visual::after {
-      content: '';
-      position: absolute;
-      inset: 31% 35%;
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 35% 28%, rgba(228, 255, 232, 0.95) 0%, rgba(228, 255, 232, 0) 35%),
-        linear-gradient(180deg, #96ff9a 0%, #2ce45c 55%, #0d6817 100%);
-      box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.28),
-        inset 0 -1px 1px rgba(0, 0, 0, 0.35),
-        0 0 7px 1px rgba(74, 255, 118, 0.55);
+    .power-button-visual.is-powered-on {
+      background: #16bf39;
+      border-color: #16bf39;
+    }
+
+    .power-button-visual.is-powered-on::before {
+      background: radial-gradient(circle, #8cff91 60%, #1cd646 100%);
+      box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
+      animation: commodore-power-pulse-on 1.6s infinite ease-in-out;
     }
 
     .power-button-visual:active {
@@ -127,32 +117,37 @@
         0 0 2px rgba(255, 161, 70, 0.42);
     }
 
-    @keyframes chapel-power-glow {
-      0%,
+    @keyframes commodore-power-pulse {
+      0% {
+        box-shadow: 0 0 18px 8px #ff6600, 0 0 2px 1px #fff;
+        filter: brightness(1);
+      }
+
+      50% {
+        box-shadow: 0 0 24px 12px #ff6600, 0 0 2px 1px #fff;
+        filter: brightness(1.12);
+      }
+
       100% {
-        box-shadow:
-          inset 0 1px 1px rgba(255, 255, 255, 0.25),
-          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-          0 0 11px 2px rgba(255, 124, 44, 0.72),
-          0 0 18px 5px rgba(255, 108, 17, 0.26);
-        transform: scale(0.98);
+        box-shadow: 0 0 18px 8px #ff6600, 0 0 2px 1px #fff;
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes commodore-power-pulse-on {
+      0% {
+        box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
+        filter: brightness(1);
       }
 
-      35% {
-        box-shadow:
-          inset 0 1px 1px rgba(255, 255, 255, 0.25),
-          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-          0 0 15px 4px rgba(255, 149, 67, 0.92),
-          0 0 24px 7px rgba(255, 126, 38, 0.44);
-        transform: scale(1.02);
+      50% {
+        box-shadow: 0 0 24px 12px #1cd646, 0 0 2px 1px #d4ffd7;
+        filter: brightness(1.12);
       }
 
-      65% {
-        box-shadow:
-          inset 0 1px 1px rgba(255, 255, 255, 0.25),
-          inset 0 -1px 1px rgba(0, 0, 0, 0.45),
-          0 0 13px 3px rgba(255, 172, 90, 0.82),
-          0 0 22px 6px rgba(255, 140, 54, 0.36);
+      100% {
+        box-shadow: 0 0 18px 8px #1cd646, 0 0 2px 1px #d4ffd7;
+        filter: brightness(1);
       }
     }
 
@@ -666,6 +661,14 @@
         return Math.max(min, Math.min(value, max));
       }
 
+      function loadCommodorePowerState() {
+        try {
+          return sessionStorage.getItem(COMMODORE_POWER_STATE_STORAGE_KEY) === 'true';
+        } catch {
+          return false;
+        }
+      }
+
       function getRandomAudioUrl(folder) {
         const audioUrls = AUDIO_FOLDERS[folder];
         if (!Array.isArray(audioUrls) || !audioUrls.length) {
@@ -895,6 +898,12 @@
           }
           overlayLayer.appendChild(button);
         });
+        syncChapelPowerButtonState();
+      }
+
+      function syncChapelPowerButtonState() {
+        const powerButton = overlayLayer.querySelector('[data-id="chapel-commodore-power-button"]');
+        powerButton?.classList.toggle('is-powered-on', loadCommodorePowerState());
       }
 
       function getOverlayMetrics() {
@@ -1263,6 +1272,7 @@
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
       window.addEventListener('pointercancel', onPointerUp);
+      window.addEventListener('pageshow', syncChapelPowerButtonState);
       window.addEventListener('keydown', onKeyDown);
       debugToggleButton.addEventListener('click', toggleDebugMode);
       saveButton.addEventListener('click', saveHotspots);
