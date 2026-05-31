@@ -36,6 +36,11 @@
       margin: 0 auto;
     }
 
+    #scene picture {
+      display: block;
+      line-height: 0;
+    }
+
     #scene-image {
       display: block;
       width: 100%;
@@ -423,7 +428,14 @@
     <div id="scene">
       <picture>
         <source srcset="assets/images/chapel_stacked.v20260424.webp" type="image/webp" />
-        <img id="scene-image" src="assets/images/chapel_stacked.v20260424.png" alt="Chapel stacked web image" />
+        <!-- Keep width/height aligned with DESIGN_IMAGE_WIDTH/HEIGHT in the script. -->
+        <img
+          id="scene-image"
+          src="assets/images/chapel_stacked.v20260424.png"
+          alt="Chapel stacked web image"
+          width="993"
+          height="3709"
+        />
       </picture>
       <div id="overlay-layer" aria-label="Chapel hotspots"></div>
     </div>
@@ -624,8 +636,8 @@
       }
 
       function syncImageDimensions() {
-        imageDimensions.width = sceneImage?.naturalWidth || DESIGN_IMAGE_WIDTH;
-        imageDimensions.height = sceneImage?.naturalHeight || DESIGN_IMAGE_HEIGHT;
+        imageDimensions.width = DESIGN_IMAGE_WIDTH;
+        imageDimensions.height = DESIGN_IMAGE_HEIGHT;
       }
 
       function rectFromAnchors(anchorStart, anchorEnd, padding = 0) {
