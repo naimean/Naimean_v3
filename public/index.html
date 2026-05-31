@@ -714,6 +714,10 @@
       object-fit: contain;
     }
 
+    .left-monitor-screen-window > .left-monitor-content-image.is-calendar-state {
+      object-position: left top;
+    }
+
     .right-monitor-screen-window > .join-discord-button {
       top: 5%;
       right: 5%;
@@ -2943,7 +2947,7 @@
       const DEN_URL_OVERRIDES_STORAGE_KEY = 'naimean.den.urlOverrides';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
-      const CALENDAR_HTML_URL = 'calendar.html';
+      const CALENDAR_HTML_URL = '/calendar.html';
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
@@ -3697,6 +3701,7 @@
         if (leftMonitorContentImageEl) {
           const imageUrl = LEFT_MONITOR_IMAGE_URLS[nextState] || LEFT_MONITOR_IMAGE_URLS[DEFAULT_LEFT_MONITOR_STATE];
           leftMonitorContentImageEl.src = imageUrl;
+          leftMonitorContentImageEl.classList.toggle('is-calendar-state', nextState === 'calendar');
         }
         syncLeftMonitorSelectionUi();
         if (nextState === 'tools' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
