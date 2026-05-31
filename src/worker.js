@@ -75,6 +75,7 @@ function parseCookies(request) {
   return cookies;
 }
 
+// ─── Cookie Utilities (Continued) ─────────────────────────────────────────────
 function serializeCookie(name, value, options = {}) {
   let cookie = `${name}=${value}`;
   if (options.httpOnly) cookie += '; HttpOnly';
