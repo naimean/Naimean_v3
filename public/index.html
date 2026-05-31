@@ -714,13 +714,6 @@
       object-fit: contain;
     }
 
-    .left-monitor-screen-window > .left-monitor-content-image.is-calendar-buffered {
-      top: calc(var(--left-monitor-inner-boundary-top) + 20px);
-      left: calc(var(--left-monitor-inner-boundary-left) + 20px);
-      width: calc(100% - var(--left-monitor-inner-boundary-left) - var(--left-monitor-inner-boundary-right) - 40px);
-      height: calc(100% - var(--left-monitor-inner-boundary-top) - var(--left-monitor-inner-boundary-bottom) - 20px);
-    }
-
     .right-monitor-screen-window > .join-discord-button {
       top: 5%;
       right: 5%;
@@ -3709,7 +3702,6 @@
         if (leftMonitorContentImageEl) {
           const imageUrl = LEFT_MONITOR_IMAGE_URLS[nextState] || LEFT_MONITOR_IMAGE_URLS[DEFAULT_LEFT_MONITOR_STATE];
           leftMonitorContentImageEl.src = imageUrl;
-          leftMonitorContentImageEl.classList.toggle('is-calendar-buffered', nextState === 'calendar');
         }
         syncLeftMonitorSelectionUi();
         if (nextState === 'tools' && isLeftMonitorInteractive() && isBigTvMonitorInteractive()) {
