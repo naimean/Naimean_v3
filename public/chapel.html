@@ -378,11 +378,68 @@
       const HOTSPOT_PADDING_DESIGN_PX = 4;
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+      const INITIAL_SCROLL_POSITION_RATIO = 0.5; // Start halfway through scrollable scene height.
       const ANCHOR_POINTS = {
-        commodoreButtonsTopLeft: { x: 430, y: 2592 },
-        commodoreButtonsBottomRight: { x: 478, y: 2620 }
+        aceVenturaTopLeft: { x: 359, y: 2215 },
+        aceVenturaBottomRight: { x: 457, y: 2355 },
+        sillyGooseTopLeft: { x: 289, y: 2303 },
+        sillyGooseBottomRight: { x: 349, y: 2381 },
+        crustyTheClownTopLeft: { x: 4, y: 2285 },
+        crustyTheClownBottomRight: { x: 118, y: 2512 },
+        caseyJonesTopLeft: { x: 129, y: 2230 },
+        caseyJonesBottomRight: { x: 278, y: 2410 },
+        rickTopLeft: { x: 773, y: 2268 },
+        rickBottomRight: { x: 844, y: 2401 },
+        mortyTopLeft: { x: 697, y: 2321 },
+        mortyBottomRight: { x: 762, y: 2401 },
+        scroogeMcduckTopLeft: { x: 855, y: 2249 },
+        scroogeMcduckBottomRight: { x: 989, y: 2511 },
+        commodoreButtonsTopLeft: { x: 531, y: 2171 },
+        commodoreButtonsBottomRight: { x: 543, y: 2183 }
       };
       const HOTSPOTS = [
+        {
+          id: 'chapel-ace-ventura',
+          label: 'Ace Ventura',
+          audioFolder: 'ace_ventura',
+          anchors: ['aceVenturaTopLeft', 'aceVenturaBottomRight']
+        },
+        {
+          id: 'chapel-silly-goose',
+          label: 'Silly Goose',
+          audioFolder: 'silly_goose',
+          anchors: ['sillyGooseTopLeft', 'sillyGooseBottomRight']
+        },
+        {
+          id: 'chapel-crusty-the-clown',
+          label: 'Crusty the Clown',
+          audioFolder: 'crusty_the_clown',
+          anchors: ['crustyTheClownTopLeft', 'crustyTheClownBottomRight']
+        },
+        {
+          id: 'chapel-casey-jones',
+          label: 'Casey Jones',
+          audioFolder: 'casey_jones',
+          anchors: ['caseyJonesTopLeft', 'caseyJonesBottomRight']
+        },
+        {
+          id: 'chapel-rick',
+          label: 'Rick',
+          audioFolder: 'rick',
+          anchors: ['rickTopLeft', 'rickBottomRight']
+        },
+        {
+          id: 'chapel-morty',
+          label: 'Morty',
+          audioFolder: 'morty',
+          anchors: ['mortyTopLeft', 'mortyBottomRight']
+        },
+        {
+          id: 'chapel-scrooge-mcduck',
+          label: 'Scrooge McDuck',
+          audioFolder: 'scrooge_mcduck',
+          anchors: ['scroogeMcduckTopLeft', 'scroogeMcduckBottomRight']
+        },
         {
           id: 'chapel-commodore-power-button',
           label: 'Commodore power button',
@@ -391,7 +448,31 @@
           href: '/commodore.html'
         }
       ];
+      const AUDIO_FOLDERS = {
+        ace_ventura: [
+          'assets/audio/ace_ventura/congregation.v20260424.mp3'
+        ],
+        silly_goose: [
+          'assets/audio/silly_goose/goose_honk.v20260424.mp3'
+        ],
+        crusty_the_clown: [
+          'assets/audio/crusty_the_clown/krusty_laugh.v20260424.mp3'
+        ],
+        casey_jones: [
+          'assets/audio/casey_jones/wrong.v20260424.mp3'
+        ],
+        rick: [
+          'assets/audio/rick/rick_nope.v20260424.mp3'
+        ],
+        morty: [
+          'assets/audio/morty/morty_aw_jeez.v20260424.mp3'
+        ],
+        scrooge_mcduck: [
+          'assets/audio/scrooge_mcduck/zelda-secret.v20260424.mp3'
+        ]
+      };
       const overlayLayer = document.getElementById('overlay-layer');
+      const mainScroller = document.querySelector('main');
       const sceneImage = document.getElementById('scene-image');
       const debugStatus = document.getElementById('debug-status');
       const debugToggleButton = document.getElementById('debug-toggle-btn');
@@ -412,6 +493,11 @@
       let debugEditStartX = 0;
       let debugEditStartY = 0;
       let debugEditOrigRect = null;
+      let activeAudio = null;
+      let activeAudioUrl = '';
+      const audioElsByUrl = new Map();
+      const lastPlayedAudioByFolder = new Map();
+      let hasInitializedViewport = false;
 
       function wait(ms) {
         return new Promise((resolve) => {
@@ -448,6 +534,75 @@
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
+      }
+
+      function getRandomAudioUrl(folder) {
+        const audioUrls = AUDIO_FOLDERS[folder];
+        if (!Array.isArray(audioUrls) || !audioUrls.length) {
+          return null;
+        }
+        if (audioUrls.length === 1) {
+          lastPlayedAudioByFolder.set(folder, audioUrls[0]);
+          return audioUrls[0];
+        }
+        const lastPlayedUrl = lastPlayedAudioByFolder.get(folder);
+        const candidates = audioUrls.filter((audioUrl) => audioUrl !== lastPlayedUrl);
+        const nextPool = candidates.length ? candidates : audioUrls;
+        const nextUrl = nextPool[Math.floor(Math.random() * nextPool.length)];
+        lastPlayedAudioByFolder.set(folder, nextUrl);
+        return nextUrl;
+      }
+
+      function getAudioElement(audioUrl) {
+        let audioEl = audioElsByUrl.get(audioUrl);
+        if (!audioEl) {
+          audioEl = new Audio(audioUrl);
+          audioEl.preload = 'auto';
+          audioElsByUrl.set(audioUrl, audioEl);
+        }
+        return audioEl;
+      }
+
+      async function playRandomFolderAudio(folder) {
+        const audioUrl = getRandomAudioUrl(folder);
+        if (!audioUrl) {
+          console.warn(`No mp3 assets configured for chapel hotspot folder: ${folder}`);
+          return;
+        }
+
+        if (activeAudio && activeAudioUrl !== audioUrl) {
+          activeAudio.pause();
+          activeAudio.currentTime = 0;
+        }
+
+        const audioEl = getAudioElement(audioUrl);
+        audioEl.currentTime = 0;
+        activeAudio = audioEl;
+        activeAudioUrl = audioUrl;
+
+        try {
+          await audioEl.play();
+        } catch (error) {
+          console.warn(`Unable to play chapel hotspot audio from ${audioUrl}.`, error);
+        }
+      }
+
+      function centerInitialViewport() {
+        if (!mainScroller || hasInitializedViewport) {
+          return;
+        }
+
+        const viewportHeight = mainScroller.clientHeight;
+        const sceneHeight = sceneImage?.clientHeight || imageDimensions.height || 0;
+        if (viewportHeight <= 0 || sceneHeight <= 0) {
+          return;
+        }
+
+        const maxScrollTop = Math.max(0, sceneHeight - viewportHeight);
+        if (maxScrollTop > 0) {
+          mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_SCROLL_POSITION_RATIO);
+        }
+        hasInitializedViewport = true;
       }
 
       function getHotspotRect(definition) {
@@ -498,7 +653,11 @@
           button.appendChild(label);
           addResizeHandles(button);
           applyRectToElement(button, definition, rect);
-          if (definition.href) {
+          if (definition.audioFolder) {
+            button.addEventListener('click', () => {
+              playRandomFolderAudio(definition.audioFolder);
+            });
+          } else if (definition.href) {
             button.addEventListener('click', () => {
               window.location.assign(definition.href);
             });
@@ -633,11 +792,16 @@
             if (definition.variant) {
               lines.push(`    variant: '${definition.variant}',`);
             }
+            if (definition.audioFolder) {
+              lines.push(`    audioFolder: '${definition.audioFolder}',`);
+            }
+            lines.push(
+              definition.href
+                ? `    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`
+                : `    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`
+            );
             if (definition.href) {
-              lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
               lines.push(`    href: '${definition.href}'`);
-            } else {
-              lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`);
             }
             lines.push('  }');
             return lines.join('\n');
@@ -835,6 +999,7 @@
         await loadHotspotsFromServer();
         syncImageDimensions();
         renderHotspots();
+        window.requestAnimationFrame(centerInitialViewport);
       }
 
       if (sceneImage?.complete && sceneImage.naturalWidth && sceneImage.naturalHeight) {
