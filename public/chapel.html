@@ -7,6 +7,7 @@
   <style>
     :root {
       color-scheme: dark;
+      --commodore-tv-turn-off-duration: 0.45s;
     }
 
     * {
@@ -64,13 +65,152 @@
       border-radius: 4px;
       pointer-events: auto;
       z-index: 0;
-      transition: opacity 320ms ease, box-shadow 320ms ease;
+      clip-path: inset(0%);
       cursor: pointer;
     }
 
     .chapel-monitor-shadow-layer.is-powered-on {
       opacity: 0;
-      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+      clip-path: inset(50%);
+    }
+
+    @keyframes commodore-tv-turn-on {
+      0% {
+        clip-path: inset(0%);
+        filter: brightness(1);
+        background: #000;
+        opacity: 1;
+      }
+
+      40% {
+        clip-path: inset(47% 0);
+        filter: brightness(1.2);
+        background: #000;
+        opacity: 1;
+      }
+
+      65% {
+        clip-path: inset(49.2% 0);
+        filter: brightness(4);
+        background: #fff;
+        opacity: 1;
+      }
+
+      80% {
+        clip-path: inset(49.7% 0);
+        filter: brightness(8);
+        background: #fff;
+        opacity: 1;
+      }
+
+      92% {
+        clip-path: inset(49.9% 0);
+        filter: brightness(12);
+        background: #fff;
+        opacity: 0.85;
+      }
+
+      100% {
+        clip-path: inset(50%);
+        filter: brightness(1);
+        background: #fff;
+        opacity: 0;
+      }
+    }
+
+    @keyframes commodore-tv-shadow-takeover {
+      0% {
+        opacity: 0;
+        filter: brightness(1.35);
+      }
+
+      35% {
+        opacity: 0.35;
+        filter: brightness(1.2);
+      }
+
+      100% {
+        opacity: 1;
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes commodore-tv-turn-off-line {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scaleX(0.08);
+      }
+
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scaleX(1);
+      }
+
+      72% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scaleX(0.1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scaleX(0.02);
+      }
+    }
+
+    @keyframes commodore-tv-turn-off-dot {
+      0%,
+      68% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0);
+      }
+
+      82% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.1);
+      }
+    }
+
+    .chapel-monitor-shadow-layer.tv-turning-on {
+      animation: commodore-tv-turn-on 1s ease-in forwards;
+      pointer-events: none;
+    }
+
+    .chapel-monitor-shadow-layer.tv-turning-off {
+      animation: commodore-tv-shadow-takeover var(--commodore-tv-turn-off-duration) ease-out forwards;
+      pointer-events: none;
+    }
+
+    .chapel-monitor-shadow-layer.tv-turning-off::before,
+    .chapel-monitor-shadow-layer.tv-turning-off::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      pointer-events: none;
+    }
+
+    .chapel-monitor-shadow-layer.tv-turning-off::before {
+      width: 92%;
+      height: 2px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.95);
+      transform-origin: center;
+      animation: commodore-tv-turn-off-line var(--commodore-tv-turn-off-duration) ease-out forwards;
+    }
+
+    .chapel-monitor-shadow-layer.tv-turning-off::after {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 28px rgba(255, 255, 255, 1);
+      animation: commodore-tv-turn-off-dot var(--commodore-tv-turn-off-duration) ease-out forwards;
     }
 
     .hotspot {
@@ -626,6 +766,7 @@
       let sauceDripResetTimerId = null;
       let commodoreNavigationTimerId = null;
       let isCommodoreNavigationPending = false;
+      let lastCommodorePowerState = null;
 
       function wait(ms) {
         return new Promise((resolve) => {
@@ -963,7 +1104,48 @@
         const monitorShadow = overlayLayer.querySelector('[data-id="chapel-commodore-monitor-shadow"]');
         const isPoweredOn = loadCommodorePowerState();
         powerButton?.classList.toggle('is-powered-on', isPoweredOn);
-        monitorShadow?.classList.toggle('is-powered-on', isPoweredOn);
+        if (!monitorShadow) {
+          lastCommodorePowerState = isPoweredOn;
+          return;
+        }
+        if (lastCommodorePowerState === null) {
+          monitorShadow.classList.remove('tv-turning-on', 'tv-turning-off');
+          monitorShadow.classList.toggle('is-powered-on', isPoweredOn);
+          lastCommodorePowerState = isPoweredOn;
+          return;
+        }
+        if (isPoweredOn !== lastCommodorePowerState) {
+          if (isPoweredOn) {
+            animateChapelMonitorShadowOn(monitorShadow);
+          } else {
+            animateChapelMonitorShadowOff(monitorShadow);
+          }
+        }
+        lastCommodorePowerState = isPoweredOn;
+      }
+
+      function animateChapelMonitorShadowOn(element) {
+        if (!element) return;
+        if (element.classList.contains('is-powered-on') && !element.classList.contains('tv-turning-off')) return;
+        element.classList.remove('is-powered-on', 'tv-turning-off', 'tv-turning-on');
+        void element.offsetHeight;
+        element.classList.add('tv-turning-on');
+        element.addEventListener('animationend', () => {
+          element.classList.remove('tv-turning-on');
+          element.classList.add('is-powered-on');
+        }, { once: true });
+      }
+
+      function animateChapelMonitorShadowOff(element) {
+        if (!element) return;
+        element.classList.remove('tv-turning-on');
+        element.classList.add('is-powered-on');
+        void element.offsetHeight;
+        element.classList.remove('is-powered-on');
+        element.classList.add('tv-turning-off');
+        element.addEventListener('animationend', () => {
+          element.classList.remove('tv-turning-off');
+        }, { once: true });
       }
 
       function getOverlayMetrics() {
