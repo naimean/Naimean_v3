@@ -395,7 +395,7 @@
           urlOverrides = await persistServerOverrides(nextOverrides);
           saveLocalOverrides(urlOverrides);
           renderCards();
-          setEditorStatus('URL updates saved serverside.');
+          setEditorStatus('URL updates saved server-side.');
         } catch (error) {
           setEditorStatus(error.message || 'Could not save URL updates.', true);
         } finally {
@@ -409,7 +409,7 @@
           urlOverrides = await persistServerOverrides({});
           saveLocalOverrides(urlOverrides);
           renderCards();
-          setEditorStatus('URL updates reset serverside.');
+          setEditorStatus('URL updates reset server-side.');
         } catch (error) {
           setEditorStatus(error.message || 'Could not reset URL updates.', true);
         } finally {
