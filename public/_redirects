@@ -7,3 +7,6 @@
 /v2/* / 301
 /Naimean_v2 / 301
 /Naimean_v2/* / 301
+/mame_gui /mame-gui.html 301
+/mame_gui.html /mame-gui.html 301
+/mame-gui /mame-gui.html 301
