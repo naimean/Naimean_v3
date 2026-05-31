@@ -16,7 +16,10 @@ function getAudioFoldersConfig() {
   assert.notEqual(startIndex, -1, 'Expected chapel.html to define AUDIO_FOLDERS');
   assert.notEqual(endIndex, -1, 'Expected chapel.html overlay layer initialization after AUDIO_FOLDERS');
 
-  const objectLiteral = html.slice(startIndex + startToken.length, endIndex).trim();
+  const objectLiteral = html
+    .slice(startIndex + startToken.length, endIndex)
+    .trim()
+    .replace(/;$/, '');
   return new Function(`return (${objectLiteral});`)();
 }
 
