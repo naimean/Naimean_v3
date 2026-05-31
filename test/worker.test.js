@@ -26,6 +26,30 @@ function makeState(initialHotspots) {
   };
 }
 
+function makeKeyedState(initialEntries = {}) {
+  const stored = new Map(Object.entries(initialEntries));
+  const calls = { get: [], put: [] };
+
+  return {
+    state: {
+      storage: {
+        async get(key) {
+          calls.get.push(key);
+          return stored.get(key);
+        },
+        async put(key, value) {
+          calls.put.push({ key, value });
+          stored.set(key, value);
+        }
+      }
+    },
+    calls,
+    getStored(key) {
+      return stored.get(key);
+    }
+  };
+}
+
 test('HotspotStore GET returns default hotspots when storage is empty', async () => {
   const { state } = makeState(undefined);
   const store = new HotspotStore(state);
@@ -160,6 +184,47 @@ test('worker routes /api/hotspots through HOTSPOT_STORE durable object', async (
   assert.equal(response, expectedResponse);
   assert.deepEqual(calls.idFromName, ['den-hotspots']);
   assert.deepEqual(calls.get, ['id:den-hotspots']);
+  assert.equal(calls.stubFetch, 1);
+  assert.equal(calls.assetsFetch, 0);
+});
+
+test('worker routes /api/chapel-hotspots through HOTSPOT_STORE durable object', async () => {
+  const calls = { idFromName: [], get: [], stubFetch: 0, assetsFetch: 0 };
+  const expectedResponse = new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' }
+  });
+
+  const env = {
+    HOTSPOT_STORE: {
+      idFromName(name) {
+        calls.idFromName.push(name);
+        return `id:${name}`;
+      },
+      get(id) {
+        calls.get.push(id);
+        return {
+          async fetch(request) {
+            calls.stubFetch += 1;
+            assert.equal(new URL(request.url).pathname, '/api/chapel-hotspots');
+            return expectedResponse;
+          }
+        };
+      }
+    },
+    ASSETS: {
+      async fetch() {
+        calls.assetsFetch += 1;
+        return new Response('assets');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/api/chapel-hotspots', { method: 'GET' }), env);
+
+  assert.equal(response, expectedResponse);
+  assert.deepEqual(calls.idFromName, ['chapel-hotspots']);
+  assert.deepEqual(calls.get, ['id:chapel-hotspots']);
   assert.equal(calls.stubFetch, 1);
   assert.equal(calls.assetsFetch, 0);
 });
@@ -867,6 +932,105 @@ test('functions HotspotStore POST sanitizes and stores hotspot payloads', async 
   assert.equal(calls.put.length, 1);
   assert.equal(calls.put[0].key, 'hotspots');
   assert.deepEqual(getStored(), body.hotspots);
+});
+
+test('HotspotStore GET returns default chapel hotspot config when storage is empty', async () => {
+  const { state } = makeKeyedState();
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(new Request('https://example.com/api/chapel-hotspots', { method: 'GET' }));
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.anchorPoints, {
+    commodoreButtonsTopLeft: { x: 430, y: 2592 },
+    commodoreButtonsBottomRight: { x: 478, y: 2620 }
+  });
+  assert.deepEqual(body.hotspots, [
+    {
+      id: 'chapel-commodore-power-button',
+      label: 'Commodore power button',
+      variant: 'power-button',
+      anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+      href: '/commodore.html'
+    }
+  ]);
+});
+
+test('HotspotStore POST sanitizes and stores chapel hotspot config', async () => {
+  const { state, calls, getStored } = makeKeyedState();
+  const store = new HotspotStore(state);
+
+  const response = await store.fetch(
+    new Request('https://example.com/api/chapel-hotspots', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        anchorPoints: {
+          commodoreButtonsTopLeft: { x: -12.2, y: 99999.4 },
+          commodoreButtonsBottomRight: { x: 547.4, y: 2182.2 },
+          ignored: { x: 1, y: 2 }
+        },
+        hotspots: [
+          { id: 'chapel-commodore-power-button', href: 'https://example.com/not-allowed' },
+          { id: 'other-hotspot', href: '/ignored' }
+        ]
+      })
+    })
+  );
+
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.deepEqual(body.anchorPoints, {
+    commodoreButtonsTopLeft: { x: 0, y: 3709 },
+    commodoreButtonsBottomRight: { x: 547, y: 2182 }
+  });
+  assert.deepEqual(body.hotspots, [
+    {
+      id: 'chapel-commodore-power-button',
+      label: 'Commodore power button',
+      variant: 'power-button',
+      anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+      href: '/commodore.html'
+    }
+  ]);
+  assert.deepEqual(calls.put, [
+    {
+      key: 'chapel-hotspots',
+      value: {
+        anchorPoints: {
+          commodoreButtonsTopLeft: { x: 0, y: 3709 },
+          commodoreButtonsBottomRight: { x: 547, y: 2182 }
+        },
+        hotspots: [
+          {
+            id: 'chapel-commodore-power-button',
+            label: 'Commodore power button',
+            variant: 'power-button',
+            anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+            href: '/commodore.html'
+          }
+        ]
+      }
+    }
+  ]);
+  assert.deepEqual(getStored('chapel-hotspots'), {
+    anchorPoints: {
+      commodoreButtonsTopLeft: { x: 0, y: 3709 },
+      commodoreButtonsBottomRight: { x: 547, y: 2182 }
+    },
+    hotspots: [
+      {
+        id: 'chapel-commodore-power-button',
+        label: 'Commodore power button',
+        variant: 'power-button',
+        anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+        href: '/commodore.html'
+      }
+    ]
+  });
 });
 
 test('functions HotspotStore returns 405 for unsupported methods', async () => {
