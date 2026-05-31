@@ -483,7 +483,7 @@
           saveLocalOverrides(urlOverrides);
         } catch (_) {
           urlOverrides = parseLocalOverrides();
-          setEditorStatus('Server overrides unavailable. Showing local browser overrides.', true);
+          setEditorStatus('Using local browser overrides until server sync is available.');
         }
         status.hidden = true;
         cards.hidden = false;

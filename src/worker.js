@@ -106,6 +106,11 @@ function errorRedirect(base, errorCode) {
 
 // ─── Asset serving ────────────────────────────────────────────────────────────
 const INDEX_ALIAS_PATHS = new Set(['/den', '/den.html']);
+const ASSET_ALIAS_PATHS = new Map([
+  ['/mame_gui', '/mame-gui.html'],
+  ['/mame_gui.html', '/mame-gui.html'],
+  ['/mame-gui', '/mame-gui.html']
+]);
 
 function isHtmlPath(pathname) {
   if (pathname.startsWith('/api/')) return false;
@@ -125,9 +130,12 @@ async function serveAsset(request, env, pathname) {
   if (!env.ASSETS?.fetch) {
     return jsonResponse({ error: 'Static assets unavailable.' }, 500);
   }
-  const assetRequest = INDEX_ALIAS_PATHS.has(pathname)
-    ? new Request(new URL('/index.html', request.url).toString(), request)
-    : request;
+  let assetRequest = request;
+  if (INDEX_ALIAS_PATHS.has(pathname)) {
+    assetRequest = new Request(new URL('/index.html', request.url).toString(), request);
+  } else if (ASSET_ALIAS_PATHS.has(pathname)) {
+    assetRequest = new Request(new URL(ASSET_ALIAS_PATHS.get(pathname), request.url).toString(), request);
+  }
   const upstream = await env.ASSETS.fetch(assetRequest);
   const headers = new Headers(upstream.headers);
   applyAssetCacheHeaders(pathname, headers);

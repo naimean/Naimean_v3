@@ -462,6 +462,44 @@ test('worker serves den html path through the index asset alias', async () => {
   assert.deepEqual(calls.assetsFetch, ['/index.html']);
 });
 
+test('worker serves /mame_gui through the MAME GUI asset alias', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('mame gui', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/mame_gui'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'mame gui');
+  assert.deepEqual(calls.assetsFetch, ['/mame-gui.html']);
+});
+
+test('worker serves /mame-gui through the MAME GUI asset alias', async () => {
+  const calls = { assetsFetch: [] };
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch(request) {
+        calls.assetsFetch.push(new URL(request.url).pathname);
+        return new Response('mame gui', { status: 200 });
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/mame-gui'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'mame gui');
+  assert.deepEqual(calls.assetsFetch, ['/mame-gui.html']);
+});
+
 test('functions/api/hotspots onRequest delegates to HOTSPOT_STORE durable object', async () => {
   const calls = { idFromName: [], get: [], fetch: 0 };
   const expected = new Response('ok', { status: 200 });
