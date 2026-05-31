@@ -458,6 +458,7 @@
       const SAUCE_DRIP_MIN_INTERVAL_MS = 10_000;
       const SAUCE_DRIP_MAX_INTERVAL_MS = 15_000;
       const SAUCE_DRIP_ANIMATION_MS = 1_600;
+      const SAUCE_DRIP_RESET_BUFFER_MS = 200;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
@@ -735,7 +736,7 @@
 
       function getNextSauceDripDelayMs() {
         const spread = SAUCE_DRIP_MAX_INTERVAL_MS - SAUCE_DRIP_MIN_INTERVAL_MS;
-        return SAUCE_DRIP_MIN_INTERVAL_MS + Math.floor(Math.random() * (spread + 1));
+        return SAUCE_DRIP_MIN_INTERVAL_MS + Math.round(Math.random() * spread);
       }
 
       function scheduleNextSauceDrip() {
@@ -779,7 +780,7 @@
         sauceDripResetTimerId = window.setTimeout(() => {
           droplet.removeEventListener('animationend', resetSauceDrip);
           resetSauceDrip();
-        }, SAUCE_DRIP_ANIMATION_MS + 200);
+        }, SAUCE_DRIP_ANIMATION_MS + SAUCE_DRIP_RESET_BUFFER_MS);
       }
 
       function getDefinitionRect(definition) {
