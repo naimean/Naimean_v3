@@ -372,7 +372,7 @@
       const HOTSPOT_PADDING_DESIGN_PX = 4;
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
-      const INITIAL_VIEWPORT_CENTER_RATIO = 0.5;
+      const INITIAL_SCROLL_POSITION_RATIO = 0.5; // Start halfway through scrollable scene height.
       const ANCHOR_POINTS = {
         commodoreButtonsTopLeft: { x: 430, y: 2592 },
         commodoreButtonsBottomRight: { x: 478, y: 2620 }
@@ -448,7 +448,12 @@
         const viewportHeight = mainScroller.clientHeight || window.innerHeight || 0;
         const sceneHeight = sceneImage?.clientHeight || imageDimensions.height || 0;
         const maxScrollTop = Math.max(0, sceneHeight - viewportHeight);
-        mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_VIEWPORT_CENTER_RATIO);
+        if (maxScrollTop <= 0) {
+          hasInitializedViewport = true;
+          return;
+        }
+
+        mainScroller.scrollTop = Math.round(maxScrollTop * INITIAL_SCROLL_POSITION_RATIO);
         hasInitializedViewport = true;
       }
 
