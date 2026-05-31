@@ -101,7 +101,7 @@
       padding: 0 var(--cab-pad);
       gap: var(--cab-gap);
       will-change: transform;
-      z-index: 1;
+      z-index: 2;
       /* Width is set by JS after cabinets are rendered */
     }
 
@@ -174,7 +174,7 @@
       left: 0;
       right: 0;
       height: var(--floor-h);
-      z-index: 3;
+      z-index: 1;
       pointer-events: none;
       overflow: hidden;
       /* Classic grimy 90s arcade carpet */
@@ -279,7 +279,7 @@
 
     .cabinet-card:hover,
     .cabinet-card:focus-visible {
-      transform: translateY(-6px) scale(1.018);
+      transform: translateY(-6px);
       filter:
         brightness(1.1)
         drop-shadow(0 8px 28px var(--glow, rgba(255, 157, 61, 0.35)))
