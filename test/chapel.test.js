@@ -5,22 +5,36 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const chapelHtmlPath = path.join(repoRoot, 'public', 'chapel.html');
+const folderNames = [
+  'ace_ventura',
+  'silly_goose',
+  'crusty_the_clown',
+  'casey_jones',
+  'rick',
+  'morty',
+  'scrooge_mcduck',
+];
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getChapelHtml() {
+  return fs.readFileSync(chapelHtmlPath, 'utf8');
+}
+
+function getAudioPathsForFolder(html, folder) {
+  const folderPattern = new RegExp(`${escapeRegExp(folder)}:\\s*\\[(?<paths>[\\s\\S]*?)\\n\\s*\\]`, 'm');
+  const match = html.match(folderPattern);
+
+  assert.ok(match?.groups?.paths, `Expected chapel.html to define audio paths for ${folder}`);
+
+  return Array.from(match.groups.paths.matchAll(/'([^']+\.mp3)'/g), (entry) => entry[1]);
+}
 
 function getAudioFoldersConfig() {
   const html = fs.readFileSync(chapelHtmlPath, 'utf8');
-  const startToken = 'const AUDIO_FOLDERS = ';
-  const endToken = '\n      const overlayLayer = document.getElementById(\'overlay-layer\');';
-  const startIndex = html.indexOf(startToken);
-  const endIndex = html.indexOf(endToken, startIndex);
-
-  assert.notEqual(startIndex, -1, 'Expected chapel.html to define AUDIO_FOLDERS');
-  assert.notEqual(endIndex, -1, 'Expected chapel.html overlay layer initialization after AUDIO_FOLDERS');
-
-  const objectLiteral = html
-    .slice(startIndex + startToken.length, endIndex)
-    .trim()
-    .replace(/;$/, '');
-  return new Function(`return (${objectLiteral});`)();
+  return Object.fromEntries(folderNames.map((folder) => [folder, getAudioPathsForFolder(html, folder)]));
 }
 
 test('chapel soundboard uses audio files from each hotspot folder', () => {
@@ -32,7 +46,7 @@ test('chapel soundboard uses audio files from each hotspot folder', () => {
     for (const audioPath of audioPaths) {
       assert.match(
         audioPath,
-        new RegExp(`^assets/audio/${folder.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/.+\\.mp3$`),
+        new RegExp(`^assets/audio/${escapeRegExp(folder)}/.+\\.mp3$`),
         `Expected ${folder} clip to point at an mp3 inside its own folder`,
       );
 
@@ -41,10 +55,8 @@ test('chapel soundboard uses audio files from each hotspot folder', () => {
     }
   }
 });
-
 test('chapel Ace Ventura soundboard matches the mp3s bundled in its folder', () => {
-  const audioFolders = getAudioFoldersConfig();
-  const configuredPaths = [...(audioFolders.ace_ventura ?? [])].sort();
+  const configuredPaths = [...getAudioPathsForFolder(getChapelHtml(), 'ace_ventura')].sort();
   const aceVenturaDir = path.join(repoRoot, 'public', 'assets', 'audio', 'ace_ventura');
   const assetPaths = fs
     .readdirSync(aceVenturaDir)
