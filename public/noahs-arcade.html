@@ -332,6 +332,10 @@
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
     }
 
+    .cabinet-label--override {
+      color: var(--accent);
+    }
+
     /* ── Scroll-edge hint arrows ───────────────────────────── */
 
     .scroll-arrow {
@@ -497,13 +501,18 @@
         return normalizeUrl(cabinet.url) || '';
       }
 
-      function getCabinetLabel(url, fallback) {
+      function getCabinetLabel(url, fallback, isOverride) {
         if (!url) return fallback;
+        let display = fallback;
         try {
-          return new URL(url, window.location.href).hostname || fallback;
+          const parsed = new URL(url, window.location.href);
+          display = parsed.origin !== window.location.origin
+            ? (parsed.hostname || fallback)
+            : (parsed.pathname || fallback);
         } catch (e) {
-          return fallback;
+          /* leave display as fallback */
         }
+        return isOverride ? '\u2605 ' + display : display;
       }
 
       /* ── Accent-glow helper ───────────────────────────────── */
@@ -724,6 +733,7 @@
 
         cabinets.forEach((cabinet) => {
           const url = getCabinetUrl(cabinet, overrides);
+          const hasOverride = !!(normalizeUrl(overrides[cabinet.name]));
 
           const card = document.createElement(url ? 'a' : 'div');
           card.className = 'cabinet-card';
@@ -747,8 +757,8 @@
           card.appendChild(img);
 
           const label = document.createElement('span');
-          label.className = 'cabinet-label';
-          label.textContent = getCabinetLabel(url, cabinet.name);
+          label.className = 'cabinet-label' + (hasOverride ? ' cabinet-label--override' : '');
+          label.textContent = getCabinetLabel(url, cabinet.name, hasOverride);
           card.appendChild(label);
 
           world.appendChild(card);
@@ -763,13 +773,25 @@
 
       /* ── Fetch & go ───────────────────────────────────────── */
 
+      let loadedCabinets = null;
+
+      function renderFromOverrides() {
+        if (!loadedCabinets) return;
+        renderCabinets(loadedCabinets, parseOverrides());
+      }
+
+      /* Re-render if browser restores this page from bfcache */
+      window.addEventListener('pageshow', (e) => {
+        if (e.persisted) renderFromOverrides();
+      });
+
       (async () => {
         try {
           const res = await fetch('/assets/arcade/cabinets.json', { cache: 'no-store' });
           if (!res.ok) throw new Error(`Failed to load cabinets (${res.status})`);
-          const cabinets = await res.json();
+          loadedCabinets = await res.json();
           const overrides = parseOverrides();
-          renderCabinets(cabinets, overrides);
+          renderCabinets(loadedCabinets, overrides);
         } catch (err) {
           loadMsg.textContent = err.message;
         }
