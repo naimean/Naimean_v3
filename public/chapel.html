@@ -171,32 +171,60 @@
 
     .sauce-drop-track {
       position: absolute;
+      left: calc(50% + 50px);
+      top: calc(12% - 50px);
+      width: 18px;
+      height: 72%;
+      transform: translateX(-50%);
       pointer-events: none;
       overflow: visible;
-      z-index: 1;
+      z-index: 6;
     }
 
     .sauce-drop-droplet {
       position: absolute;
       top: 0;
       left: 50%;
-      width: 50%;
-      height: 0;
-      padding-bottom: 60%;
-      transform: translateX(-50%);
-      border-radius: 50% 50% 55% 55% / 45% 45% 58% 58%;
-      background: radial-gradient(circle at 38% 32%, rgba(255, 160, 140, 0.95) 0%, rgba(210, 20, 20, 0.95) 50%, rgba(110, 0, 0, 0.9) 100%);
-      filter: drop-shadow(0 1px 2px rgba(140, 0, 0, 0.55));
-      animation: sauce-drop-fall 4s cubic-bezier(0.3, 0, 0.85, 1) infinite;
+      width: 10px;
+      height: 18px;
+      border-radius: 50% 50% 65% 65%;
+      background: radial-gradient(circle at 35% 26%, rgba(255, 196, 150, 0.78) 0%, rgba(167, 24, 15, 0.94) 65%, rgba(105, 10, 7, 0.98) 100%);
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.6);
     }
 
-    @keyframes sauce-drop-fall {
-      0%   { top: 0%;   opacity: 0; }
-      6%   { top: 0%;   opacity: 1; animation-timing-function: cubic-bezier(0.3, 0, 0.85, 1); }
-      75%  { top: 100%; opacity: 1; }
-      83%  { top: 100%; opacity: 0; animation-timing-function: step-start; }
-      84%  { top: 0%;   opacity: 0; }
-      100% { top: 0%;   opacity: 0; }
+    @keyframes sauce-drip-fall {
+      0% {
+        opacity: 0;
+        top: 0;
+        transform: translate(-50%, 0) scale(0.5);
+      }
+      10% {
+        opacity: 0.95;
+        top: 2%;
+        transform: translate(-50%, 0) scale(0.82, 1.2);
+      }
+      80% {
+        opacity: 0.98;
+        top: calc(100% - 124px);
+        transform: translate(-50%, 0) scale(0.9, 1.26);
+      }
+      100% {
+        opacity: 0;
+        top: calc(100% - 150px);
+        transform: translate(-50%, 0) scale(1.02, 0.82);
+      }
+    }
+
+    @media (max-width: 899px) {
+      .sauce-drop-track {
+        left: calc(50% + 18px);
+      }
+
+      .sauce-drop-droplet {
+        width: 5px;
+        height: 9px;
+      }
     }
 
     .hotspot-label {
@@ -427,6 +455,10 @@
       const MIN_HOTSPOT_SIZE = 20;
       const RESIZE_HANDLE_DIRECTIONS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
       const INITIAL_SCROLL_POSITION_RATIO = 0.5; // Start halfway through scrollable scene height.
+      const SAUCE_DRIP_MIN_INTERVAL_MS = 10_000;
+      const SAUCE_DRIP_MAX_INTERVAL_MS = 15_000;
+      const SAUCE_DRIP_ANIMATION_MS = 1_600;
+      const SAUCE_DRIP_RESET_BUFFER_MS = 200;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
@@ -582,6 +614,8 @@
       const audioElsByUrl = new Map();
       const lastPlayedAudioByFolder = new Map();
       let hasInitializedViewport = false;
+      let sauceDripTimerId = null;
+      let sauceDripResetTimerId = null;
 
       function wait(ms) {
         return new Promise((resolve) => {
@@ -689,6 +723,66 @@
         hasInitializedViewport = true;
       }
 
+      function clearSauceDripTimers() {
+        if (sauceDripTimerId) {
+          window.clearTimeout(sauceDripTimerId);
+          sauceDripTimerId = null;
+        }
+        if (sauceDripResetTimerId) {
+          window.clearTimeout(sauceDripResetTimerId);
+          sauceDripResetTimerId = null;
+        }
+      }
+
+      function getNextSauceDripDelayMs() {
+        const spread = SAUCE_DRIP_MAX_INTERVAL_MS - SAUCE_DRIP_MIN_INTERVAL_MS;
+        return SAUCE_DRIP_MIN_INTERVAL_MS + Math.round(Math.random() * spread);
+      }
+
+      function scheduleNextSauceDrip() {
+        if (!overlayLayer) {
+          return;
+        }
+        if (sauceDripTimerId) {
+          window.clearTimeout(sauceDripTimerId);
+        }
+        sauceDripTimerId = window.setTimeout(() => {
+          triggerSauceDrip();
+        }, getNextSauceDripDelayMs());
+      }
+
+      function triggerSauceDrip() {
+        const droplet = overlayLayer.querySelector('.sauce-drop-droplet');
+        if (!droplet) {
+          scheduleNextSauceDrip();
+          return;
+        }
+        droplet.style.animation = 'none';
+        droplet.getBoundingClientRect();
+        droplet.style.animation = `sauce-drip-fall ${SAUCE_DRIP_ANIMATION_MS}ms ease-in forwards`;
+        if (sauceDripResetTimerId) {
+          window.clearTimeout(sauceDripResetTimerId);
+        }
+        let hasResetDrip = false;
+        const resetSauceDrip = () => {
+          if (hasResetDrip) {
+            return;
+          }
+          hasResetDrip = true;
+          if (sauceDripResetTimerId) {
+            window.clearTimeout(sauceDripResetTimerId);
+            sauceDripResetTimerId = null;
+          }
+          droplet.style.animation = 'none';
+          scheduleNextSauceDrip();
+        };
+        droplet.addEventListener('animationend', resetSauceDrip, { once: true });
+        sauceDripResetTimerId = window.setTimeout(() => {
+          droplet.removeEventListener('animationend', resetSauceDrip);
+          resetSauceDrip();
+        }, SAUCE_DRIP_ANIMATION_MS + SAUCE_DRIP_RESET_BUFFER_MS);
+      }
+
       function getDefinitionRect(definition) {
         return rectFromAnchors(
           definition.anchors[0],
@@ -735,23 +829,23 @@
           applyRectToElement(shadowLayer, CHAPEL_MONITOR_SHADOW, monitorShadowRect);
           overlayLayer.appendChild(shadowLayer);
         }
+        const track = document.createElement('div');
+        track.className = 'sauce-drop-track';
+        track.dataset.id = SAUCE_DROP_TRACK.id;
+        track.setAttribute('aria-hidden', 'true');
+        const droplet = document.createElement('div');
+        droplet.className = 'sauce-drop-droplet';
+        track.appendChild(droplet);
         const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
-        if (sauceDropRect) {
-          const track = document.createElement('div');
-          track.className = 'sauce-drop-track';
-          track.dataset.id = SAUCE_DROP_TRACK.id;
-          track.setAttribute('aria-hidden', 'true');
-          const droplet = document.createElement('div');
-          droplet.className = 'sauce-drop-droplet';
-          track.appendChild(droplet);
+        if (document.body.classList.contains('debug') && sauceDropRect) {
           const label = document.createElement('span');
           label.className = 'hotspot-label';
           label.textContent = formatRectLabel(SAUCE_DROP_TRACK, sauceDropRect);
           track.appendChild(label);
           addResizeHandles(track);
           applyRectToElement(track, SAUCE_DROP_TRACK, sauceDropRect);
-          overlayLayer.appendChild(track);
         }
+        overlayLayer.appendChild(track);
         HOTSPOTS.forEach((definition) => {
           const rect = getDefinitionRect(definition);
           if (!rect) return;
@@ -1137,6 +1231,8 @@
         await loadHotspotsFromServer();
         syncImageDimensions();
         renderHotspots();
+        clearSauceDripTimers();
+        scheduleNextSauceDrip();
         window.requestAnimationFrame(centerInitialViewport);
       }
 
