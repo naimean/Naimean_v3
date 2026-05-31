@@ -542,6 +542,9 @@
       }
 
       function ensureDebugSaveAccess() {
+        if (!document.body.classList.contains('debug')) {
+          return true;
+        }
         if (hasDebugSaveAccess) {
           return true;
         }
@@ -704,7 +707,7 @@
       }
 
       function saveLayout(showFeedback = false) {
-        if (document.body.classList.contains('debug') && !ensureDebugSaveAccess()) {
+        if (!ensureDebugSaveAccess()) {
           if (showFeedback) setSaveButtonState('error', 'Password Required');
           return false;
         }
