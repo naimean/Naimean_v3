@@ -934,6 +934,47 @@ test('functions HotspotStore POST sanitizes and stores hotspot payloads', async 
   assert.deepEqual(getStored(), body.hotspots);
 });
 
+const DEFAULT_CHAPEL_ANCHOR_POINTS_EXPECTED = {
+  aceVenturaTopLeft: { x: 359, y: 2215 },
+  aceVenturaBottomRight: { x: 457, y: 2355 },
+  sillyGooseTopLeft: { x: 289, y: 2303 },
+  sillyGooseBottomRight: { x: 349, y: 2381 },
+  crustyTheClownTopLeft: { x: 4, y: 2285 },
+  crustyTheClownBottomRight: { x: 118, y: 2512 },
+  caseyJonesTopLeft: { x: 129, y: 2230 },
+  caseyJonesBottomRight: { x: 278, y: 2410 },
+  rickTopLeft: { x: 773, y: 2268 },
+  rickBottomRight: { x: 844, y: 2401 },
+  mortyTopLeft: { x: 697, y: 2321 },
+  mortyBottomRight: { x: 762, y: 2401 },
+  scroogeMcduckTopLeft: { x: 855, y: 2249 },
+  scroogeMcduckBottomRight: { x: 989, y: 2511 },
+  chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
+  chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
+  commodoreButtonsTopLeft: { x: 531, y: 2171 },
+  commodoreButtonsBottomRight: { x: 543, y: 2183 },
+  antechamberTopLeft: { x: 305, y: 2928 },
+  antechamberBottomRight: { x: 775, y: 3400 },
+  sauceDropTopLeft: { x: 536, y: 370 },
+  sauceDropBottomRight: { x: 604, y: 2858 }
+};
+
+const DEFAULT_CHAPEL_HOTSPOTS_EXPECTED = [
+  {
+    id: 'chapel-commodore-power-button',
+    label: 'Commodore power button',
+    variant: 'power-button',
+    anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
+    href: '/commodore.html'
+  },
+  {
+    id: 'chapel-antechamber',
+    label: 'Antechamber',
+    anchors: ['antechamberTopLeft', 'antechamberBottomRight'],
+    href: '/antechamber.html'
+  }
+];
+
 test('HotspotStore GET returns default chapel hotspot config when storage is empty', async () => {
   const { state } = makeKeyedState();
   const store = new HotspotStore(state);
@@ -942,21 +983,8 @@ test('HotspotStore GET returns default chapel hotspot config when storage is emp
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.deepEqual(body.anchorPoints, {
-    chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
-    chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
-    commodoreButtonsTopLeft: { x: 430, y: 2592 },
-    commodoreButtonsBottomRight: { x: 478, y: 2620 }
-  });
-  assert.deepEqual(body.hotspots, [
-    {
-      id: 'chapel-commodore-power-button',
-      label: 'Commodore power button',
-      variant: 'power-button',
-      anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
-      href: '/commodore.html'
-    }
-  ]);
+  assert.deepEqual(body.anchorPoints, DEFAULT_CHAPEL_ANCHOR_POINTS_EXPECTED);
+  assert.deepEqual(body.hotspots, DEFAULT_CHAPEL_HOTSPOTS_EXPECTED);
 });
 
 test('HotspotStore POST sanitizes and stores chapel hotspot config', async () => {
@@ -977,6 +1005,7 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
         },
         hotspots: [
           { id: 'chapel-commodore-power-button', href: 'https://example.com/not-allowed' },
+          { id: 'chapel-antechamber', href: '/antechamber-override.html' },
           { id: 'other-hotspot', href: '/ignored' }
         ]
       })
@@ -985,61 +1014,47 @@ test('HotspotStore POST sanitizes and stores chapel hotspot config', async () =>
 
   const body = await response.json();
 
-  assert.equal(response.status, 200);
-  assert.equal(body.ok, true);
-  assert.deepEqual(body.anchorPoints, {
+  // Updated values: provided anchor points are sanitised/clamped; others use defaults
+  const expectedAnchorPoints = {
+    ...DEFAULT_CHAPEL_ANCHOR_POINTS_EXPECTED,
     chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
     chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
     commodoreButtonsTopLeft: { x: 0, y: 3709 },
     commodoreButtonsBottomRight: { x: 547, y: 2182 }
-  });
-  assert.deepEqual(body.hotspots, [
+  };
+
+  const expectedHotspots = [
     {
       id: 'chapel-commodore-power-button',
       label: 'Commodore power button',
       variant: 'power-button',
       anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
       href: '/commodore.html'
+    },
+    {
+      id: 'chapel-antechamber',
+      label: 'Antechamber',
+      anchors: ['antechamberTopLeft', 'antechamberBottomRight'],
+      href: '/antechamber-override.html'
     }
-  ]);
+  ];
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
+  assert.deepEqual(body.anchorPoints, expectedAnchorPoints);
+  assert.deepEqual(body.hotspots, expectedHotspots);
   assert.deepEqual(calls.put, [
     {
       key: 'chapel-hotspots',
       value: {
-        anchorPoints: {
-          chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
-          chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
-          commodoreButtonsTopLeft: { x: 0, y: 3709 },
-          commodoreButtonsBottomRight: { x: 547, y: 2182 }
-        },
-        hotspots: [
-          {
-            id: 'chapel-commodore-power-button',
-            label: 'Commodore power button',
-            variant: 'power-button',
-            anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
-            href: '/commodore.html'
-          }
-        ]
+        anchorPoints: expectedAnchorPoints,
+        hotspots: expectedHotspots
       }
     }
   ]);
   assert.deepEqual(getStored('chapel-hotspots'), {
-    anchorPoints: {
-      chapelMonitorShadowTopLeft: { x: 502, y: 2001 },
-      chapelMonitorShadowBottomRight: { x: 641, y: 2121 },
-      commodoreButtonsTopLeft: { x: 0, y: 3709 },
-      commodoreButtonsBottomRight: { x: 547, y: 2182 }
-    },
-    hotspots: [
-      {
-        id: 'chapel-commodore-power-button',
-        label: 'Commodore power button',
-        variant: 'power-button',
-        anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
-        href: '/commodore.html'
-      }
-    ]
+    anchorPoints: expectedAnchorPoints,
+    hotspots: expectedHotspots
   });
 });
 

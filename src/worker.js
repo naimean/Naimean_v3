@@ -159,10 +159,28 @@ const HOTSPOT_LIMITS = {
 };
 
 const DEFAULT_CHAPEL_ANCHOR_POINTS = {
+  aceVenturaTopLeft: { x: 359, y: 2215 },
+  aceVenturaBottomRight: { x: 457, y: 2355 },
+  sillyGooseTopLeft: { x: 289, y: 2303 },
+  sillyGooseBottomRight: { x: 349, y: 2381 },
+  crustyTheClownTopLeft: { x: 4, y: 2285 },
+  crustyTheClownBottomRight: { x: 118, y: 2512 },
+  caseyJonesTopLeft: { x: 129, y: 2230 },
+  caseyJonesBottomRight: { x: 278, y: 2410 },
+  rickTopLeft: { x: 773, y: 2268 },
+  rickBottomRight: { x: 844, y: 2401 },
+  mortyTopLeft: { x: 697, y: 2321 },
+  mortyBottomRight: { x: 762, y: 2401 },
+  scroogeMcduckTopLeft: { x: 855, y: 2249 },
+  scroogeMcduckBottomRight: { x: 989, y: 2511 },
   chapelMonitorShadowTopLeft: { x: 470, y: 2027 },
   chapelMonitorShadowBottomRight: { x: 608, y: 2116 },
-  commodoreButtonsTopLeft: { x: 430, y: 2592 },
-  commodoreButtonsBottomRight: { x: 478, y: 2620 }
+  commodoreButtonsTopLeft: { x: 531, y: 2171 },
+  commodoreButtonsBottomRight: { x: 543, y: 2183 },
+  antechamberTopLeft: { x: 305, y: 2928 },
+  antechamberBottomRight: { x: 775, y: 3400 },
+  sauceDropTopLeft: { x: 536, y: 370 },
+  sauceDropBottomRight: { x: 604, y: 2858 }
 };
 
 const DEFAULT_CHAPEL_HOTSPOTS = [
@@ -172,6 +190,12 @@ const DEFAULT_CHAPEL_HOTSPOTS = [
     variant: 'power-button',
     anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
     href: '/commodore.html'
+  },
+  {
+    id: 'chapel-antechamber',
+    label: 'Antechamber',
+    anchors: ['antechamberTopLeft', 'antechamberBottomRight'],
+    href: '/antechamber.html'
   }
 ];
 
