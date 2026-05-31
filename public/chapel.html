@@ -710,9 +710,17 @@
         }, COMMODORE_POWER_TRANSITION_MS);
       }
 
-      function handleCommodorePowerAction({ togglePower = false } = {}) {
+      function navigateToCurrentCommodoreState() {
         if (isCommodoreNavigationPending) return;
-        const nextPowerState = togglePower ? !loadCommodorePowerState() : loadCommodorePowerState();
+        const nextPowerState = loadCommodorePowerState();
+        saveCommodoreNavSource();
+        syncChapelPowerButtonState();
+        navigateToCommodoreState(nextPowerState);
+      }
+
+      function toggleCommodorePowerAndNavigate() {
+        if (isCommodoreNavigationPending) return;
+        const nextPowerState = !loadCommodorePowerState();
         saveCommodoreNavSource();
         saveCommodorePowerState(nextPowerState);
         syncChapelPowerButtonState();
@@ -893,13 +901,13 @@
           shadowLayer.title = 'Commodore monitor shadow';
           shadowLayer.addEventListener('click', () => {
             if (document.body.classList.contains('debug')) return;
-            handleCommodorePowerAction();
+            navigateToCurrentCommodoreState();
           });
           shadowLayer.addEventListener('keydown', (event) => {
             if (document.body.classList.contains('debug')) return;
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
-            handleCommodorePowerAction();
+            navigateToCurrentCommodoreState();
           });
           const label = document.createElement('span');
           label.className = 'hotspot-label';
@@ -950,7 +958,7 @@
           } else if (definition.href) {
             button.addEventListener('click', () => {
               if (definition.commodoreNav) {
-                handleCommodorePowerAction({ togglePower: true });
+                toggleCommodorePowerAndNavigate();
                 return;
               }
               window.location.assign(definition.href);
