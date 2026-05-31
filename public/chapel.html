@@ -62,8 +62,15 @@
         inset 0 0 22px rgba(0, 0, 0, 0.95),
         0 0 8px rgba(0, 0, 0, 0.55);
       border-radius: 4px;
-      pointer-events: none;
+      pointer-events: auto;
       z-index: 0;
+      transition: opacity 320ms ease, box-shadow 320ms ease;
+      cursor: pointer;
+    }
+
+    .chapel-monitor-shadow-layer.is-powered-on {
+      opacity: 0;
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
     }
 
     .hotspot {
@@ -469,6 +476,9 @@
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
+      const COMMODORE_OFF_URL = '/commodore_off.html';
+      const COMMODORE_ON_URL = '/commodore_on.html';
+      const COMMODORE_POWER_TRANSITION_MS = 320;
       const ANCHOR_POINTS = {
         aceVenturaTopLeft: { x: 359, y: 2215 },
         aceVenturaBottomRight: { x: 457, y: 2355 },
@@ -547,7 +557,7 @@
           label: 'Commodore power button',
           variant: 'power-button',
           anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
-          href: '/commodore.html',
+          href: '/commodore_off.html',
           commodoreNav: true
         },
         {
@@ -623,6 +633,8 @@
       let hasInitializedViewport = false;
       let sauceDripTimerId = null;
       let sauceDripResetTimerId = null;
+      let commodoreNavigationTimerId = null;
+      let isCommodoreNavigationPending = false;
 
       function wait(ms) {
         return new Promise((resolve) => {
@@ -667,6 +679,44 @@
         } catch {
           return false;
         }
+      }
+
+      function saveCommodorePowerState(isPoweredOn) {
+        try {
+          sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(isPoweredOn));
+        } catch (error) {
+          console.warn('Unable to persist Commodore chapel power state.', error);
+        }
+      }
+
+      function saveCommodoreNavSource() {
+        try {
+          sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_CHAPEL);
+        } catch (error) {
+          console.warn('Unable to persist Commodore chapel navigation source.', error);
+        }
+      }
+
+      function navigateToCommodoreState(isPoweredOn) {
+        if (isCommodoreNavigationPending) return;
+        isCommodoreNavigationPending = true;
+        if (commodoreNavigationTimerId) {
+          window.clearTimeout(commodoreNavigationTimerId);
+        }
+        const targetUrl = isPoweredOn ? COMMODORE_ON_URL : COMMODORE_OFF_URL;
+        commodoreNavigationTimerId = window.setTimeout(() => {
+          commodoreNavigationTimerId = null;
+          window.location.assign(targetUrl);
+        }, COMMODORE_POWER_TRANSITION_MS);
+      }
+
+      function handleCommodorePowerAction({ togglePower = false } = {}) {
+        if (isCommodoreNavigationPending) return;
+        const nextPowerState = togglePower ? !loadCommodorePowerState() : loadCommodorePowerState();
+        saveCommodoreNavSource();
+        saveCommodorePowerState(nextPowerState);
+        syncChapelPowerButtonState();
+        navigateToCommodoreState(nextPowerState);
       }
 
       function getRandomAudioUrl(folder) {
@@ -837,6 +887,20 @@
           const shadowLayer = document.createElement('div');
           shadowLayer.className = 'chapel-monitor-shadow-layer';
           shadowLayer.dataset.id = CHAPEL_MONITOR_SHADOW.id;
+          shadowLayer.setAttribute('role', 'button');
+          shadowLayer.setAttribute('tabindex', '0');
+          shadowLayer.setAttribute('aria-label', 'Commodore monitor shadow');
+          shadowLayer.title = 'Commodore monitor shadow';
+          shadowLayer.addEventListener('click', () => {
+            if (document.body.classList.contains('debug')) return;
+            handleCommodorePowerAction();
+          });
+          shadowLayer.addEventListener('keydown', (event) => {
+            if (document.body.classList.contains('debug')) return;
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            handleCommodorePowerAction();
+          });
           const label = document.createElement('span');
           label.className = 'hotspot-label';
           shadowLayer.appendChild(label);
@@ -886,12 +950,8 @@
           } else if (definition.href) {
             button.addEventListener('click', () => {
               if (definition.commodoreNav) {
-                try {
-                  sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_CHAPEL);
-                  sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(false));
-                } catch (error) {
-                  console.warn('Unable to persist Commodore chapel navigation state.', error);
-                }
+                handleCommodorePowerAction({ togglePower: true });
+                return;
               }
               window.location.assign(definition.href);
             });
@@ -903,7 +963,10 @@
 
       function syncChapelPowerButtonState() {
         const powerButton = overlayLayer.querySelector('[data-id="chapel-commodore-power-button"]');
-        powerButton?.classList.toggle('is-powered-on', loadCommodorePowerState());
+        const monitorShadow = overlayLayer.querySelector('[data-id="chapel-commodore-monitor-shadow"]');
+        const isPoweredOn = loadCommodorePowerState();
+        powerButton?.classList.toggle('is-powered-on', isPoweredOn);
+        monitorShadow?.classList.toggle('is-powered-on', isPoweredOn);
       }
 
       function getOverlayMetrics() {
@@ -1272,7 +1335,14 @@
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
       window.addEventListener('pointercancel', onPointerUp);
-      window.addEventListener('pageshow', syncChapelPowerButtonState);
+      window.addEventListener('pageshow', () => {
+        isCommodoreNavigationPending = false;
+        if (commodoreNavigationTimerId) {
+          window.clearTimeout(commodoreNavigationTimerId);
+          commodoreNavigationTimerId = null;
+        }
+        syncChapelPowerButtonState();
+      });
       window.addEventListener('keydown', onKeyDown);
       debugToggleButton.addEventListener('click', toggleDebugMode);
       saveButton.addEventListener('click', saveHotspots);
