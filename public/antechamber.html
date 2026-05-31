@@ -76,6 +76,22 @@
         pointer-events: none;
       }
 
+      .chapel-hotspot {
+        position: absolute;
+        left: 14.66%;
+        top: 2.93%;
+        width: 11.34%;
+        height: 12.04%;
+        border-radius: 999px;
+        cursor: pointer;
+        z-index: 1;
+      }
+
+      .chapel-hotspot:focus-visible {
+        outline: 2px solid #4ea9ff;
+        outline-offset: 1px;
+      }
+
       @keyframes cursor-blink {
         0%,
         44%,
@@ -115,6 +131,7 @@
       <div class="scan-shadow" aria-hidden="true"></div>
       <div class="cursor-light" aria-hidden="true"></div>
       <span class="colicofusion-cursor" aria-hidden="true">_</span>
+      <a class="chapel-hotspot" href="/chapel.html" aria-label="Go to chapel"></a>
     </div>
   </body>
 </html>
