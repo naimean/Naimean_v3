@@ -371,6 +371,7 @@
       const API_TIMEOUT_MS = 5000;
       const SAVE_RETRY_ATTEMPTS = 3;
       const SAVE_RETRY_DELAY_MS = 350;
+      const SAVE_RETRY_BACKOFF_FACTOR = 2;
       const DEFAULT_SAVE_MODAL_TITLE = 'Copy the updated Chapel hotspot config below';
       const DESIGN_IMAGE_WIDTH = 993;
       const DESIGN_IMAGE_HEIGHT = 3709;
@@ -632,11 +633,11 @@
             if (definition.variant) {
               lines.push(`    variant: '${definition.variant}',`);
             }
-            lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
             if (definition.href) {
+              lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}'],`);
               lines.push(`    href: '${definition.href}'`);
             } else {
-              lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+              lines.push(`    anchors: ['${definition.anchors[0]}', '${definition.anchors[1]}']`);
             }
             lines.push('  }');
             return lines.join('\n');
@@ -763,7 +764,7 @@
           } catch (error) {
             lastError = error;
             if (attempt < SAVE_RETRY_ATTEMPTS) {
-              await wait(SAVE_RETRY_DELAY_MS * (2 ** (attempt - 1)));
+              await wait(SAVE_RETRY_DELAY_MS * (SAVE_RETRY_BACKOFF_FACTOR ** (attempt - 1)));
             }
           }
         }
@@ -843,7 +844,7 @@
           initializeScene();
         }, { once: true });
         sceneImage?.addEventListener('error', () => {
-          renderHotspots();
+          initializeScene();
         }, { once: true });
       }
 
