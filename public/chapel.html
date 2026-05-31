@@ -152,19 +152,51 @@
     }
 
     body.debug .hotspot,
-    body.debug .chapel-monitor-shadow-layer {
+    body.debug .chapel-monitor-shadow-layer,
+    body.debug .sauce-drop-track {
       cursor: move;
       outline: 1px dashed rgba(65, 229, 255, 0.95);
       outline-offset: 0;
       touch-action: none;
     }
 
-    body.debug .chapel-monitor-shadow-layer {
+    body.debug .chapel-monitor-shadow-layer,
+    body.debug .sauce-drop-track {
       pointer-events: auto;
     }
 
     body.debug .power-button-visual {
       overflow: visible;
+    }
+
+    .sauce-drop-track {
+      position: absolute;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 1;
+    }
+
+    .sauce-drop-droplet {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 0;
+      padding-bottom: 60%;
+      transform: translateX(-50%);
+      border-radius: 50% 50% 55% 55% / 45% 45% 58% 58%;
+      background: radial-gradient(circle at 38% 32%, rgba(255, 160, 140, 0.95) 0%, rgba(210, 20, 20, 0.95) 50%, rgba(110, 0, 0, 0.9) 100%);
+      filter: drop-shadow(0 1px 2px rgba(140, 0, 0, 0.55));
+      animation: sauce-drop-fall 4s cubic-bezier(0.3, 0, 0.85, 1) infinite;
+    }
+
+    @keyframes sauce-drop-fall {
+      0%   { top: 0%;   opacity: 0; }
+      6%   { top: 0%;   opacity: 1; animation-timing-function: cubic-bezier(0.3, 0, 0.85, 1); }
+      75%  { top: 100%; opacity: 1; }
+      83%  { top: 100%; opacity: 0; animation-timing-function: step-start; }
+      84%  { top: 0%;   opacity: 0; }
+      100% { top: 0%;   opacity: 0; }
     }
 
     .hotspot-label {
@@ -416,7 +448,11 @@
         chapelMonitorShadowTopLeft: { x: 456, y: 2091 },
         chapelMonitorShadowBottomRight: { x: 530, y: 2145 },
         commodoreButtonsTopLeft: { x: 531, y: 2171 },
-        commodoreButtonsBottomRight: { x: 543, y: 2183 }
+        commodoreButtonsBottomRight: { x: 543, y: 2183 },
+        antechamberTopLeft: { x: 305, y: 2928 },
+        antechamberBottomRight: { x: 775, y: 3400 },
+        sauceDropTopLeft: { x: 536, y: 370 },
+        sauceDropBottomRight: { x: 604, y: 2858 }
       };
       const CHAPEL_MONITOR_SHADOW = {
         id: 'chapel-commodore-monitor-shadow',
@@ -472,9 +508,22 @@
           label: 'Commodore power button',
           variant: 'power-button',
           anchors: ['commodoreButtonsTopLeft', 'commodoreButtonsBottomRight'],
-          href: '/commodore.html'
+          href: '/commodore.html',
+          commodoreNav: true
+        },
+        {
+          id: 'chapel-antechamber',
+          label: 'Antechamber',
+          anchors: ['antechamberTopLeft', 'antechamberBottomRight'],
+          href: '/antechamber.html'
         }
       ];
+      const SAUCE_DROP_TRACK = {
+        id: 'chapel-sauce-drop-track',
+        label: 'Sauce drop',
+        anchors: ['sauceDropTopLeft', 'sauceDropBottomRight'],
+        padding: 0
+      };
       const AUDIO_FOLDERS = {
         ace_ventura: [
           'assets/audio/ace_ventura/let-s-see-that-in-instant-replay-ace-ventura-jim-carrey-replay-rewind.mp3',
@@ -686,6 +735,23 @@
           applyRectToElement(shadowLayer, CHAPEL_MONITOR_SHADOW, monitorShadowRect);
           overlayLayer.appendChild(shadowLayer);
         }
+        const sauceDropRect = getDefinitionRect(SAUCE_DROP_TRACK);
+        if (sauceDropRect) {
+          const track = document.createElement('div');
+          track.className = 'sauce-drop-track';
+          track.dataset.id = SAUCE_DROP_TRACK.id;
+          track.setAttribute('aria-hidden', 'true');
+          const droplet = document.createElement('div');
+          droplet.className = 'sauce-drop-droplet';
+          track.appendChild(droplet);
+          const label = document.createElement('span');
+          label.className = 'hotspot-label';
+          label.textContent = formatRectLabel(SAUCE_DROP_TRACK, sauceDropRect);
+          track.appendChild(label);
+          addResizeHandles(track);
+          applyRectToElement(track, SAUCE_DROP_TRACK, sauceDropRect);
+          overlayLayer.appendChild(track);
+        }
         HOTSPOTS.forEach((definition) => {
           const rect = getDefinitionRect(definition);
           if (!rect) return;
@@ -710,11 +776,13 @@
             });
           } else if (definition.href) {
             button.addEventListener('click', () => {
-              try {
-                sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_CHAPEL);
-                sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(false));
-              } catch (error) {
-                console.warn('Unable to persist Commodore chapel navigation state.', error);
+              if (definition.commodoreNav) {
+                try {
+                  sessionStorage.setItem(COMMODORE_NAV_SOURCE_STORAGE_KEY, COMMODORE_NAV_SOURCE_CHAPEL);
+                  sessionStorage.setItem(COMMODORE_POWER_STATE_STORAGE_KEY, String(false));
+                } catch (error) {
+                  console.warn('Unable to persist Commodore chapel navigation state.', error);
+                }
               }
               window.location.assign(definition.href);
             });
@@ -1016,6 +1084,9 @@
         if (id === CHAPEL_MONITOR_SHADOW.id) {
           return CHAPEL_MONITOR_SHADOW;
         }
+        if (id === SAUCE_DROP_TRACK.id) {
+          return SAUCE_DROP_TRACK;
+        }
         return HOTSPOTS.find((entry) => entry.id === id) || null;
       }
 
@@ -1023,7 +1094,7 @@
         if (!document.body.classList.contains('debug')) return;
         const handle = event.target.closest('.resize-handle');
         if (handle) {
-          const editableElement = handle.closest('.hotspot, .chapel-monitor-shadow-layer');
+          const editableElement = handle.closest('.hotspot, .chapel-monitor-shadow-layer, .sauce-drop-track');
           const definition = getEditableDefinitionById(editableElement?.dataset.id);
           if (definition && editableElement) {
             beginDebugEdit(event, definition, editableElement, 'resize', handle.dataset.direction || null);
@@ -1031,7 +1102,7 @@
           return;
         }
 
-        const editableElement = event.target.closest('.hotspot, .chapel-monitor-shadow-layer');
+        const editableElement = event.target.closest('.hotspot, .chapel-monitor-shadow-layer, .sauce-drop-track');
         if (!editableElement) return;
         const definition = getEditableDefinitionById(editableElement.dataset.id);
         if (!definition) return;
