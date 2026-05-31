@@ -29,7 +29,7 @@ function getAudioPathsForFolder(html, folder) {
 
   assert.ok(match?.groups?.paths, `Expected chapel.html to define audio paths for ${folder}`);
 
-  return Array.from(match.groups.paths.matchAll(/'([^']+\.mp3)'/g), (entry) => entry[1]);
+  return Array.from(match.groups.paths.matchAll(/'([^']+\.(?:mp3|m4a))'/g), (entry) => entry[1]);
 }
 
 function getAudioFoldersConfig() {
@@ -46,8 +46,8 @@ test('chapel soundboard uses audio files from each hotspot folder', () => {
     for (const audioPath of audioPaths) {
       assert.match(
         audioPath,
-        new RegExp(`^assets/audio/${escapeRegExp(folder)}/.+\\.mp3$`),
-        `Expected ${folder} clip to point at an mp3 inside its own folder`,
+        new RegExp(`^assets/audio/${escapeRegExp(folder)}/.+\\.(?:mp3|m4a)$`),
+        `Expected ${folder} clip to point at an mp3 or m4a inside its own folder`,
       );
 
       const filePath = path.join(repoRoot, 'public', audioPath);

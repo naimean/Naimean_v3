@@ -486,7 +486,8 @@
           'assets/audio/crusty_the_clown/krusty_laugh.v20260424.mp3'
         ],
         casey_jones: [
-          'assets/audio/casey_jones/wrong.v20260424.mp3'
+          'assets/audio/casey_jones/wrong.v20260424.mp3',
+          'assets/audio/casey_jones/god_i_hate_punkers.m4a'
         ],
         rick: [
           'assets/audio/rick/rick_nope.v20260424.mp3'
@@ -593,7 +594,7 @@
       async function playRandomFolderAudio(folder) {
         const audioUrl = getRandomAudioUrl(folder);
         if (!audioUrl) {
-          console.warn(`No mp3 assets configured for chapel hotspot folder: ${folder}`);
+          console.warn(`No audio assets configured for chapel hotspot folder: ${folder}`);
           return;
         }
 
