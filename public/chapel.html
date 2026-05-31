@@ -337,6 +337,47 @@
       transform: translate(-50%, 0) scale(0.6);
     }
 
+    .sauce-drop-splatter {
+      position: absolute;
+      left: 50%;
+      top: calc(100% - var(--sauce-drip-end-offset, var(--sauce-drip-end-offset-fallback)));
+      width: 100%;
+      height: clamp(24px, 3.8vw, 44px);
+      transform: translate(-50%, -40%) rotate(var(--sauce-splatter-rotation, 0deg)) skewX(var(--sauce-splatter-skew, 0deg)) scale(var(--sauce-splatter-width-scale, 1), var(--sauce-splatter-height-scale, 1));
+      transform-origin: 50% 56%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+      filter: saturate(1.12);
+    }
+
+    .sauce-drop-splatter::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 56%;
+      width: 36%;
+      height: 62%;
+      transform: translate(-50%, -50%);
+      border-radius: 52% 48% 56% 44% / 50% 56% 44% 50%;
+      background: radial-gradient(circle at 35% 26%, rgba(255, 192, 150, 0.66) 0%, rgba(157, 19, 13, 0.94) 62%, rgba(92, 7, 6, 0.98) 100%);
+      box-shadow: 0 0 1px rgba(255, 174, 136, 0.42);
+    }
+
+    .sauce-drop-splatter-dot {
+      position: absolute;
+      left: var(--dot-x, 50%);
+      top: var(--dot-y, 56%);
+      width: var(--dot-size, 10px);
+      height: var(--dot-size, 10px);
+      transform: translate(-50%, -50%) scale(var(--dot-scale-x, 1.2), var(--dot-scale-y, 0.85)) rotate(var(--dot-rotate, 0deg));
+      transform-origin: center;
+      border-radius: 50%;
+      opacity: var(--dot-alpha, 0.95);
+      background: radial-gradient(circle at 34% 24%, rgba(255, 178, 133, 0.58) 0%, rgba(151, 16, 11, 0.95) 64%, rgba(84, 6, 6, 0.99) 100%);
+      filter: blur(0.15px);
+    }
+
     @keyframes sauce-drip-fall {
       0% {
         opacity: 0;
@@ -357,6 +398,21 @@
         opacity: 0;
         top: calc(100% - var(--sauce-drip-end-offset, var(--sauce-drip-end-offset-fallback)));
         transform: translate(-50%, 0) scale(1.02, 0.82);
+      }
+    }
+
+    @keyframes sauce-drip-splatter {
+      0% {
+        opacity: 0;
+      }
+      18% {
+        opacity: var(--sauce-splatter-alpha, 0.98);
+      }
+      72% {
+        opacity: calc(var(--sauce-splatter-alpha, 0.98) * 0.68);
+      }
+      100% {
+        opacity: 0;
       }
     }
 
@@ -604,6 +660,9 @@
       const SAUCE_DRIP_RESET_BUFFER_MS = 200;
       const SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX = 124;
       const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 150;
+      const SAUCE_SPLATTER_DOT_COUNT = 8;
+      const SAUCE_SPLATTER_ANIMATION_MS = 620;
+      const SAUCE_SPLATTER_START_RATIO = 0.72;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
       const COMMODORE_POWER_STATE_STORAGE_KEY = 'commodore.screen.poweredOn.v1';
       const COMMODORE_NAV_SOURCE_CHAPEL = 'chapel';
@@ -989,6 +1048,31 @@
         return SAUCE_DRIP_MIN_INTERVAL_MS + Math.round(Math.random() * spread);
       }
 
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function configureSauceSplatter(splatter) {
+        if (!splatter) {
+          return;
+        }
+        splatter.style.setProperty('--sauce-splatter-width-scale', `${randomBetween(0.88, 1.04).toFixed(3)}`);
+        splatter.style.setProperty('--sauce-splatter-height-scale', `${randomBetween(0.86, 1.08).toFixed(3)}`);
+        splatter.style.setProperty('--sauce-splatter-rotation', `${randomBetween(-7, 7).toFixed(2)}deg`);
+        splatter.style.setProperty('--sauce-splatter-skew', `${randomBetween(-4, 4).toFixed(2)}deg`);
+        splatter.style.setProperty('--sauce-splatter-alpha', `${randomBetween(0.9, 1).toFixed(3)}`);
+        const dots = splatter.querySelectorAll('.sauce-drop-splatter-dot');
+        dots.forEach((dot) => {
+          dot.style.setProperty('--dot-x', `${randomBetween(15, 85).toFixed(2)}%`);
+          dot.style.setProperty('--dot-y', `${randomBetween(38, 74).toFixed(2)}%`);
+          dot.style.setProperty('--dot-size', `${randomBetween(6.5, 12.5).toFixed(2)}px`);
+          dot.style.setProperty('--dot-scale-x', `${randomBetween(0.95, 1.75).toFixed(3)}`);
+          dot.style.setProperty('--dot-scale-y', `${randomBetween(0.5, 1.05).toFixed(3)}`);
+          dot.style.setProperty('--dot-rotate', `${randomBetween(-40, 40).toFixed(2)}deg`);
+          dot.style.setProperty('--dot-alpha', `${randomBetween(0.8, 1).toFixed(3)}`);
+        });
+      }
+
       function scheduleNextSauceDrip() {
         if (!overlayLayer) {
           return;
@@ -1003,13 +1087,17 @@
 
       function triggerSauceDrip() {
         const droplet = overlayLayer.querySelector('.sauce-drop-droplet');
-        if (!droplet) {
+        const splatter = overlayLayer.querySelector('.sauce-drop-splatter');
+        if (!droplet || !splatter) {
           scheduleNextSauceDrip();
           return;
         }
         droplet.style.animation = 'none';
+        splatter.style.animation = 'none';
+        configureSauceSplatter(splatter);
         droplet.getBoundingClientRect();
         droplet.style.animation = `sauce-drip-fall ${SAUCE_DRIP_ANIMATION_MS}ms ease-in forwards`;
+        splatter.style.animation = `sauce-drip-splatter ${SAUCE_SPLATTER_ANIMATION_MS}ms ease-out ${Math.round(SAUCE_DRIP_ANIMATION_MS * SAUCE_SPLATTER_START_RATIO)}ms forwards`;
         if (sauceDripResetTimerId) {
           window.clearTimeout(sauceDripResetTimerId);
         }
@@ -1024,6 +1112,7 @@
             sauceDripResetTimerId = null;
           }
           droplet.style.animation = 'none';
+          splatter.style.animation = 'none';
           scheduleNextSauceDrip();
         };
         droplet.addEventListener('animationend', resetSauceDrip, { once: true });
@@ -1113,6 +1202,14 @@
         track.className = 'sauce-drop-track';
         track.dataset.id = SAUCE_DROP_TRACK.id;
         track.setAttribute('aria-hidden', 'true');
+        const splatter = document.createElement('div');
+        splatter.className = 'sauce-drop-splatter';
+        for (let index = 0; index < SAUCE_SPLATTER_DOT_COUNT; index += 1) {
+          const splatterDot = document.createElement('span');
+          splatterDot.className = 'sauce-drop-splatter-dot';
+          splatter.appendChild(splatterDot);
+        }
+        track.appendChild(splatter);
         const droplet = document.createElement('div');
         droplet.className = 'sauce-drop-droplet';
         track.appendChild(droplet);
