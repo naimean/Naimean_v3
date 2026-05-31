@@ -757,15 +757,29 @@
           return;
         }
         droplet.style.animation = 'none';
-        void droplet.offsetHeight;
+        droplet.getBoundingClientRect();
         droplet.style.animation = `sauce-drip-fall ${SAUCE_DRIP_ANIMATION_MS}ms ease-in forwards`;
         if (sauceDripResetTimerId) {
           window.clearTimeout(sauceDripResetTimerId);
         }
-        sauceDripResetTimerId = window.setTimeout(() => {
+        let hasResetDrip = false;
+        const resetSauceDrip = () => {
+          if (hasResetDrip) {
+            return;
+          }
+          hasResetDrip = true;
+          if (sauceDripResetTimerId) {
+            window.clearTimeout(sauceDripResetTimerId);
+            sauceDripResetTimerId = null;
+          }
           droplet.style.animation = 'none';
           scheduleNextSauceDrip();
-        }, SAUCE_DRIP_ANIMATION_MS);
+        };
+        droplet.addEventListener('animationend', resetSauceDrip, { once: true });
+        sauceDripResetTimerId = window.setTimeout(() => {
+          droplet.removeEventListener('animationend', resetSauceDrip);
+          resetSauceDrip();
+        }, SAUCE_DRIP_ANIMATION_MS + 200);
       }
 
       function getDefinitionRect(definition) {
