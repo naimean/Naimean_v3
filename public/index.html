@@ -4930,7 +4930,7 @@
       function getZeldaSecretAudioElement() {
         if (!zeldaSecretAudioEl) {
           zeldaSecretAudioEl = new Audio(ZELDA_SECRET_AUDIO_URL);
-          zeldaSecretAudioEl.preload = 'auto';
+          zeldaSecretAudioEl.preload = 'metadata';
         }
         return zeldaSecretAudioEl;
       }
@@ -6031,7 +6031,7 @@
         let audioEl = flipClockRadioTuningAudioElsByUrl.get(audioUrl);
         if (!audioEl) {
           audioEl = new Audio(audioUrl);
-          audioEl.preload = 'auto';
+          audioEl.preload = 'metadata';
           audioEl.loop = true;
           flipClockRadioTuningAudioElsByUrl.set(audioUrl, audioEl);
         }
@@ -6410,7 +6410,7 @@
             bigTvScreensaverStaticVideoEl = document.createElement('video');
             bigTvScreensaverStaticVideoEl.className = 'big-tv-screensaver-static';
             bigTvScreensaverStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
-            bigTvScreensaverStaticVideoEl.preload = 'auto';
+            bigTvScreensaverStaticVideoEl.preload = 'metadata';
             bigTvScreensaverStaticVideoEl.muted = true;
             bigTvScreensaverStaticVideoEl.defaultMuted = true;
             bigTvScreensaverStaticVideoEl.playsInline = true;
@@ -6442,7 +6442,7 @@
             aquariumStaticVideoEl = document.createElement('video');
             aquariumStaticVideoEl.className = 'discord-static-video';
             aquariumStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
-            aquariumStaticVideoEl.preload = 'auto';
+            aquariumStaticVideoEl.preload = 'metadata';
             aquariumStaticVideoEl.muted = true;
             aquariumStaticVideoEl.defaultMuted = true;
             aquariumStaticVideoEl.playsInline = true;
@@ -6813,7 +6813,7 @@
             leftMonitorStaticVideoEl = document.createElement('video');
             leftMonitorStaticVideoEl.className = 'overlay-static-video';
             leftMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
-            leftMonitorStaticVideoEl.preload = 'auto';
+            leftMonitorStaticVideoEl.preload = 'metadata';
             leftMonitorStaticVideoEl.muted = true;
             leftMonitorStaticVideoEl.defaultMuted = true;
             leftMonitorStaticVideoEl.loop = true;
@@ -6910,7 +6910,7 @@
             rightMonitorStaticVideoEl = document.createElement('video');
             rightMonitorStaticVideoEl.className = 'overlay-static-video';
             rightMonitorStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
-            rightMonitorStaticVideoEl.preload = 'auto';
+            rightMonitorStaticVideoEl.preload = 'metadata';
             rightMonitorStaticVideoEl.muted = true;
             rightMonitorStaticVideoEl.defaultMuted = true;
             rightMonitorStaticVideoEl.loop = true;

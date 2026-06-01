@@ -1023,7 +1023,7 @@
         let audioEl = audioElsByUrl.get(audioUrl);
         if (!audioEl) {
           audioEl = new Audio(audioUrl);
-          audioEl.preload = 'auto';
+          audioEl.preload = 'metadata';
           audioElsByUrl.set(audioUrl, audioEl);
         }
         return audioEl;

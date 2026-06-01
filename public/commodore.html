@@ -524,8 +524,15 @@
       let shouldRouteBackToDen = consumeCommodoreEntrySource() === COMMODORE_NAV_SOURCE_DEN;
       let isPoweringOff = false;
       let powerOffNavigationTimeoutId = null;
-      const powerOffAudioEl = new Audio(COMMODORE_POWER_OFF_SFX_URL);
-      powerOffAudioEl.preload = 'auto';
+      let powerOffAudioEl = null;
+
+      function getPowerOffAudioElement() {
+        if (!powerOffAudioEl) {
+          powerOffAudioEl = new Audio(COMMODORE_POWER_OFF_SFX_URL);
+          powerOffAudioEl.preload = 'metadata';
+        }
+        return powerOffAudioEl;
+      }
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(value, max));
@@ -676,7 +683,8 @@
         isPoweredOn = false;
         applyPowerState({ animateOff: true });
         savePowerState();
-        powerOffAudioEl.currentTime = 0;
+        const audioEl = getPowerOffAudioElement();
+        audioEl.currentTime = 0;
         schedulePowerOffNavigation();
         const complete = () => {
           if (powerOffNavigationTimeoutId) {
@@ -685,9 +693,9 @@
           }
           navigateToChapel();
         };
-        powerOffAudioEl.addEventListener('ended', complete, { once: true });
+        audioEl.addEventListener('ended', complete, { once: true });
         try {
-          await powerOffAudioEl.play();
+          await audioEl.play();
         } catch (error) {
           console.warn('Unable to play Commodore power-off audio.', error);
         }
