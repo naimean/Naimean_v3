@@ -2902,7 +2902,14 @@
         'overlay-big-tv-control',
         'right-monitor'
       ]);
-      const BIG_TV_DVD_GIF_URL = 'assets/video/dvd.gif';
+      const DEFAULT_BIG_TV_RIGHT_MONITOR_OVERLAY_STATE = 'blue_discord';
+      const BIG_TV_RIGHT_MONITOR_OVERLAY_STATE_UNKNOWN = 'unknown';
+      const BIG_TV_RIGHT_MONITOR_OVERLAY_BLUE_IMAGE_URL = 'assets/images/join_disc_blue.png';
+      const BIG_TV_SCREENSAVER_GIF_URLS = Object.freeze([
+        'assets/GIF/big_screen_TV/dvd.gif',
+        'assets/GIF/big_screen_TV/rotating_square.gif'
+      ]);
+      const BIG_TV_DVD_GIF_URL = BIG_TV_SCREENSAVER_GIF_URLS[0];
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
@@ -2950,7 +2957,7 @@
       const DISCORD_WIDGET_URL = DISCORD_GUILD_ID
         ? `https://discord.com/widget?id=${DISCORD_GUILD_ID}&theme=dark`
         : null;
-      const DISCORD_BUTTON_IMAGE_URL = 'assets/images/join_disc_blue.png';
+      const DISCORD_BUTTON_IMAGE_URL = BIG_TV_RIGHT_MONITOR_OVERLAY_BLUE_IMAGE_URL;
       const STARSHRIMP_LOGO_IMAGE_URL = 'assets/images/starshrimp_logo.png';
       const COMMODORE_DESK_IMAGE_URL = 'assets/images/commodore-desk-overlay.png';
       const LEFT_MONITOR_SIDE_FRAME_IMAGE_URL = 'assets/images/L_Frame.png';
@@ -3235,6 +3242,8 @@
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
       let bigTvDvdOverlayEl = null;
+      let bigTvDvdGifEl = null;
+      let activeBigTvScreensaverGifUrl = BIG_TV_DVD_GIF_URL;
       let isBigTvDvdLoopInterrupted = false;
       let aquariumSequenceToken = 0;
       let aquariumLoopOwnerToken = 0;
@@ -3329,14 +3338,67 @@
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x - SCENE_OFFSET_X;
       }
 
-      function syncBigTvContentVisibility() {
+      function hasActiveBigTvContentOverlay() {
         const aquariumActive = aquariumStaticOverlayEl?.classList.contains('is-active');
         const nedryGateActive = nedryGateOverlayEl?.classList.contains('is-active');
         const promptActive = isBigTvPromptActive;
         const toolsActive = isBigTvToolsActive;
         const loginActive = isLoginActive;
         const calendarActive = isCalendarBigTvActive;
-        const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive || calendarActive;
+        return aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive || calendarActive;
+      }
+
+      function getCurrentRightMonitorOverlayState() {
+        const rightMonitorOverlayImageUrl = discordButtonImgEl?.getAttribute('src') || DISCORD_BUTTON_IMAGE_URL;
+        if (rightMonitorOverlayImageUrl.includes(BIG_TV_RIGHT_MONITOR_OVERLAY_BLUE_IMAGE_URL)) {
+          return DEFAULT_BIG_TV_RIGHT_MONITOR_OVERLAY_STATE;
+        }
+        return BIG_TV_RIGHT_MONITOR_OVERLAY_STATE_UNKNOWN;
+      }
+
+      function hasDefaultMonitorOverlays() {
+        return (
+          leftMonitorSelectedState === DEFAULT_LEFT_MONITOR_STATE &&
+          getCurrentRightMonitorOverlayState() === DEFAULT_BIG_TV_RIGHT_MONITOR_OVERLAY_STATE
+        );
+      }
+
+      function isBigTvScreensaverPlaying() {
+        return (
+          isBigTvMonitorInteractive() &&
+          !isBigTvDvdLoopInterrupted &&
+          !!bigTvDvdOverlayEl &&
+          bigTvDvdOverlayEl.classList.contains('is-active') &&
+          !hasActiveBigTvContentOverlay() &&
+          hasDefaultMonitorOverlays()
+        );
+      }
+
+      function setBigTvScreensaverGifUrl(nextUrl) {
+        if (!bigTvDvdGifEl || !bigTvDvdGifEl.isConnected || !nextUrl) {
+          return false;
+        }
+        bigTvDvdGifEl.src = nextUrl;
+        activeBigTvScreensaverGifUrl = nextUrl;
+        return true;
+      }
+
+      function getNextRandomBigTvScreensaverUrl(currentUrl) {
+        const uniqueScreensaverUrls = [...new Set(BIG_TV_SCREENSAVER_GIF_URLS)];
+        if (uniqueScreensaverUrls.length === 1) {
+          return uniqueScreensaverUrls[0];
+        }
+        const choices = uniqueScreensaverUrls.filter((url) => url !== currentUrl);
+        return choices[Math.floor(Math.random() * choices.length)];
+      }
+
+      function playNextRandomBigTvScreensaver() {
+        const nextUrl = getNextRandomBigTvScreensaverUrl(activeBigTvScreensaverGifUrl);
+        return !!nextUrl && setBigTvScreensaverGifUrl(nextUrl);
+      }
+
+      function syncBigTvContentVisibility() {
+        const shouldShowBigTvOverlay = hasActiveBigTvContentOverlay();
         if (shouldShowBigTvOverlay) {
           interruptBigTvDvdLoop();
         }
@@ -6089,6 +6151,9 @@
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
+              if (isBigTvScreensaverPlaying() && playNextRandomBigTvScreensaver()) {
+                return;
+              }
               interruptBigTvDvdLoop();
               setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
               void enterBigTvFullscreen();
@@ -6137,6 +6202,8 @@
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
         bigTvDvdOverlayEl = null;
+        bigTvDvdGifEl = null;
+        activeBigTvScreensaverGifUrl = BIG_TV_DVD_GIF_URL;
         isBigTvDvdLoopInterrupted = false;
         bigTvPromptOverlayEl = null;
         bigTvPromptSecretBoxEl = null;
@@ -6199,9 +6266,9 @@
             bigTvDvdOverlayEl = document.createElement('div');
             bigTvDvdOverlayEl.className = 'discord-static-overlay is-active';
             bigTvDvdOverlayEl.setAttribute('aria-hidden', 'false');
-            const bigTvDvdGifEl = document.createElement('img');
+            bigTvDvdGifEl = document.createElement('img');
             bigTvDvdGifEl.className = 'big-tv-dvd-gif';
-            bigTvDvdGifEl.src = BIG_TV_DVD_GIF_URL;
+            bigTvDvdGifEl.src = activeBigTvScreensaverGifUrl;
             bigTvDvdGifEl.alt = 'DVD logo animation';
             bigTvDvdGifEl.draggable = false;
             bigTvDvdGifEl.loading = 'eager';
