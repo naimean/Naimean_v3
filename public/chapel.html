@@ -1125,6 +1125,7 @@
             droplet.style.opacity = '0';
             return;
           }
+          droplet.style.opacity = '';
           const angle = randomBetween(0, 360) * (Math.PI / 180);
           const distance = randomBetween(SAUCE_SPLATTER_DROPLET_MIN_DISTANCE_PX, SAUCE_SPLATTER_DROPLET_MAX_DISTANCE_PX);
           const travelX = Math.cos(angle) * distance;
@@ -1136,6 +1137,7 @@
           droplet.style.setProperty('--sauce-splatter-droplet-alpha', `${randomBetween(0.52, 0.9).toFixed(3)}`);
           const duration = Math.round(randomBetween(300, 540));
           const delay = Math.round(randomBetween(0, 60));
+          droplet.getBoundingClientRect();
           droplet.style.animation = `sauce-drip-splatter-droplet ${duration}ms cubic-bezier(0.18, 0.6, 0.3, 1) ${delay}ms forwards`;
         });
       }
