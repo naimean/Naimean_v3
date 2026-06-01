@@ -132,7 +132,7 @@
         opacity: calc(var(--sauce-splatter-droplet-alpha, 0.82) * 0.78);
         transform: translate(
           calc(-50% + (var(--sauce-splatter-droplet-x, 0px) * 0.55)),
-          calc(-50% + (var(--sauce-splatter-droplet-y, 0px) * 0.55) - var(--sauce-splatter-droplet-arc, 12px))
+          calc(-50% + (var(--sauce-splatter-droplet-y, 0px) * 0.55) - (var(--sauce-splatter-droplet-arc, 12px) * 1.3))
         ) scale(1);
       }
       100% {
@@ -694,12 +694,12 @@
       const SAUCE_DRIP_ANIMATION_MS = 1_600;
       const SAUCE_DRIP_RESET_BUFFER_MS = 200;
       const SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX = 124;
-      const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 150;
+      const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 140;
       const SAUCE_SPLATTER_DOT_COUNT = 8;
       const SAUCE_SPLATTER_DROPLET_MIN_COUNT = 2;
       const SAUCE_SPLATTER_DROPLET_MAX_COUNT = 5;
       const SAUCE_SPLATTER_DROPLET_MIN_DISTANCE_PX = 15;
-      const SAUCE_SPLATTER_DROPLET_MAX_DISTANCE_PX = 50;
+      const SAUCE_SPLATTER_DROPLET_MAX_DISTANCE_PX = 150;
       const SAUCE_SPLATTER_ANIMATION_MS = 620;
       const SAUCE_SPLATTER_START_RATIO = 0.72;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
@@ -1131,7 +1131,7 @@
           const travelY = Math.sin(angle) * distance;
           droplet.style.setProperty('--sauce-splatter-droplet-x', `${travelX.toFixed(2)}px`);
           droplet.style.setProperty('--sauce-splatter-droplet-y', `${travelY.toFixed(2)}px`);
-          droplet.style.setProperty('--sauce-splatter-droplet-arc', `${randomBetween(8, 18).toFixed(2)}px`);
+          droplet.style.setProperty('--sauce-splatter-droplet-arc', `${randomBetween(24, 60).toFixed(2)}px`);
           droplet.style.setProperty('--sauce-splatter-droplet-size', `${randomBetween(2.4, 5.4).toFixed(2)}px`);
           droplet.style.setProperty('--sauce-splatter-droplet-alpha', `${randomBetween(0.52, 0.9).toFixed(3)}`);
           const duration = Math.round(randomBetween(300, 540));
