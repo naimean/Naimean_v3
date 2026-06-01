@@ -1055,6 +1055,14 @@
       visibility: visible;
     }
 
+    .big-tv-dvd-gif {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: fill;
+      background: #000;
+    }
+
     .big-tv-tools-overlay {
       position: absolute;
       inset: 0;
@@ -2890,6 +2898,7 @@
         'overlay-big-tv-control',
         'right-monitor'
       ]);
+      const BIG_TV_DVD_GIF_URL = 'assets/video/dvd.gif';
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
@@ -3221,6 +3230,8 @@
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
       let aquariumStaticVideoEl = null;
+      let bigTvDvdOverlayEl = null;
+      let isBigTvDvdLoopInterrupted = false;
       let aquariumSequenceToken = 0;
       let aquariumLoopOwnerToken = 0;
       let isRightMonitorAquariumSequenceRunning = false;
@@ -3322,6 +3333,9 @@
         const loginActive = isLoginActive;
         const calendarActive = isCalendarBigTvActive;
         const shouldShowBigTvOverlay = aquariumActive || nedryGateActive || promptActive || toolsActive || loginActive || calendarActive;
+        if (shouldShowBigTvOverlay) {
+          interruptBigTvDvdLoop();
+        }
         const discordOverlayEl = overlayElementsById.get(DISCORD_OVERLAY_ID);
         const fullscreenElement = document.fullscreenElement;
         if (discordOverlayEl) {
@@ -4284,6 +4298,17 @@
           }
         }
         syncBigTvContentVisibility();
+      }
+
+      function interruptBigTvDvdLoop() {
+        if (isBigTvDvdLoopInterrupted) {
+          return;
+        }
+        isBigTvDvdLoopInterrupted = true;
+        if (bigTvDvdOverlayEl) {
+          bigTvDvdOverlayEl.classList.remove('is-active');
+          bigTvDvdOverlayEl.setAttribute('aria-hidden', 'true');
+        }
       }
 
       async function playAquariumStaticPass(sequenceToken) {
@@ -6060,6 +6085,7 @@
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
+              interruptBigTvDvdLoop();
               setLeftMonitorState(DEFAULT_LEFT_MONITOR_STATE);
               void enterBigTvFullscreen();
               return;
@@ -6106,6 +6132,8 @@
         aquariumOverlayEl = null;
         aquariumStaticOverlayEl = null;
         aquariumStaticVideoEl = null;
+        bigTvDvdOverlayEl = null;
+        isBigTvDvdLoopInterrupted = false;
         bigTvPromptOverlayEl = null;
         bigTvPromptSecretBoxEl = null;
         bigTvPromptSecretEl = null;
@@ -6164,6 +6192,18 @@
 
           if (overlay.id === DISCORD_OVERLAY_ID) {
             el.classList.add('discord-widget-overlay', 'big-tv-fullscreen-target');
+            bigTvDvdOverlayEl = document.createElement('div');
+            bigTvDvdOverlayEl.className = 'discord-static-overlay is-active';
+            bigTvDvdOverlayEl.setAttribute('aria-hidden', 'false');
+            const bigTvDvdGifEl = document.createElement('img');
+            bigTvDvdGifEl.className = 'big-tv-dvd-gif';
+            bigTvDvdGifEl.src = BIG_TV_DVD_GIF_URL;
+            bigTvDvdGifEl.alt = 'DVD logo animation';
+            bigTvDvdGifEl.draggable = false;
+            bigTvDvdGifEl.loading = 'eager';
+            bigTvDvdGifEl.decoding = 'async';
+            bigTvDvdOverlayEl.appendChild(bigTvDvdGifEl);
+            el.appendChild(bigTvDvdOverlayEl);
             if (DISCORD_WIDGET_URL) {
               const widgetFrame = document.createElement('iframe');
               widgetFrame.className = 'discord-widget-frame';
