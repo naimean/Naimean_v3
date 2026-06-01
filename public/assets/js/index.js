@@ -618,7 +618,7 @@
 
       function scheduleNonCriticalTask(callback, { timeout = 1500 } = {}) {
         if (typeof window.requestIdleCallback === 'function') {
-          window.requestIdleCallback(() => callback(), { timeout });
+          window.requestIdleCallback(callback, { timeout });
           return;
         }
         window.requestAnimationFrame(() => {
@@ -641,6 +641,8 @@
 
       function observePerformanceMetrics() {
         const navigationEntry = perfApi?.getEntriesByType?.('navigation')?.[0];
+        // activationStart is the Web Vitals baseline for prerender/BFCache restores;
+        // regular navigations continue to use the navigation start time (0).
         const activationStart = Number.isFinite(navigationEntry?.activationStart)
           ? navigationEntry.activationStart
           : 0;
@@ -4923,6 +4925,7 @@
         const saveResultFlash = consumeSaveResultFlash();
         hotspots = sourceHotspotsToRuntime(defaultHotspots);
 
+        // Queue the LCP scene imagery before heavier overlay construction work.
         measureSyncSection('naimean-create-scene-tiles', createSceneTiles);
         measureSyncSection('naimean-create-overlays', createOverlays);
         syncDiscordAuthBodyClass();
