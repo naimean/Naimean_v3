@@ -1422,13 +1422,14 @@
       pointer-events: auto;
     }
 
-    .calendar-big-tv-iframe {
+    .calendar-big-tv-image {
       display: block;
       width: 100%;
       height: 100%;
-      border: none;
+      border: 0;
       pointer-events: none;
-      overflow: hidden;
+      object-fit: cover;
+      object-position: center;
     }
 
     .login-header {
@@ -2990,7 +2991,10 @@
       const DEN_URL_OVERRIDES_STORAGE_KEY = 'naimean.den.urlOverrides';
       const BIG_TV_TOOLS_LOGO_URL = 'assets/images/tools_logo.png';
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
-      const CALENDAR_HTML_URL = '/calendar.html';
+      const CALENDAR_MONTH_IMAGE_BASE_URL = 'assets/image/calendar';
+      const CALENDAR_MONTH_IMAGE_START = Object.freeze({ year: 2026, month: 4 }); // May 2026, zero-based month
+      const CALENDAR_MONTH_IMAGE_END = Object.freeze({ year: 2030, month: 4 }); // May 2030, zero-based month
+      const CALENDAR_MONTH_NAME_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'long' });
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
       const BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS = `${BIG_TV_INTERACTIVE_UI_SELECTORS}, button, input, select, textarea, a, iframe, [contenteditable="true"]`;
       // Keep values comfortably within localStorage and the on-screen form layout.
@@ -3293,7 +3297,7 @@
       let bigTvToolsEntries = loadBigTvToolsEntries();
       let loginOverlayEl = null;
       let calendarBigTvOverlayEl = null;
-      let calendarIframeEl = null;
+      let calendarMonthImageEl = null;
       let isCalendarBigTvActive = false;
       let loginStatusBadgeEl = null;
       let loginTitleEl = null;
@@ -4138,13 +4142,42 @@
         syncBigTvContentVisibility();
       }
 
+      function compareCalendarMonths(aYear, aMonth, bYear, bMonth) {
+        if (aYear !== bYear) {
+          return aYear - bYear;
+        }
+        return aMonth - bMonth;
+      }
+
+      function resolveCalendarImageMonth(date = new Date()) {
+        let year = date.getFullYear();
+        let month = date.getMonth();
+
+        if (compareCalendarMonths(year, month, CALENDAR_MONTH_IMAGE_START.year, CALENDAR_MONTH_IMAGE_START.month) < 0) {
+          year = CALENDAR_MONTH_IMAGE_START.year;
+          month = CALENDAR_MONTH_IMAGE_START.month;
+        } else if (compareCalendarMonths(year, month, CALENDAR_MONTH_IMAGE_END.year, CALENDAR_MONTH_IMAGE_END.month) > 0) {
+          year = CALENDAR_MONTH_IMAGE_END.year;
+          month = CALENDAR_MONTH_IMAGE_END.month;
+        }
+
+        return { year, month };
+      }
+
+      function getCalendarMonthImageUrl(date = new Date()) {
+        const { year, month } = resolveCalendarImageMonth(date);
+        const monthLabel = CALENDAR_MONTH_NAME_FORMATTER.format(new Date(year, month, 1));
+        const fileName = `${monthLabel} ${year}.png`;
+        return `${CALENDAR_MONTH_IMAGE_BASE_URL}/${encodeURIComponent(fileName)}`;
+      }
+
       function showCalendarBigTvOverlay() {
         if (!calendarBigTvOverlayEl) {
           return;
         }
         isCalendarBigTvActive = true;
-        if (calendarIframeEl && !calendarIframeEl.getAttribute('src')) {
-          calendarIframeEl.src = CALENDAR_HTML_URL;
+        if (calendarMonthImageEl) {
+          calendarMonthImageEl.src = getCalendarMonthImageUrl(new Date());
         }
         calendarBigTvOverlayEl.classList.add('is-active');
         calendarBigTvOverlayEl.setAttribute('aria-hidden', 'false');
@@ -6291,7 +6324,7 @@
         loginOverlayEl = null;
         isLoginActive = false;
         calendarBigTvOverlayEl = null;
-        calendarIframeEl = null;
+        calendarMonthImageEl = null;
         isCalendarBigTvActive = false;
         rightMonitorStaticOverlayEl = null;
         rightMonitorStaticVideoEl = null;
@@ -6642,18 +6675,17 @@
             calendarBigTvOverlayEl.type = 'button';
             calendarBigTvOverlayEl.className = 'calendar-big-tv-overlay';
             calendarBigTvOverlayEl.setAttribute('aria-hidden', 'true');
-            calendarBigTvOverlayEl.setAttribute('aria-label', 'Open Calendar');
-            calendarBigTvOverlayEl.title = 'Open Calendar';
+            calendarBigTvOverlayEl.setAttribute('aria-label', 'Calendar month preview');
+            calendarBigTvOverlayEl.title = 'Calendar month preview';
             calendarBigTvOverlayEl.addEventListener('pointerdown', (event) => event.stopPropagation());
-            calendarBigTvOverlayEl.addEventListener('click', (event) => {
-              event.stopPropagation();
-              window.location.assign(CALENDAR_HTML_URL);
-            });
-            calendarIframeEl = document.createElement('iframe');
-            calendarIframeEl.className = 'calendar-big-tv-iframe';
-            calendarIframeEl.title = 'Calendar preview';
-            calendarIframeEl.setAttribute('aria-hidden', 'true');
-            calendarBigTvOverlayEl.appendChild(calendarIframeEl);
+            calendarBigTvOverlayEl.addEventListener('click', (event) => event.stopPropagation());
+            calendarMonthImageEl = document.createElement('img');
+            calendarMonthImageEl.className = 'calendar-big-tv-image';
+            calendarMonthImageEl.alt = 'Current calendar month';
+            calendarMonthImageEl.loading = 'lazy';
+            calendarMonthImageEl.decoding = 'async';
+            calendarMonthImageEl.setAttribute('aria-hidden', 'true');
+            calendarBigTvOverlayEl.appendChild(calendarMonthImageEl);
             el.appendChild(calendarBigTvOverlayEl);
 
 
