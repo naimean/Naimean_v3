@@ -5887,7 +5887,7 @@
           if (commodorePowerButtonEl) {
             commodorePowerButtonEl.classList.remove('on');
           }
-          [commodoreShadowOverlayEl, bigTvShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach(animateMonitorShadowOff);
+          [commodoreShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach(animateMonitorShadowOff);
           return;
         }
         isCommodorePoweringOn = true;
@@ -5896,7 +5896,7 @@
           commodorePowerButtonEl.classList.add('on');
         }
         animateMonitorShadowOn(commodoreShadowOverlayEl);
-        [bigTvShadowOverlayEl, leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach((el) => {
+        [leftMonitorShadowOverlayEl, rightMonitorShadowOverlayEl].forEach((el) => {
           if (!el) return;
           const delay = COMMODORE_MONITOR_TURN_ON_MS + Math.floor(Math.random() * MONITOR_POWER_CASCADE_MS);
           const id = window.setTimeout(() => animateMonitorShadowOn(el), delay);
