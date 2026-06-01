@@ -3448,14 +3448,14 @@
             playNextRandomBigTvScreensaver();
           }
         }
+      }
 
-        function triggerBigTvScreensaverRotation() {
-          if (!isBigTvScreensaverPlaying()) {
-            return false;
-          }
-          void playBigTvScreensaverStaticTransition();
-          return true;
+      function triggerBigTvScreensaverRotation() {
+        if (!isBigTvScreensaverPlaying()) {
+          return false;
         }
+        void playBigTvScreensaverStaticTransition();
+        return true;
       }
 
       function syncBigTvContentVisibility() {
