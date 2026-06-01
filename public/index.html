@@ -3425,6 +3425,9 @@
         }
         const token = ++screensaverTransitionToken;
         const videoEl = bigTvScreensaverStaticVideoEl;
+        if (!videoEl.paused) {
+          videoEl.pause();
+        }
         videoEl.classList.add('is-active');
         videoEl.currentTime = 0;
         try {
@@ -3433,14 +3436,18 @@
           if (error?.name !== 'AbortError') {
             console.warn('Unable to play screensaver static transition.', error);
           }
-          videoEl.classList.remove('is-active');
+          if (token === screensaverTransitionToken) {
+            videoEl.classList.remove('is-active');
+          }
           return;
         }
         const hasEnded = await waitForMediaPlaybackToEnd(videoEl);
-        videoEl.classList.remove('is-active');
-        videoEl.currentTime = 0;
-        if (hasEnded && token === screensaverTransitionToken && isBigTvScreensaverPlaying()) {
-          playNextRandomBigTvScreensaver();
+        if (token === screensaverTransitionToken) {
+          videoEl.classList.remove('is-active');
+          videoEl.currentTime = 0;
+          if (hasEnded && isBigTvScreensaverPlaying()) {
+            playNextRandomBigTvScreensaver();
+          }
         }
       }
 
