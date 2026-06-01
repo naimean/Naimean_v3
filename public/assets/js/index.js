@@ -19,6 +19,10 @@
       const COMMODORE_MONITOR_TURN_ON_MS = 2000;
       const API_TIMEOUT_MS = 5000;
       const MONITOR_POWER_CASCADE_MS = 4000;
+      const MONITOR_INTERACTIVE_POLL_INTERVAL_MS = 500;
+      const MONITOR_INTERACTIVE_BUFFER_MS = 1000;
+      const BIG_TV_MONITOR_INTERACTIVE_WAIT_TIMEOUT_MS =
+        COMMODORE_MONITOR_TURN_ON_MS + MONITOR_POWER_CASCADE_MS + MONITOR_INTERACTIVE_BUFFER_MS;
       const SAVE_RETRY_ATTEMPTS = 3;
       const SAVE_RETRY_DELAY_MS = 350;
       const TOUCH_MOMENTUM_DECAY = 0.004;
@@ -1609,6 +1613,28 @@
         });
       }
 
+      function waitForBigTvMonitorInteractive(timeoutMs = BIG_TV_MONITOR_INTERACTIVE_WAIT_TIMEOUT_MS) {
+        if (isBigTvMonitorInteractive()) {
+          return Promise.resolve(true);
+        }
+
+        return new Promise((resolve) => {
+          const deadline = Date.now() + timeoutMs;
+          const checkInteractiveState = () => {
+            if (isBigTvMonitorInteractive()) {
+              resolve(true);
+              return;
+            }
+            if (Date.now() >= deadline) {
+              resolve(false);
+              return;
+            }
+            window.setTimeout(checkInteractiveState, MONITOR_INTERACTIVE_POLL_INTERVAL_MS);
+          };
+          checkInteractiveState();
+        });
+      }
+
       function hideAquariumStaticOverlay({ resetPlayback = true } = {}) {
         if (aquariumStaticOverlayEl) {
           aquariumStaticOverlayEl.classList.remove('is-active');
@@ -1787,6 +1813,16 @@
       }
 
       async function playAquariumHotspotSequence() {
+        if (!isBigTvMonitorInteractive()) {
+          if (!isCommodorePoweringOn) {
+            triggerCommodorePowerOnSequence();
+          }
+          const isBigTvReady = await waitForBigTvMonitorInteractive();
+          if (!isBigTvReady) {
+            return;
+          }
+        }
+
         if (replayAquariumPlaybackSequenceFromStatic()) {
           return;
         }
@@ -3435,9 +3471,6 @@
               return;
             }
             if (AQUARIUM_HOTSPOT_IDS.has(spot.id)) {
-              if (!isBigTvMonitorInteractive()) {
-                return;
-              }
               playAquariumHotspotSequence();
               return;
             }
