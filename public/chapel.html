@@ -391,8 +391,6 @@
       top: 56%;
       width: var(--sauce-splatter-droplet-size, 4px);
       height: var(--sauce-splatter-droplet-size, 4px);
-      border-radius: 50%;
-      background: radial-gradient(circle at 42% 34%, rgba(255, 204, 170, 0.9) 0%, rgba(240, 107, 63, 0.92) 50%, rgba(190, 52, 23, 0.95) 100%);
       opacity: 0;
       transform: translate(-50%, -50%);
       pointer-events: none;
@@ -1093,6 +1091,10 @@
         return min + Math.random() * (max - min);
       }
 
+      function randomIntegerBetween(min, max) {
+        return Math.floor(randomBetween(min, max + 1));
+      }
+
       function configureSauceSplatter(splatter) {
         if (!splatter) {
           return;
@@ -1113,10 +1115,10 @@
           dot.style.setProperty('--dot-alpha', `${randomBetween(0.8, 1).toFixed(3)}`);
         });
         const droplets = splatter.querySelectorAll('.sauce-drop-splatter-droplet');
-        const sprayCount = Math.floor(randomBetween(
+        const sprayCount = randomIntegerBetween(
           SAUCE_SPLATTER_DROPLET_MIN_COUNT,
-          SAUCE_SPLATTER_DROPLET_MAX_COUNT + 1
-        ));
+          SAUCE_SPLATTER_DROPLET_MAX_COUNT
+        );
         droplets.forEach((droplet, index) => {
           droplet.style.animation = 'none';
           if (index >= sprayCount) {
