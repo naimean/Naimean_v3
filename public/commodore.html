@@ -394,9 +394,13 @@
     }
 
     #debug-save-btn {
-      display: inline-block;
+      display: none;
       border-color: rgba(0, 209, 255, 0.65);
       color: #aef3ff;
+    }
+
+    body.debug #debug-save-btn {
+      display: inline-block;
     }
 
     #debug-save-btn[data-state="saved"] {
