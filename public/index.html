@@ -7302,13 +7302,41 @@
         stopMomentum();
       }
 
-      async function initializeScene() {
-        await loadAquariumShrimpClipCatalog();
-        await fetchDiscordAuthState();
+      function renderHotspotLayers() {
+        createAshtraySmokeEffect();
+        createAshtrayCigaretteEffect();
+        createHotspots(hotspots);
+        syncControlledOverlaysFromHotspots();
+      }
+
+      function hydrateSceneData({ hasSaveResultFlash = false } = {}) {
+        void loadAquariumShrimpClipCatalog();
+
+        void fetchDiscordAuthState().then(() => {
+          syncDiscordAuthBodyClass();
+          syncDiscordButtonUi();
+        });
+
+        void loadHotspotsFromServer().then((serverHotspots) => {
+          const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
+          if (hasServerHotspots) {
+            hotspots = serverHotspots;
+            renderHotspotLayers();
+            resize();
+          }
+
+          if (!hasSaveResultFlash) {
+            debugStatus.textContent = hasServerHotspots
+              ? 'Hotspots loaded from the server.'
+              : 'Server hotspots unavailable; loaded bundled default hotspots.';
+          }
+        });
+      }
+
+      function initializeScene() {
         const restoredDiscordLoginFlowState = consumeDiscordLoginFlowState();
-        const serverHotspots = await loadHotspotsFromServer();
-        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
-        hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
+        const saveResultFlash = consumeSaveResultFlash();
+        hotspots = sourceHotspotsToRuntime(defaultHotspots);
 
         createOverlays();
         syncDiscordAuthBodyClass();
@@ -7321,23 +7349,18 @@
           }
         }
         createSceneTiles();
-        createAshtraySmokeEffect();
-        createAshtrayCigaretteEffect();
-        createHotspots(hotspots);
+        renderHotspotLayers();
         if (useLiteRendering) {
           document.body.classList.add('lite-rendering');
         }
 
         resize();
 
-        const saveResultFlash = consumeSaveResultFlash();
         if (saveResultFlash) {
           debugStatus.textContent = saveResultFlash;
-        } else {
-          debugStatus.textContent = hasServerHotspots
-            ? 'Hotspots loaded from the server.'
-            : 'Server hotspots unavailable; loaded bundled default hotspots.';
         }
+
+        hydrateSceneData({ hasSaveResultFlash: Boolean(saveResultFlash) });
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
@@ -7442,7 +7465,8 @@
         }
       })();
 
-      void initializeScene().finally(markSceneReady);
+      initializeScene();
+      markSceneReady();
     })();
   </script>
 </body>
