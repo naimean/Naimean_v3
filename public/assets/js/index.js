@@ -450,6 +450,7 @@
       let latestLcpEntry = null;
       let largestInteractionDuration = 0;
       let performanceObserversFinalized = false;
+      let performanceMeasureToken = 0;
       const overlayElementsById = new Map();
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
@@ -602,7 +603,8 @@
         if (!perfApi?.mark || !perfApi?.measure) {
           return callback();
         }
-        const token = Math.random().toString(36).slice(2, 8);
+        performanceMeasureToken += 1;
+        const token = performanceMeasureToken;
         const startMark = `${name}-start-${token}`;
         const endMark = `${name}-end-${token}`;
         perfApi.mark(startMark);
@@ -639,8 +641,14 @@
 
       function observePerformanceMetrics() {
         const navigationEntry = perfApi?.getEntriesByType?.('navigation')?.[0];
+        const activationStart = Number.isFinite(navigationEntry?.activationStart)
+          ? navigationEntry.activationStart
+          : 0;
+        const ttfbStart = activationStart > 0
+          ? activationStart
+          : (Number.isFinite(navigationEntry?.startTime) ? navigationEntry.startTime : 0);
         const ttfb = navigationEntry
-          ? navigationEntry.responseStart - (navigationEntry.activationStart || 0)
+          ? navigationEntry.responseStart - ttfbStart
           : NaN;
         updatePerformanceMetric('TTFB', ttfb);
 
@@ -651,7 +659,7 @@
         try {
           const lcpObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries();
-            latestLcpEntry = entries[entries.length - 1] ?? latestLcpEntry;
+            latestLcpEntry = entries[entries.length - 1] || latestLcpEntry;
             if (latestLcpEntry) {
               updatePerformanceMetric('LCP', latestLcpEntry.startTime, { provisional: true });
             }
@@ -4884,14 +4892,16 @@
         syncControlledOverlaysFromHotspots();
       }
 
-      function hydrateSceneData({ hasSaveResultFlash = false } = {}) {
+      function hydrateNonCriticalSceneData() {
         void loadAquariumShrimpClipCatalog();
 
         void fetchDiscordAuthState().then(() => {
           syncDiscordAuthBodyClass();
           syncDiscordButtonUi();
         });
+      }
 
+      function hydrateHotspotsFromServer({ hasSaveResultFlash = false } = {}) {
         void loadHotspotsFromServer().then((serverHotspots) => {
           const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
           if (hasServerHotspots) {
@@ -4935,7 +4945,8 @@
           debugStatus.textContent = saveResultFlash;
         }
 
-        scheduleNonCriticalTask(() => hydrateSceneData({ hasSaveResultFlash: Boolean(saveResultFlash) }));
+        hydrateHotspotsFromServer({ hasSaveResultFlash: Boolean(saveResultFlash) });
+        scheduleNonCriticalTask(hydrateNonCriticalSceneData);
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
