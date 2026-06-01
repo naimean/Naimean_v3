@@ -3387,7 +3387,6 @@
 
       function isBigTvScreensaverPlaying() {
         return (
-          isBigTvMonitorInteractive() &&
           !isBigTvDvdLoopInterrupted &&
           !!bigTvDvdOverlayEl &&
           bigTvDvdOverlayEl.classList.contains('is-active') &&
@@ -3448,6 +3447,14 @@
           if (hasEnded && isBigTvScreensaverPlaying()) {
             playNextRandomBigTvScreensaver();
           }
+        }
+
+        function triggerBigTvScreensaverRotation() {
+          if (!isBigTvScreensaverPlaying()) {
+            return false;
+          }
+          void playBigTvScreensaverStaticTransition();
+          return true;
         }
       }
 
@@ -6202,11 +6209,10 @@
               return;
             }
             if (spot.id === DISCORD_OVERLAY_CONTROL_ID) {
-              if (!isBigTvMonitorInteractive()) {
+              if (triggerBigTvScreensaverRotation()) {
                 return;
               }
-              if (isBigTvScreensaverPlaying()) {
-                void playBigTvScreensaverStaticTransition();
+              if (!isBigTvMonitorInteractive()) {
                 return;
               }
               interruptBigTvDvdLoop();
@@ -7352,6 +7358,11 @@
         }
 
         const shouldStartMomentum = isDragging && shouldUseMomentum(activePointerType);
+        const shouldTriggerDesktopScreensaverRotation =
+          !isDragging &&
+          !dragStartedOnHotspot &&
+          !event.target.closest(BIG_TV_INTERACTIVE_UI_SELECTORS) &&
+          !event.target.closest('button, input, select, textarea, a, iframe, [contenteditable="true"]');
         const releasedVelocityX = dragVelocityX;
         isPointerDown = false;
         activePointerId = null;
@@ -7362,6 +7373,9 @@
         viewport.classList.remove('dragging');
         if (viewport.hasPointerCapture(event.pointerId)) {
           viewport.releasePointerCapture(event.pointerId);
+        }
+        if (shouldTriggerDesktopScreensaverRotation && triggerBigTvScreensaverRotation()) {
+          return;
         }
         if (shouldStartMomentum) {
           startMomentum(releasedVelocityX);
