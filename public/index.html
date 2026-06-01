@@ -3386,7 +3386,7 @@
         );
       }
 
-      function isBigTvScreensaverPlaying() {
+      function isBigTvDefaultScreensaverActive() {
         return (
           !isBigTvDvdLoopInterrupted &&
           !!bigTvDvdOverlayEl &&
@@ -3420,7 +3420,7 @@
       }
 
       async function playBigTvScreensaverStaticTransition() {
-        if (!bigTvScreensaverStaticVideoEl || !isBigTvScreensaverPlaying()) {
+        if (!bigTvScreensaverStaticVideoEl || !isBigTvDefaultScreensaverActive()) {
           return;
         }
         const token = ++screensaverTransitionToken;
@@ -3445,14 +3445,14 @@
         if (token === screensaverTransitionToken) {
           videoEl.classList.remove('is-active');
           videoEl.currentTime = 0;
-          if (hasEnded && isBigTvScreensaverPlaying()) {
+          if (hasEnded && isBigTvDefaultScreensaverActive()) {
             playNextRandomBigTvScreensaver();
           }
         }
       }
 
       function tryTriggerBigTvScreensaverRotation() {
-        if (!isBigTvScreensaverPlaying()) {
+        if (!isBigTvDefaultScreensaverActive()) {
           return false;
         }
         void playBigTvScreensaverStaticTransition();
@@ -7359,10 +7359,11 @@
         }
 
         const shouldStartMomentum = isDragging && shouldUseMomentum(activePointerType);
+        const pointerTarget = event.target instanceof Element ? event.target : null;
         const shouldTriggerDesktopScreensaverRotation =
           !isDragging &&
           !dragStartedOnHotspot &&
-          !event.target.closest(BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS);
+          (!pointerTarget || !pointerTarget.closest(BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS));
         const releasedVelocityX = dragVelocityX;
         isPointerDown = false;
         activePointerId = null;
