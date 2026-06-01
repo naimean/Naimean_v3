@@ -378,6 +378,38 @@ test('worker serves non-api requests through ASSETS binding', async () => {
   assert.deepEqual(calls.assetsFetch, ['/other.html']);
 });
 
+test('worker applies immutable caching to versioned assets', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        return new Response('versioned asset');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/assets/images/den_computer.v20260601.webp'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+});
+
+test('worker keeps revalidation caching for non-versioned assets', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        return new Response('non-versioned asset');
+      }
+    }
+  };
+
+  const response = await router.fetch(new Request('https://example.com/assets/images/den_computer.png'), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
+});
+
 test('worker serves /den through the index asset alias', async () => {
   const calls = { assetsFetch: [] };
   const env = {

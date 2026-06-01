@@ -121,6 +121,8 @@ function isHtmlPath(pathname) {
 function applyAssetCacheHeaders(pathname, headers) {
   if (isHtmlPath(pathname)) {
     headers.set('cache-control', 'no-store');
+  } else if (/\.[vV]\d{8,}\.[^/]+$/.test(pathname)) {
+    headers.set('cache-control', 'public, max-age=31536000, immutable');
   } else {
     headers.set('cache-control', 'public, max-age=0, must-revalidate');
   }
