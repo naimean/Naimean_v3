@@ -118,9 +118,13 @@ function isHtmlPath(pathname) {
   return pathname === '/' || pathname.endsWith('.html') || !lastSegment.includes('.');
 }
 
+const VERSIONED_ASSET_RE = /\.v\d{4}[^.]*\.(png|mp4)$/i;
+
 function applyAssetCacheHeaders(pathname, headers) {
   if (isHtmlPath(pathname)) {
     headers.set('cache-control', 'no-store');
+  } else if (VERSIONED_ASSET_RE.test(pathname)) {
+    headers.set('cache-control', 'public, max-age=31536000, immutable');
   } else {
     headers.set('cache-control', 'public, max-age=0, must-revalidate');
   }

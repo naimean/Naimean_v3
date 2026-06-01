@@ -1769,3 +1769,54 @@ test('worker /api/discord/logout returns 405 for GET', async () => {
   const response = await router.fetch(new Request('https://naimean.com/api/discord/logout'), env);
   assert.equal(response.status, 405);
 });
+
+test('worker applies long-lived cache headers to versioned .png assets', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        return new Response('img-bytes', { status: 200, headers: { 'content-type': 'image/png' } });
+      }
+    }
+  };
+  const response = await router.fetch(
+    new Request('https://example.com/assets/images/commodore64.v20260424.png'),
+    env
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+});
+
+test('worker applies long-lived cache headers to versioned .mp4 assets', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        return new Response('vid-bytes', { status: 200, headers: { 'content-type': 'video/mp4' } });
+      }
+    }
+  };
+  const response = await router.fetch(
+    new Request('https://example.com/assets/video/static.v20260424.mp4'),
+    env
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+});
+
+test('worker applies must-revalidate cache headers to non-versioned assets', async () => {
+  const env = {
+    HOTSPOT_STORE: {},
+    ASSETS: {
+      async fetch() {
+        return new Response('img-bytes', { status: 200, headers: { 'content-type': 'image/png' } });
+      }
+    }
+  };
+  const response = await router.fetch(
+    new Request('https://example.com/assets/images/logo.png'),
+    env
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
+});
