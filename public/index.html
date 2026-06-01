@@ -2457,9 +2457,10 @@
       border: 1px solid rgba(255, 255, 255, 0.35);
       background: rgba(0, 0, 0, 0.55);
       color: rgba(255, 255, 255, 0.9);
-      font-size: 11px;
-      letter-spacing: 0.05em;
+      font-size: 22px;
+      letter-spacing: 0;
       cursor: pointer;
+      line-height: 1;
     }
 
     #debug-toggle-btn:focus-visible {
@@ -2786,7 +2787,7 @@
       </div>
     </div>
   </div>
-  <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">Debug</button>
+  <button id="debug-toggle-btn" type="button" aria-label="Toggle debug mode">🐛</button>
   <button id="save-hotspots-btn" type="button" aria-label="Save hotspot positions">Save</button>
   <div id="debug-object-controls" aria-label="Debug object controls">
     <label for="debug-object-select">Object</label>
@@ -7224,6 +7225,33 @@
         setDebugMode(!document.body.classList.contains('debug'));
       }
 
+      const WRONG_AUDIO_URL = 'assets/audio/wrong.v20260424.mp3';
+
+      function onDebugButtonClick() {
+        if (document.body.classList.contains('debug')) {
+          setDebugMode(false);
+          return;
+        }
+        const attempt = window.prompt('Password required.');
+        if (attempt === null) {
+          if (debugStatus) debugStatus.textContent = 'Debug cancelled.';
+          return;
+        }
+        const isValid = hasMatchingDebugSaveCipher(encodeDebugSavePassword(attempt.trim()));
+        if (!isValid) {
+          if (debugStatus) debugStatus.textContent = 'Incorrect password.';
+          const wrongAudio = new Audio(WRONG_AUDIO_URL);
+          wrongAudio.play().catch((error) => {
+            if (error?.name !== 'AbortError') {
+              console.warn('Unable to play wrong audio.', error);
+            }
+          });
+          return;
+        }
+        hasDebugSaveAccess = true;
+        setDebugMode(true);
+      }
+
       async function saveHotspots() {
         if (!ensureDebugSaveAccess()) {
           setSaveButtonText('Password required');
@@ -7330,7 +7358,7 @@
       document.addEventListener('fullscreenchange', syncBigTvFullscreenUi);
       window.addEventListener('resize', resize);
       window.addEventListener('beforeunload', cleanup, { once: true });
-      debugToggleButton.addEventListener('click', toggleDebugMode);
+      debugToggleButton.addEventListener('click', onDebugButtonClick);
       debugObjectSelect.addEventListener('change', refreshDebugObjectActions);
       debugObjectLockButton.addEventListener('click', () => {
         const selectedEl = getSelectedDebugHotspotElement();
