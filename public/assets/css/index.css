@@ -113,7 +113,7 @@
 
     #viewport {
       opacity: 1;
-      transition: opacity 900ms ease;
+      transition: opacity 150ms ease-out;
     }
 
     body.scene-loading #viewport {

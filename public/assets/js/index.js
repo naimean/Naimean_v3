@@ -1,4 +1,6 @@
     (() => {
+      const perfApi = window.performance;
+      perfApi?.mark?.('naimean-js-boot-start');
       const DESIGN_HEIGHT = 2160;
       const TILE_WIDTH = 3840;
       const SCENE_OFFSET_X = TILE_WIDTH;
@@ -155,6 +157,25 @@
       const DISCORD_LOGIN_SEQUENCE_STEP_DELAY_MS = 900;
       const DISCORD_LOGIN_SEQUENCE_REDIRECT_DELAY_MS = 1200;
       const DISCORD_LOGIN_STEP_KEYS = Object.freeze(['display', 'oauth', 'return']);
+      const PERFORMANCE_PANEL_QUERY_KEY = 'perf';
+      const PERFORMANCE_METRIC_ORDER = Object.freeze(['LCP', 'INP', 'TTFB', 'JS boot']);
+      const PERFORMANCE_PANEL_STYLES = [
+        'position:fixed',
+        'top:12px',
+        'right:12px',
+        'z-index:99999',
+        'min-width:190px',
+        'max-width:240px',
+        'padding:10px 12px',
+        'border:1px solid rgba(255,255,255,0.18)',
+        'border-radius:10px',
+        'background:rgba(7,12,20,0.88)',
+        'box-shadow:0 10px 24px rgba(0,0,0,0.35)',
+        'backdrop-filter:blur(8px)',
+        'color:#f4f7fb',
+        'font:12px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+        'pointer-events:none'
+      ].join(';');
       const MONITOR_STATIC_MIN_DURATION_MS = 1000;
       const MONITOR_STATIC_MAX_DURATION_MS = 2000;
       const MONITOR_CONTENT_MIN_DURATION_MS = 3000;
@@ -387,6 +408,8 @@
       const saveModal = document.getElementById('save-modal');
       const saveModalTitle = document.getElementById('save-modal-title');
       const saveModalTextarea = document.getElementById('save-modal-textarea');
+      const searchParams = new URLSearchParams(window.location.search);
+      const isPerformancePanelEnabled = searchParams.get(PERFORMANCE_PANEL_QUERY_KEY) === '1';
       const isIOSDevice =
         /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
         (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
@@ -423,6 +446,10 @@
       let hotspotApiMode = 'primary';
       let flipClockIntervalId = null;
       let flipClockAlignTimeoutId = null;
+      let performancePanelEl = null;
+      let latestLcpEntry = null;
+      let largestInteractionDuration = 0;
+      let performanceObserversFinalized = false;
       const overlayElementsById = new Map();
       let aquariumOverlayEl = null;
       let aquariumStaticOverlayEl = null;
@@ -517,6 +544,143 @@
       let denUrlOverrides = loadDenUrlOverrides();
 
       let hotspots = sourceHotspotsToRuntime(defaultHotspots);
+
+      function ensurePerformancePanel() {
+        if (!isPerformancePanelEnabled || performancePanelEl || !document.body) {
+          return;
+        }
+        performancePanelEl = document.createElement('aside');
+        performancePanelEl.setAttribute('aria-hidden', 'true');
+        performancePanelEl.style.cssText = PERFORMANCE_PANEL_STYLES;
+        document.body.appendChild(performancePanelEl);
+      }
+
+      function renderPerformancePanel() {
+        if (!isPerformancePanelEnabled) {
+          return;
+        }
+        ensurePerformancePanel();
+        if (!performancePanelEl) {
+          return;
+        }
+        const metricsByName = window.__NAIMEAN_PERFORMANCE__?.metrics ?? {};
+        performancePanelEl.innerHTML = `
+          <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.72;margin-bottom:6px;">Performance</div>
+          ${PERFORMANCE_METRIC_ORDER.map((name) => {
+            const metric = metricsByName[name];
+            const value = metric ? `${metric.value.toFixed(1)} ms` : '…';
+            const state = metric?.provisional ? ' <span style="opacity:0.6;">(live)</span>' : '';
+            return `<div style="display:flex;justify-content:space-between;gap:12px;"><strong>${name}</strong><span>${value}${state}</span></div>`;
+          }).join('')}
+        `;
+      }
+
+      function updatePerformanceMetric(name, value, { provisional = false } = {}) {
+        if (!Number.isFinite(value)) {
+          return;
+        }
+        const nextMetric = {
+          name,
+          value: Math.round(value * 10) / 10,
+          provisional
+        };
+        const metrics = {
+          ...(window.__NAIMEAN_PERFORMANCE__?.metrics ?? {}),
+          [name]: nextMetric
+        };
+        window.__NAIMEAN_PERFORMANCE__ = {
+          enabled: isPerformancePanelEnabled,
+          metrics
+        };
+        if (isPerformancePanelEnabled) {
+          console.info(`[perf] ${name}: ${nextMetric.value.toFixed(1)} ms`);
+        }
+        renderPerformancePanel();
+      }
+
+      function measureSyncSection(name, callback) {
+        if (!perfApi?.mark || !perfApi?.measure) {
+          return callback();
+        }
+        const token = Math.random().toString(36).slice(2, 8);
+        const startMark = `${name}-start-${token}`;
+        const endMark = `${name}-end-${token}`;
+        perfApi.mark(startMark);
+        try {
+          return callback();
+        } finally {
+          perfApi.mark(endMark);
+          perfApi.measure(name, startMark, endMark);
+        }
+      }
+
+      function scheduleNonCriticalTask(callback, { timeout = 1500 } = {}) {
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(() => callback(), { timeout });
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          window.setTimeout(callback, 0);
+        });
+      }
+
+      function finalizePerformanceObservers() {
+        if (performanceObserversFinalized) {
+          return;
+        }
+        performanceObserversFinalized = true;
+        if (latestLcpEntry) {
+          updatePerformanceMetric('LCP', latestLcpEntry.startTime);
+        }
+        if (largestInteractionDuration > 0) {
+          updatePerformanceMetric('INP', largestInteractionDuration);
+        }
+      }
+
+      function observePerformanceMetrics() {
+        const navigationEntry = perfApi?.getEntriesByType?.('navigation')?.[0];
+        const ttfb = navigationEntry
+          ? navigationEntry.responseStart - (navigationEntry.activationStart || 0)
+          : NaN;
+        updatePerformanceMetric('TTFB', ttfb);
+
+        if (typeof window.PerformanceObserver !== 'function') {
+          return;
+        }
+
+        try {
+          const lcpObserver = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            latestLcpEntry = entries[entries.length - 1] ?? latestLcpEntry;
+            if (latestLcpEntry) {
+              updatePerformanceMetric('LCP', latestLcpEntry.startTime, { provisional: true });
+            }
+          });
+          lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+        } catch (_) {}
+
+        try {
+          const inpObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              if (!entry?.interactionId || !Number.isFinite(entry.duration)) {
+                continue;
+              }
+              if (entry.duration > largestInteractionDuration) {
+                largestInteractionDuration = entry.duration;
+                updatePerformanceMetric('INP', largestInteractionDuration, { provisional: true });
+              }
+            }
+          });
+          inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+        } catch (_) {}
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') {
+            finalizePerformanceObservers();
+          }
+        });
+        window.addEventListener('pagehide', finalizePerformanceObservers, { once: true });
+      }
 
       function sourceHotspotXToRuntime(id, x) {
         return FIRST_TILE_HOTSPOT_IDS.has(id) ? x : x + SCENE_OFFSET_X;
@@ -2595,6 +2759,16 @@
         window.requestAnimationFrame(() => {
           document.body.classList.remove('scene-loading');
           document.body.classList.add('scene-ready');
+          if (perfApi?.mark && perfApi?.measure) {
+            perfApi.mark('naimean-scene-ready');
+            perfApi.measure('naimean-js-boot', 'naimean-js-boot-start', 'naimean-scene-ready');
+            const bootMeasures = perfApi.getEntriesByName('naimean-js-boot');
+            const latestBootMeasure = bootMeasures[bootMeasures.length - 1];
+            if (latestBootMeasure) {
+              updatePerformanceMetric('JS boot', latestBootMeasure.duration);
+            }
+          }
+          renderPerformancePanel();
         });
       }
 
@@ -4739,7 +4913,8 @@
         const saveResultFlash = consumeSaveResultFlash();
         hotspots = sourceHotspotsToRuntime(defaultHotspots);
 
-        createOverlays();
+        measureSyncSection('naimean-create-scene-tiles', createSceneTiles);
+        measureSyncSection('naimean-create-overlays', createOverlays);
         syncDiscordAuthBodyClass();
         syncDiscordButtonUi();
         syncLoginOverlayUi();
@@ -4749,19 +4924,18 @@
             triggerCommodorePowerOnSequence();
           }
         }
-        createSceneTiles();
-        renderHotspotLayers();
+        measureSyncSection('naimean-render-hotspots', renderHotspotLayers);
         if (useLiteRendering) {
           document.body.classList.add('lite-rendering');
         }
 
-        resize();
+        measureSyncSection('naimean-initial-resize', resize);
 
         if (saveResultFlash) {
           debugStatus.textContent = saveResultFlash;
         }
 
-        hydrateSceneData({ hasSaveResultFlash: Boolean(saveResultFlash) });
+        scheduleNonCriticalTask(() => hydrateSceneData({ hasSaveResultFlash: Boolean(saveResultFlash) }));
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
@@ -4866,6 +5040,7 @@
         }
       })();
 
+      observePerformanceMetrics();
       initializeScene();
       markSceneReady();
     })();
