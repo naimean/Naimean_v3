@@ -6100,6 +6100,8 @@
       }
 
       function createOverlays() {
+        // Rebuilding overlays is used during startup hydration when server hotspot
+        // geometry arrives after first paint.
         screenOverlayLayer.textContent = '';
         overlayElementsById.clear();
         leftMonitorSegmentButtonsByState.clear();
@@ -6920,6 +6922,20 @@
         syncDiscordButtonUi();
       }
 
+      function syncOverlayPositionsFromHotspots() {
+        overlayDefaults.forEach((overlay) => {
+          const rect = getOverlayRect(overlay.id);
+          const overlayEl = overlayElementsById.get(overlay.id);
+          if (!rect || !overlayEl) {
+            return;
+          }
+          overlayEl.style.left = `${rect.x}px`;
+          overlayEl.style.top = `${rect.y}px`;
+          overlayEl.style.width = `${rect.w}px`;
+          overlayEl.style.height = `${rect.h}px`;
+        });
+      }
+
       function applyTransforms() {
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
       }
@@ -7303,18 +7319,23 @@
         stopMomentum();
       }
 
-      async function hydrateSceneData({ saveResultFlash }) {
+      async function hydrateSceneData({ statusFlashOverride }) {
         let serverHotspots = null;
-        try {
-          await Promise.all([
-            loadAquariumShrimpClipCatalog(),
-            fetchDiscordAuthState(),
-            loadHotspotsFromServer().then((loadedHotspots) => {
-              serverHotspots = loadedHotspots;
-            })
-          ]);
-        } catch (_) {
-          // Fall back to local defaults when background hydration fails.
+        const hydrationResults = await Promise.allSettled([
+          loadAquariumShrimpClipCatalog(),
+          fetchDiscordAuthState(),
+          loadHotspotsFromServer()
+        ]);
+        const [catalogResult, authResult, hotspotResult] = hydrationResults;
+        if (hotspotResult.status === 'fulfilled') {
+          serverHotspots = hotspotResult.value;
+        }
+        const failedHydrationParts = [];
+        if (catalogResult.status === 'rejected') failedHydrationParts.push('aquarium catalog');
+        if (authResult.status === 'rejected') failedHydrationParts.push('Discord auth');
+        if (hotspotResult.status === 'rejected') failedHydrationParts.push('hotspots');
+        if (failedHydrationParts.length > 0) {
+          console.warn(`[scene] Background hydration failed for: ${failedHydrationParts.join(', ')}.`);
         }
 
         syncDiscordAuthBodyClass();
@@ -7324,26 +7345,25 @@
         const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
         if (hasServerHotspots) {
           hotspots = serverHotspots;
-          createOverlays();
+          syncOverlayPositionsFromHotspots();
           createAshtraySmokeEffect();
           createAshtrayCigaretteEffect();
           createHotspots(hotspots);
           resize();
         }
 
-        if (!saveResultFlash) {
+        // Preserve save-result feedback when present; otherwise show hydration status.
+        if (!statusFlashOverride) {
           debugStatus.textContent = hasServerHotspots
-            ? 'Hotspots loaded from the server.'
-            : 'Server hotspots unavailable; loaded bundled default hotspots.';
+            ? 'Startup data hydrated: aquarium catalog, auth, and hotspots.'
+            : 'Startup data hydrated with local fallback hotspots (server hotspots unavailable).';
         }
       }
 
+      // Render immediately with bundled defaults, then hydrate startup data in the background.
       function initializeScene() {
         const restoredDiscordLoginFlowState = consumeDiscordLoginFlowState();
         createOverlays();
-        syncDiscordAuthBodyClass();
-        syncDiscordButtonUi();
-        syncLoginOverlayUi();
         if (restoredDiscordLoginFlowState?.showLogin) {
           setLeftMonitorState('login');
           if (restoredDiscordLoginFlowState.restorePowerOn && !isCommodorePoweringOn) {
@@ -7368,7 +7388,7 @@
         }
 
         markSceneReady();
-        void hydrateSceneData({ saveResultFlash });
+        void hydrateSceneData({ statusFlashOverride: saveResultFlash });
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
