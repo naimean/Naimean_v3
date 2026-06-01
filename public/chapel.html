@@ -1137,6 +1137,7 @@
           droplet.style.setProperty('--sauce-splatter-droplet-alpha', `${randomBetween(0.52, 0.9).toFixed(3)}`);
           const duration = Math.round(randomBetween(300, 540));
           const delay = Math.round(randomBetween(0, 60));
+          // Force layout so iOS Safari reliably restarts this animation after resetting to 'none'.
           droplet.getBoundingClientRect();
           droplet.style.animation = `sauce-drip-splatter-droplet ${duration}ms cubic-bezier(0.18, 0.6, 0.3, 1) ${delay}ms forwards`;
         });
