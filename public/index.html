@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Den Scene</title>
+  <link rel="preload" as="image" type="image/webp" href="assets/images/den_arcade.v20260528.webp" />
   <style>
     :root {
       --design-height: 2160;
@@ -78,6 +79,14 @@
       top: 0;
       width: calc(var(--tile-width) * 1px);
       height: calc(var(--design-height) * 1px);
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .scene-tile > img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       pointer-events: none;
       user-select: none;
@@ -3034,9 +3043,21 @@
       const CALENDAR_URL_MOBILE = 'msteams://l/meetings';
       const WORLD_WIDTH_SEGMENTS = 3;
       const SCENE_TILE_IMAGE_URLS = [
-        'assets/images/den_arcade.v20260528.PNG',
-        'assets/images/den_computer.png',
-        'assets/images/den_chapel.v20260528.png'
+        {
+          avif: 'assets/images/den_arcade.v20260528.avif',
+          webp: 'assets/images/den_arcade.v20260528.webp',
+          png: 'assets/images/den_arcade.v20260528.PNG',
+        },
+        {
+          avif: 'assets/images/den_computer.avif',
+          webp: 'assets/images/den_computer.webp',
+          png: 'assets/images/den_computer.png',
+        },
+        {
+          avif: 'assets/images/den_chapel.v20260528.avif',
+          webp: 'assets/images/den_chapel.v20260528.webp',
+          png: 'assets/images/den_chapel.v20260528.png',
+        },
       ];
       const DISCORD_OVERLAY_CONTROL_ID = 'overlay-big-tv-control';
       const BIG_TV_SHADOW_LAYER_ID = 'big_tv_shadow_layer';
@@ -6028,14 +6049,29 @@
 
       function createSceneTiles() {
         sceneLayer.textContent = '';
-        SCENE_TILE_IMAGE_URLS.forEach((src, index) => {
-          const tile = document.createElement('img');
+        SCENE_TILE_IMAGE_URLS.forEach((sources, index) => {
+          const tile = document.createElement('picture');
           tile.className = 'scene-tile';
-          tile.src = src;
-          tile.alt = '';
-          tile.loading = index === 0 ? 'eager' : 'lazy';
-          tile.decoding = 'async';
           tile.style.left = `${index * TILE_WIDTH}px`;
+
+          const avifSource = document.createElement('source');
+          avifSource.type = 'image/avif';
+          avifSource.srcset = sources.avif;
+          tile.appendChild(avifSource);
+
+          const webpSource = document.createElement('source');
+          webpSource.type = 'image/webp';
+          webpSource.srcset = sources.webp;
+          tile.appendChild(webpSource);
+
+          const image = document.createElement('img');
+          image.src = sources.png;
+          image.alt = '';
+          image.loading = index === 0 ? 'eager' : 'lazy';
+          image.decoding = 'async';
+          image.fetchPriority = index === 0 ? 'high' : 'low';
+          tile.appendChild(image);
+
           sceneLayer.appendChild(tile);
         });
       }
