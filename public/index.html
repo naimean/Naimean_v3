@@ -2991,6 +2991,7 @@
       const LOGIN_LOGO_URL = 'assets/images/login_logo.png';
       const CALENDAR_HTML_URL = '/calendar.html';
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
+      const BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS = `${BIG_TV_INTERACTIVE_UI_SELECTORS}, button, input, select, textarea, a, iframe, [contenteditable="true"]`;
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
@@ -3450,7 +3451,7 @@
         }
       }
 
-      function triggerBigTvScreensaverRotation() {
+      function tryTriggerBigTvScreensaverRotation() {
         if (!isBigTvScreensaverPlaying()) {
           return false;
         }
@@ -6209,7 +6210,7 @@
               return;
             }
             if (spot.id === DISCORD_OVERLAY_CONTROL_ID) {
-              if (triggerBigTvScreensaverRotation()) {
+              if (tryTriggerBigTvScreensaverRotation()) {
                 return;
               }
               if (!isBigTvMonitorInteractive()) {
@@ -7361,8 +7362,7 @@
         const shouldTriggerDesktopScreensaverRotation =
           !isDragging &&
           !dragStartedOnHotspot &&
-          !event.target.closest(BIG_TV_INTERACTIVE_UI_SELECTORS) &&
-          !event.target.closest('button, input, select, textarea, a, iframe, [contenteditable="true"]');
+          !event.target.closest(BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS);
         const releasedVelocityX = dragVelocityX;
         isPointerDown = false;
         activePointerId = null;
@@ -7374,7 +7374,7 @@
         if (viewport.hasPointerCapture(event.pointerId)) {
           viewport.releasePointerCapture(event.pointerId);
         }
-        if (shouldTriggerDesktopScreensaverRotation && triggerBigTvScreensaverRotation()) {
+        if (shouldTriggerDesktopScreensaverRotation && tryTriggerBigTvScreensaverRotation()) {
           return;
         }
         if (shouldStartMomentum) {
