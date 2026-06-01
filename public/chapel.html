@@ -120,6 +120,30 @@
       }
     }
 
+    @keyframes sauce-drip-splatter-droplet {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.62);
+      }
+      18% {
+        opacity: var(--sauce-splatter-droplet-alpha, 0.82);
+      }
+      55% {
+        opacity: calc(var(--sauce-splatter-droplet-alpha, 0.82) * 0.78);
+        transform: translate(
+          calc(-50% + (var(--sauce-splatter-droplet-x, 0px) * 0.55)),
+          calc(-50% + (var(--sauce-splatter-droplet-y, 0px) * 0.55) - var(--sauce-splatter-droplet-arc, 12px))
+        ) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(
+          calc(-50% + var(--sauce-splatter-droplet-x, 0px)),
+          calc(-50% + var(--sauce-splatter-droplet-y, 0px))
+        ) scale(0.78);
+      }
+    }
+
     @keyframes commodore-tv-shadow-takeover {
       0% {
         opacity: 0;
@@ -359,6 +383,19 @@
       width: 36%;
       height: 62%;
       transform: translate(-50%, -50%);
+    }
+
+    .sauce-drop-splatter-droplet {
+      position: absolute;
+      left: 50%;
+      top: 56%;
+      width: var(--sauce-splatter-droplet-size, 4px);
+      height: var(--sauce-splatter-droplet-size, 4px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 42% 34%, rgba(255, 204, 170, 0.9) 0%, rgba(240, 107, 63, 0.92) 50%, rgba(190, 52, 23, 0.95) 100%);
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
       border-radius: 52% 48% 56% 44% / 50% 56% 44% 50%;
       background: radial-gradient(circle at 35% 26%, rgba(255, 192, 150, 0.66) 0%, rgba(157, 19, 13, 0.94) 62%, rgba(92, 7, 6, 0.98) 100%);
       box-shadow: 0 0 1px rgba(255, 174, 136, 0.42);
@@ -661,6 +698,10 @@
       const SAUCE_DRIP_IMPACT_OFFSET_DESIGN_PX = 124;
       const SAUCE_DRIP_END_OFFSET_DESIGN_PX = 150;
       const SAUCE_SPLATTER_DOT_COUNT = 8;
+      const SAUCE_SPLATTER_DROPLET_MIN_COUNT = 2;
+      const SAUCE_SPLATTER_DROPLET_MAX_COUNT = 5;
+      const SAUCE_SPLATTER_DROPLET_MIN_DISTANCE_PX = 15;
+      const SAUCE_SPLATTER_DROPLET_MAX_DISTANCE_PX = 50;
       const SAUCE_SPLATTER_ANIMATION_MS = 620;
       const SAUCE_SPLATTER_START_RATIO = 0.72;
       const COMMODORE_NAV_SOURCE_STORAGE_KEY = 'commodore.navigation.source.v1';
@@ -1071,6 +1112,30 @@
           dot.style.setProperty('--dot-rotate', `${randomBetween(-40, 40).toFixed(2)}deg`);
           dot.style.setProperty('--dot-alpha', `${randomBetween(0.8, 1).toFixed(3)}`);
         });
+        const droplets = splatter.querySelectorAll('.sauce-drop-splatter-droplet');
+        const sprayCount = Math.floor(randomBetween(
+          SAUCE_SPLATTER_DROPLET_MIN_COUNT,
+          SAUCE_SPLATTER_DROPLET_MAX_COUNT + 1
+        ));
+        droplets.forEach((droplet, index) => {
+          droplet.style.animation = 'none';
+          if (index >= sprayCount) {
+            droplet.style.opacity = '0';
+            return;
+          }
+          const angle = randomBetween(0, 360) * (Math.PI / 180);
+          const distance = randomBetween(SAUCE_SPLATTER_DROPLET_MIN_DISTANCE_PX, SAUCE_SPLATTER_DROPLET_MAX_DISTANCE_PX);
+          const travelX = Math.cos(angle) * distance;
+          const travelY = Math.sin(angle) * distance;
+          droplet.style.setProperty('--sauce-splatter-droplet-x', `${travelX.toFixed(2)}px`);
+          droplet.style.setProperty('--sauce-splatter-droplet-y', `${travelY.toFixed(2)}px`);
+          droplet.style.setProperty('--sauce-splatter-droplet-arc', `${randomBetween(8, 18).toFixed(2)}px`);
+          droplet.style.setProperty('--sauce-splatter-droplet-size', `${randomBetween(2.4, 5.4).toFixed(2)}px`);
+          droplet.style.setProperty('--sauce-splatter-droplet-alpha', `${randomBetween(0.52, 0.9).toFixed(3)}`);
+          const duration = Math.round(randomBetween(300, 540));
+          const delay = Math.round(randomBetween(0, 60));
+          droplet.style.animation = `sauce-drip-splatter-droplet ${duration}ms cubic-bezier(0.18, 0.6, 0.3, 1) ${delay}ms forwards`;
+        });
       }
 
       function scheduleNextSauceDrip() {
@@ -1113,6 +1178,9 @@
           }
           droplet.style.animation = 'none';
           splatter.style.animation = 'none';
+          splatter.querySelectorAll('.sauce-drop-splatter-droplet').forEach((splatterDroplet) => {
+            splatterDroplet.style.animation = 'none';
+          });
           scheduleNextSauceDrip();
         };
         droplet.addEventListener('animationend', resetSauceDrip, { once: true });
@@ -1208,6 +1276,11 @@
           const splatterDot = document.createElement('span');
           splatterDot.className = 'sauce-drop-splatter-dot';
           splatter.appendChild(splatterDot);
+        }
+        for (let index = 0; index < SAUCE_SPLATTER_DROPLET_MAX_COUNT; index += 1) {
+          const splatterDroplet = document.createElement('span');
+          splatterDroplet.className = 'sauce-drop-splatter-droplet';
+          splatter.appendChild(splatterDroplet);
         }
         track.appendChild(splatter);
         const droplet = document.createElement('div');
