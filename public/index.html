@@ -6100,6 +6100,7 @@
       }
 
       function createOverlays() {
+        screenOverlayLayer.textContent = '';
         overlayElementsById.clear();
         leftMonitorSegmentButtonsByState.clear();
         aquariumOverlayEl = null;
@@ -7302,14 +7303,43 @@
         stopMomentum();
       }
 
-      async function initializeScene() {
-        await loadAquariumShrimpClipCatalog();
-        await fetchDiscordAuthState();
-        const restoredDiscordLoginFlowState = consumeDiscordLoginFlowState();
-        const serverHotspots = await loadHotspotsFromServer();
-        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
-        hotspots = hasServerHotspots ? serverHotspots : sourceHotspotsToRuntime(defaultHotspots);
+      async function hydrateSceneData({ saveResultFlash }) {
+        let serverHotspots = null;
+        try {
+          await Promise.all([
+            loadAquariumShrimpClipCatalog(),
+            fetchDiscordAuthState(),
+            loadHotspotsFromServer().then((loadedHotspots) => {
+              serverHotspots = loadedHotspots;
+            })
+          ]);
+        } catch (_) {
+          // Fall back to local defaults when background hydration fails.
+        }
 
+        syncDiscordAuthBodyClass();
+        syncDiscordButtonUi();
+        syncLoginOverlayUi();
+
+        const hasServerHotspots = serverHotspots !== null && serverHotspots !== undefined;
+        if (hasServerHotspots) {
+          hotspots = serverHotspots;
+          createOverlays();
+          createAshtraySmokeEffect();
+          createAshtrayCigaretteEffect();
+          createHotspots(hotspots);
+          resize();
+        }
+
+        if (!saveResultFlash) {
+          debugStatus.textContent = hasServerHotspots
+            ? 'Hotspots loaded from the server.'
+            : 'Server hotspots unavailable; loaded bundled default hotspots.';
+        }
+      }
+
+      function initializeScene() {
+        const restoredDiscordLoginFlowState = consumeDiscordLoginFlowState();
         createOverlays();
         syncDiscordAuthBodyClass();
         syncDiscordButtonUi();
@@ -7334,10 +7364,11 @@
         if (saveResultFlash) {
           debugStatus.textContent = saveResultFlash;
         } else {
-          debugStatus.textContent = hasServerHotspots
-            ? 'Hotspots loaded from the server.'
-            : 'Server hotspots unavailable; loaded bundled default hotspots.';
+          debugStatus.textContent = 'Loading aquarium catalog, auth, and hotspots...';
         }
+
+        markSceneReady();
+        void hydrateSceneData({ saveResultFlash });
       }
 
       viewport.addEventListener('wheel', onWheel, { passive: false });
@@ -7442,7 +7473,7 @@
         }
       })();
 
-      void initializeScene().finally(markSceneReady);
+      initializeScene();
     })();
   </script>
 </body>
