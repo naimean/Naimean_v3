@@ -293,7 +293,7 @@ async function handleDiscordCallback(request, env) {
   
   const authHeader = { Authorization: 'Bearer ' + accessToken };
   const userRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeader });
-  if (!userRes.ok) return errorRedirect(`${origin}/`, 'user_lookup_failed');
+  if (!userRes.ok) return errorRedirect(`${origin}/`, 'user_fetch_failed');
   const user = await userRes.json();
   
   const guildId = env.DISCORD_GUILD_ID;
@@ -550,6 +550,17 @@ async function proxyShrimpClip(env, fileId) {
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
+// ─── Durable Object dispatch helper ──────────────────────────────────────────
+async function dispatchToHotspotStore(env, request, instanceName) {
+  if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
+  try {
+    const stub = env.HOTSPOT_STORE.get(env.HOTSPOT_STORE.idFromName(instanceName));
+    return await stub.fetch(request);
+  } catch (err) {
+    return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
+  }
+}
+
 // ─── Main worker entry router ──────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
@@ -562,37 +573,10 @@ export default {
     if (pathname === '/api/discord/me') return handleDiscordMe(request, env);
     if (pathname === '/api/discord/logout') return handleDiscordLogout(request, env);
 
-    // /api/hotspots → Durable Object
-    if (pathname === '/api/hotspots') {
-      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
-      try {
-        const id = env.HOTSPOT_STORE.idFromName('den-hotspots');
-        const stub = env.HOTSPOT_STORE.get(id);
-        return await stub.fetch(request);
-      } catch (err) {
-        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
-      }
-    }
-    if (pathname === '/api/chapel-hotspots') {
-      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
-      try {
-        const id = env.HOTSPOT_STORE.idFromName('chapel-hotspots');
-        const stub = env.HOTSPOT_STORE.get(id);
-        return await stub.fetch(request);
-      } catch (err) {
-        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
-      }
-    }
-    if (pathname === '/api/arcade-url-overrides') {
-      if (!env.HOTSPOT_STORE) return jsonResponse({ error: 'HOTSPOT_STORE binding is missing.' }, 500);
-      try {
-        const id = env.HOTSPOT_STORE.idFromName('arcade-url-overrides');
-        const stub = env.HOTSPOT_STORE.get(id);
-        return await stub.fetch(request);
-      } catch (err) {
-        return jsonResponse({ error: `Hotspot store unavailable: ${err?.message || 'Unknown error'}` }, 500);
-      }
-    }
+    // Hotspot Durable Object routes
+    if (pathname === '/api/hotspots') return dispatchToHotspotStore(env, request, 'den-hotspots');
+    if (pathname === '/api/chapel-hotspots') return dispatchToHotspotStore(env, request, 'chapel-hotspots');
+    if (pathname === '/api/arcade-url-overrides') return dispatchToHotspotStore(env, request, 'arcade-url-overrides');
 
     // /api/aquarium/shrimp-clips
     if (pathname === '/api/aquarium/shrimp-clips') {
@@ -608,11 +592,7 @@ export default {
       return proxyShrimpClip(env, fileId);
     }
 
-    // Core legacy API check routes
     if (pathname === '/api/health') return jsonResponse({ status: 'healthy', timestamp: Date.now() });
-    if (pathname === '/api/data') return jsonResponse({ message: 'Data payload' });
-    if (pathname === '/api/barrelroll') return jsonResponse({ action: 'do_a_barrel_roll' });
-    if (pathname === '/api/musickit-token') return jsonResponse({ token: 'DEVELOPER_TOKEN_HERE' });
 
     // Catch all static paths → Asset handler
     return serveAsset(request, env, pathname);
