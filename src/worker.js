@@ -442,21 +442,21 @@ function sanitizeArcadeUrlOverrides(input) {
     const normalized = normalizeArcadeUrl(rawUrl);
     if (normalized) overrides[name] = normalized;
   }
-
-  function sanitizeCornerScore(input) {
-    const parsed = Number(input);
-    if (!Number.isFinite(parsed)) return 0;
-    const floored = Math.floor(parsed);
-    return Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, floored));
-  }
-
-  function sanitizeCornerScoreIncrement(input) {
-    const parsed = Number(input);
-    if (!Number.isFinite(parsed)) return 0;
-    const floored = Math.floor(parsed);
-    return Math.max(0, Math.min(1000, floored));
-  }
   return overrides;
+}
+
+function sanitizeCornerScore(input) {
+  const parsed = Number(input);
+  if (!Number.isFinite(parsed)) return 0;
+  const floored = Math.floor(parsed);
+  return Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, floored));
+}
+
+function sanitizeCornerScoreIncrement(input) {
+  const parsed = Number(input);
+  if (!Number.isFinite(parsed)) return 0;
+  const floored = Math.floor(parsed);
+  return Math.max(0, Math.min(1000, floored));
 }
 
 const HOTSPOT_JSON_HEADERS = {
@@ -525,18 +525,18 @@ export class HotspotStore {
         try {
           storedScore = sanitizeCornerScore(await this.state.storage.get(storageKey));
         } catch (err) {
-          return hotspotJson({ error: `Failed to load hotspots: ${err?.message || 'Unknown error'}` }, 500);
+          return hotspotJson({ error: `Failed to load corner score: ${err?.message || 'Unknown error'}` }, 500);
         }
         const hasExplicitScore = body && Object.hasOwn(body, 'score');
         const explicitScore = hasExplicitScore ? sanitizeCornerScore(body?.score) : null;
         const incrementBy = sanitizeCornerScoreIncrement(body?.incrementBy);
         const nextScore = explicitScore === null
-          ? Math.min(Number.MAX_SAFE_INTEGER, storedScore + incrementBy)
-          : Math.min(Number.MAX_SAFE_INTEGER, explicitScore + incrementBy);
+          ? storedScore + incrementBy
+          : explicitScore + incrementBy;
         try {
           await this.state.storage.put(storageKey, nextScore);
         } catch (err) {
-          return hotspotJson({ error: `Failed to save hotspots: ${err?.message || 'Unknown error'}` }, 500);
+          return hotspotJson({ error: `Failed to save corner score: ${err?.message || 'Unknown error'}` }, 500);
         }
         return hotspotJson({ ok: true, score: nextScore });
       }
