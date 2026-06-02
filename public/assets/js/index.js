@@ -87,6 +87,12 @@
       ]);
       const BIG_TV_DVD_GIF_URL = BIG_TV_SCREENSAVER_GIF_URLS[0];
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
+      const BIG_TV_STATIC_AUDIO_URL = 'assets/audio/static.mp3';
+      const BIG_TV_STATIC_AUDIO_FALLBACK_URL = 'assets/audio/freesound_community-static-poppy-light-107792.mp3';
+      const BIG_TV_STATIC_AUDIO_URLS = Object.freeze([
+        BIG_TV_STATIC_AUDIO_URL,
+        BIG_TV_STATIC_AUDIO_FALLBACK_URL
+      ]);
       const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
       );
@@ -1509,14 +1515,18 @@
         return `${CALENDAR_MONTH_IMAGE_BASE_URL}/${encodeURIComponent(fileName)}`;
       }
 
+      function setCalendarMonthImage(date = new Date()) {
+        if (!calendarMonthImageEl) {
+          return;
+        }
+        calendarMonthImageEl.src = getCalendarMonthImageUrl(date);
+      }
+
       function showCalendarBigTvOverlay() {
         if (!calendarBigTvOverlayEl) {
           return;
         }
         isCalendarBigTvActive = true;
-        if (calendarMonthImageEl) {
-          calendarMonthImageEl.src = getCalendarMonthImageUrl(new Date());
-        }
         calendarBigTvOverlayEl.classList.add('is-active');
         calendarBigTvOverlayEl.setAttribute('aria-hidden', 'false');
         syncBigTvContentVisibility();
@@ -1542,8 +1552,13 @@
         hideBigTvToolsOverlay();
         hideLoginOverlay({ cancelSequence: false });
         hideCalendarBigTvOverlay();
+        setCalendarMonthImage(new Date());
 
-        await playBigTvStaticPass(sequenceToken, () => calendarBigTvSequenceToken);
+        await playBigTvStaticPass(
+          sequenceToken,
+          () => calendarBigTvSequenceToken,
+          { playAudio: true }
+        );
         if (sequenceToken !== calendarBigTvSequenceToken) {
           hideAquariumStaticOverlay();
           return;
@@ -2235,23 +2250,58 @@
         nedryGateVideoEl.load();
       }
 
-      async function playBigTvStaticPass(sequenceToken, getSequenceToken = () => bigTvPromptSequenceToken) {
+      async function playBigTvStaticPass(
+        sequenceToken,
+        getSequenceToken = () => bigTvPromptSequenceToken,
+        { playAudio = false } = {}
+      ) {
         if (!aquariumStaticOverlayEl || !aquariumStaticVideoEl) {
           return false;
         }
+        const staticAudioEl = playAudio ? await startBigTvStaticAudioLoop() : null;
         aquariumStaticOverlayEl.classList.add('is-active');
         aquariumStaticVideoEl.currentTime = 0;
         syncBigTvContentVisibility();
         try {
           await aquariumStaticVideoEl.play();
+          const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
+          return hasEnded && sequenceToken === getSequenceToken();
         } catch (error) {
           if (error?.name !== 'AbortError') {
             console.warn('Unable to play big TV static overlay.', error);
           }
           return false;
+        } finally {
+          stopBigTvStaticAudioLoop(staticAudioEl);
         }
-        const hasEnded = await waitForMediaPlaybackToEnd(aquariumStaticVideoEl);
-        return hasEnded && sequenceToken === getSequenceToken();
+      }
+
+      async function startBigTvStaticAudioLoop() {
+        let lastError = null;
+        for (const audioUrl of BIG_TV_STATIC_AUDIO_URLS) {
+          const audioEl = document.createElement('audio');
+          audioEl.preload = 'auto';
+          audioEl.loop = true;
+          audioEl.src = audioUrl;
+          try {
+            await audioEl.play();
+            return audioEl;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (lastError?.name !== 'AbortError') {
+          console.warn('Unable to play big TV static audio.', lastError);
+        }
+        return null;
+      }
+
+      function stopBigTvStaticAudioLoop(audioEl) {
+        if (!audioEl) {
+          return;
+        }
+        audioEl.pause();
+        audioEl.currentTime = 0;
       }
 
       async function playBigTvVideoPass(sequenceToken, sourceUrl) {
