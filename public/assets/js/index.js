@@ -79,13 +79,7 @@
       const DEFAULT_BIG_TV_RIGHT_MONITOR_OVERLAY_STATE = 'blue_discord';
       const BIG_TV_RIGHT_MONITOR_OVERLAY_STATE_UNKNOWN = 'unknown';
       const BIG_TV_RIGHT_MONITOR_OVERLAY_BLUE_IMAGE_URL = 'assets/images/join_disc_blue.png';
-      const BIG_TV_SCREENSAVER_GIF_URLS = Object.freeze([
-        'assets/GIF/big_screen_TV/dvd.gif',
-        'assets/GIF/big_screen_TV/rotating_square.gif',
-        'assets/GIF/big_screen_TV/marble.GIF',
-        'assets/GIF/big_screen_TV/squirrel.GIF'
-      ]);
-      const BIG_TV_DVD_GIF_URL = BIG_TV_SCREENSAVER_GIF_URLS[0];
+      const BIG_TV_DVD_GIF_URL = 'assets/GIF/big_screen_TV/dvd.gif';
       const AQUARIUM_STATIC_VIDEO_URL = 'assets/video/static.v20260424.mp4';
       const AQUARIUM_LOCAL_SHRIMP_CLIPS = Object.freeze(
         Array.from({ length: 23 }, (_, index) => `assets/video/shrimp/sh${index + 1}.mp4`)
@@ -150,7 +144,6 @@
       const CALENDAR_MONTH_IMAGE_END = Object.freeze({ year: 2030, month: 4 }); // May 2030, zero-based month
       const CALENDAR_MONTH_NAME_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'long' });
       const BIG_TV_INTERACTIVE_UI_SELECTORS = '.big-tv-prompt-content, .big-tv-prompt-secret-box, .big-tv-tools-overlay, .login-overlay, .calendar-big-tv-overlay, .big-tv-fullscreen-exit-button';
-      const BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS = `${BIG_TV_INTERACTIVE_UI_SELECTORS}, button, input, select, textarea, a, iframe, [contenteditable="true"]`;
       // Keep values comfortably within localStorage and the on-screen form layout.
       const BIG_TV_TOOLS_MAX_NAME_LENGTH = 120;
       const BIG_TV_TOOLS_MAX_URL_LENGTH = 2000;
@@ -461,9 +454,6 @@
       let aquariumStaticVideoEl = null;
       let bigTvDvdOverlayEl = null;
       let bigTvDvdGifEl = null;
-      let bigTvScreensaverStaticVideoEl = null;
-      let screensaverTransitionToken = 0;
-      let activeBigTvScreensaverGifUrl = BIG_TV_SCREENSAVER_GIF_URLS[Math.floor(Math.random() * BIG_TV_SCREENSAVER_GIF_URLS.length)];
       let isBigTvDvdLoopInterrupted = false;
       let aquariumSequenceToken = 0;
       let aquariumLoopOwnerToken = 0;
@@ -737,69 +727,6 @@
           !hasActiveBigTvContentOverlay() &&
           hasDefaultMonitorOverlays()
         );
-      }
-
-      function setBigTvScreensaverGifUrl(nextUrl) {
-        if (!bigTvDvdGifEl || !bigTvDvdGifEl.isConnected || !nextUrl) {
-          return false;
-        }
-        bigTvDvdGifEl.src = nextUrl;
-        activeBigTvScreensaverGifUrl = nextUrl;
-        return true;
-      }
-
-      function getNextRandomBigTvScreensaverUrl(currentUrl) {
-        const uniqueScreensaverUrls = [...new Set(BIG_TV_SCREENSAVER_GIF_URLS)];
-        if (uniqueScreensaverUrls.length === 1) {
-          return uniqueScreensaverUrls[0];
-        }
-        const choices = uniqueScreensaverUrls.filter((url) => url !== currentUrl);
-        return choices[Math.floor(Math.random() * choices.length)];
-      }
-
-      function playNextRandomBigTvScreensaver() {
-        const nextUrl = getNextRandomBigTvScreensaverUrl(activeBigTvScreensaverGifUrl);
-        return !!nextUrl && setBigTvScreensaverGifUrl(nextUrl);
-      }
-
-      async function playBigTvScreensaverStaticTransition() {
-        if (!bigTvScreensaverStaticVideoEl || !isBigTvDefaultScreensaverActive()) {
-          return;
-        }
-        const token = ++screensaverTransitionToken;
-        const videoEl = bigTvScreensaverStaticVideoEl;
-        if (!videoEl.paused) {
-          videoEl.pause();
-        }
-        videoEl.classList.add('is-active');
-        videoEl.currentTime = 0;
-        try {
-          await videoEl.play();
-        } catch (error) {
-          if (error?.name !== 'AbortError') {
-            console.warn('Unable to play screensaver static transition.', error);
-          }
-          if (token === screensaverTransitionToken) {
-            videoEl.classList.remove('is-active');
-          }
-          return;
-        }
-        const hasEnded = await waitForMediaPlaybackToEnd(videoEl);
-        if (token === screensaverTransitionToken) {
-          videoEl.classList.remove('is-active');
-          videoEl.currentTime = 0;
-          if (hasEnded && isBigTvDefaultScreensaverActive()) {
-            playNextRandomBigTvScreensaver();
-          }
-        }
-      }
-
-      function tryTriggerBigTvScreensaverRotation() {
-        if (!isBigTvDefaultScreensaverActive()) {
-          return false;
-        }
-        void playBigTvScreensaverStaticTransition();
-        return true;
       }
 
       function syncBigTvContentVisibility() {
@@ -3639,9 +3566,6 @@
               return;
             }
             if (spot.id === DISCORD_OVERLAY_CONTROL_ID) {
-              if (tryTriggerBigTvScreensaverRotation()) {
-                return;
-              }
               if (!isBigTvMonitorInteractive()) {
                 return;
               }
@@ -3691,9 +3615,6 @@
         aquariumStaticVideoEl = null;
         bigTvDvdOverlayEl = null;
         bigTvDvdGifEl = null;
-        bigTvScreensaverStaticVideoEl = null;
-        screensaverTransitionToken = 0;
-        activeBigTvScreensaverGifUrl = BIG_TV_SCREENSAVER_GIF_URLS[Math.floor(Math.random() * BIG_TV_SCREENSAVER_GIF_URLS.length)];
         isBigTvDvdLoopInterrupted = false;
         bigTvPromptOverlayEl = null;
         bigTvPromptSecretBoxEl = null;
@@ -3762,17 +3683,8 @@
             bigTvDvdGifEl.draggable = false;
             bigTvDvdGifEl.loading = 'eager';
             bigTvDvdGifEl.decoding = 'async';
+            bigTvDvdGifEl.src = BIG_TV_DVD_GIF_URL;
             bigTvDvdOverlayEl.appendChild(bigTvDvdGifEl);
-            bigTvScreensaverStaticVideoEl = document.createElement('video');
-            bigTvScreensaverStaticVideoEl.className = 'big-tv-screensaver-static';
-            bigTvScreensaverStaticVideoEl.src = AQUARIUM_STATIC_VIDEO_URL;
-            bigTvScreensaverStaticVideoEl.preload = 'metadata';
-            bigTvScreensaverStaticVideoEl.muted = true;
-            bigTvScreensaverStaticVideoEl.defaultMuted = true;
-            bigTvScreensaverStaticVideoEl.playsInline = true;
-            bigTvScreensaverStaticVideoEl.setAttribute('playsinline', '');
-            bigTvScreensaverStaticVideoEl.setAttribute('webkit-playsinline', '');
-            bigTvDvdOverlayEl.appendChild(bigTvScreensaverStaticVideoEl);
             el.appendChild(bigTvDvdOverlayEl);
             if (DISCORD_WIDGET_URL) {
               const widgetFrame = document.createElement('iframe');
@@ -4202,8 +4114,10 @@
             overlay.id === RIGHT_MONITOR_SHADOW_LAYER_ID
           ) {
             el.classList.add('monitor-shadow-overlay');
-            if (overlay.id === BIG_TV_SHADOW_LAYER_ID) bigTvShadowOverlayEl = el;
-            else if (overlay.id === LEFT_MONITOR_SHADOW_LAYER_ID) leftMonitorShadowOverlayEl = el;
+            if (overlay.id === BIG_TV_SHADOW_LAYER_ID) {
+              bigTvShadowOverlayEl = el;
+              el.classList.add('is-monitor-on');
+            } else if (overlay.id === LEFT_MONITOR_SHADOW_LAYER_ID) leftMonitorShadowOverlayEl = el;
             else rightMonitorShadowOverlayEl = el;
           }
 
@@ -4783,11 +4697,6 @@
         }
 
         const shouldStartMomentum = isDragging && shouldUseMomentum(activePointerType);
-        const pointerTarget = event.target instanceof Element ? event.target : null;
-        const shouldTriggerDesktopScreensaverRotation =
-          !isDragging &&
-          !dragStartedOnHotspot &&
-          (!pointerTarget || !pointerTarget.closest(BIG_TV_SCREENSAVER_ROTATION_IGNORED_SELECTORS));
         const releasedVelocityX = dragVelocityX;
         isPointerDown = false;
         activePointerId = null;
@@ -4798,9 +4707,6 @@
         viewport.classList.remove('dragging');
         if (viewport.hasPointerCapture(event.pointerId)) {
           viewport.releasePointerCapture(event.pointerId);
-        }
-        if (shouldTriggerDesktopScreensaverRotation && tryTriggerBigTvScreensaverRotation()) {
-          return;
         }
         if (shouldStartMomentum) {
           startMomentum(releasedVelocityX);
