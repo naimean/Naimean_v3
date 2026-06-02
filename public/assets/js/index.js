@@ -12,6 +12,7 @@
       const DRAG_START_THRESHOLD_PX = 8;
       const CAMERA_SMOOTHING_FACTOR = 0.22;
       const CAMERA_SETTLE_EPSILON = 0.05;
+      const CAMERA_MOTION_IDLE_TIMEOUT_MS = 140;
       const HOTSPOT_CLICK_SUPPRESSION_MS = 400;
       const HOTSPOT_API_PATH = '/api/hotspots';
       const SAVE_RESULT_FLASH_KEY = 'den_hotspot_save_result';
@@ -438,6 +439,7 @@
       let momentumAnimationFrameId = null;
       let momentumVelocityX = 0;
       let lastMomentumTimestamp = 0;
+      let cameraMotionIdleTimeoutId = null;
       let saveButtonResetTimeoutId = null;
       let hasDebugSaveAccess = false;
       let hotspotApiMode = 'primary';
@@ -4445,9 +4447,32 @@
         world.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
       }
 
+      function setCameraMotionPerformanceMode(enabled) {
+        document.body.classList.toggle('camera-motion-active', enabled);
+      }
+
+      function markCameraMotionActivity() {
+        if (!hasInitializedCamera) {
+          return;
+        }
+        setCameraMotionPerformanceMode(true);
+        if (cameraMotionIdleTimeoutId !== null) {
+          window.clearTimeout(cameraMotionIdleTimeoutId);
+        }
+        cameraMotionIdleTimeoutId = window.setTimeout(() => {
+          cameraMotionIdleTimeoutId = null;
+          setCameraMotionPerformanceMode(false);
+        }, CAMERA_MOTION_IDLE_TIMEOUT_MS);
+      }
+
       function setCameraX(nextCameraX) {
+        const previousCameraX = cameraX;
         cameraX = clamp(nextCameraX, 0, maxCameraX);
+        if (cameraX === previousCameraX) {
+          return;
+        }
         applyTransforms();
+        markCameraMotionActivity();
       }
 
       function setTargetCameraX(nextCameraX) {
@@ -4804,6 +4829,11 @@
 
       function cleanup() {
         hideBigTvPromptOverlay();
+        if (cameraMotionIdleTimeoutId !== null) {
+          window.clearTimeout(cameraMotionIdleTimeoutId);
+          cameraMotionIdleTimeoutId = null;
+        }
+        setCameraMotionPerformanceMode(false);
         if (cameraAnimationFrameId !== null) {
           window.cancelAnimationFrame(cameraAnimationFrameId);
           cameraAnimationFrameId = null;
